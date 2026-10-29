@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Тренажёр · Анатомия — коллоквиум</title>
-  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: Три коллоквиума: остеология, миология и спланхнология. Тренировка по темам и разбор ошибок.">
+  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: Базы по анатомии для разных факультетов: тренировка по темам и разбор ошибок.">
   <meta name="theme-color" content="#f4f6fb">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
@@ -14,7 +14,7 @@
 
   <header class="topbar">
     <div class="topbar__inner">
-      <a class="brand" href="#/" aria-label="На главную">
+      <a class="brand" href="#/" aria-label="АРМ РНИМУ — на главную">
         <span class="brand__mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="9" fill="url(#bg)"/>
@@ -29,17 +29,23 @@
           </svg>
         </span>
         <span class="brand__text">
-          <strong>Анатомия</strong>
-          <span>АРМ РНИМУ</span>
+          <strong><svg class="brand__flag" viewBox="0 0 30 18" aria-hidden="true" focusable="false"><path fill="#d90012" d="M0 0h30v6H0z"/><path fill="#0033a0" d="M0 6h30v6H0z"/><path fill="#f2a800" d="M0 12h30v6H0z"/></svg>АРМ РНИМУ</strong>
+          <span>Анатомия</span>
         </span>
       </a>
 
       <label class="module-picker">
         <span class="module-picker__label">Коллоквиум</span>
         <select id="colloquiumSelect" aria-label="Выберите коллоквиум" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
-          <option value="1">1 · Остеология</option>
-          <option value="2">2 · Миология</option>
-          <option value="3">3 · Спланхнология</option>
+          <optgroup label="Основные базы">
+            <option value="1">1 · Остеология</option>
+            <option value="2">2 · Миология</option>
+            <option value="3">3 · Спланхнология</option>
+          </optgroup>
+          <optgroup label="Стоматологический факультет">
+            <option value="stom-2">Стом · 2 · Спланхнология</option>
+            <option value="stom-3">Стом · 3 · Ангионеврология</option>
+          </optgroup>
         </select>
       </label>
 
@@ -82,6 +88,8 @@
   <script src="js/data/exam.js"></script>
   <script src="js/data/colloquium-2.js"></script>
   <script src="js/data/colloquium-3.js"></script>
+  <script src="js/data/dental-2.js"></script>
+  <script src="js/data/dental-3.js"></script>
   <script src="js/modules.js"></script>
   <script src="js/core.js"></script>
   <script src="js/ui.js"></script>
