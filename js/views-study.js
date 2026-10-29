@@ -95,21 +95,6 @@
 
     let html = '<div class="view view--dashboard">';
 
-    html += '<section class="colloquiums" aria-labelledby="colloquiumsTitle">' +
-      '<div class="section__head"><div><h2 id="colloquiumsTitle">Коллоквиумы</h2>' +
-      '<p class="colloquiums__intro">Выберите раздел, чтобы перейти к тренировке</p></div></div>' +
-      '<div class="colloquiums__grid">' + AT.colloquiums.map((module) => {
-        const isCurrent = module.id === AT.colloquium.id;
-        return '<button type="button" class="colloquium-card' + (isCurrent ? ' is-current' : '') +
-          '" data-action="open-colloquium" data-colloquium="' + esc(module.id) + '">' +
-          '<span class="colloquium-card__number">Коллоквиум ' + esc(module.id) +
-          (isCurrent ? ' · выбран' : '') + '</span>' +
-          '<strong>' + esc(module.name) + '</strong>' +
-          '<span class="colloquium-card__details">Тренировка · ' + (module.questions ? module.questions.length : dataset.total) + ' вопросов</span>' +
-          '<span class="colloquium-card__exam">' + (module.examAvailable ? 'Экзамен доступен' : 'Экзамен скоро появится') + '</span>' +
-          '<span class="colloquium-card__link">Перейти к тренировке ' + icon('arrowRight') + '</span></button>';
-      }).join('') + '</div></section>';
-
     html +=
       '<section class="hero">' +
       '<div class="hero__body">' +
@@ -168,7 +153,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
-      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро появится', 'exam', '#/exam', 'violet') +
+      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       '</div></section>';
@@ -263,7 +248,7 @@
     if (!AT.colloquium.examAvailable) {
       return { title: 'Экзамен', html: '<div class="view">' +
         pageHead('Экзамен', 'Коллоквиум ' + AT.colloquium.id + ' · ' + AT.colloquium.name) +
-        emptyState('clock', 'Скоро появится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
+        emptyState('clock', 'Скоро добавится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
           '<a class="btn btn--primary" href="#/train">Перейти к тренировке</a>') + '</div>' };
     }
     const plan = AT.examPlan;

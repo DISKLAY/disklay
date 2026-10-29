@@ -146,32 +146,22 @@
     render();
   });
 
-  document.querySelectorAll('.colloquium-nav [data-colloquium]').forEach((button) => {
-    const selected = button.getAttribute('data-colloquium') === AT.colloquium.id;
-    button.classList.toggle('is-current', selected);
-    button.setAttribute('aria-pressed', String(selected));
-  });
-  function openColloquium(id, destination) {
-    if (!AT.colloquiums.some((item) => item.id === id)) return;
-    if (id === AT.colloquium.id) {
-      AT.go(destination);
-      return;
-    }
-    try {
-      // Сохраняем незавершённую сессию до перезагрузки и переключения банка.
-      AT.save(true);
-      localStorage.setItem('anatomy-colloquium-selected', id);
-      location.hash = destination;
-      location.reload();
-    } catch (e) {
-      ui.toast('Не удалось переключить коллоквиум: проверьте доступ к хранилищу браузера', 'warn');
-    }
+  const moduleSelect = document.getElementById('colloquiumSelect');
+  if (moduleSelect) {
+    moduleSelect.value = AT.colloquium.id;
+    moduleSelect.addEventListener('change', () => {
+      try {
+        // Сохраняем незавершённую сессию до перезагрузки и переключения банка.
+        AT.save(true);
+        localStorage.setItem('anatomy-colloquium-selected', moduleSelect.value);
+        location.hash = '#/';
+        location.reload();
+      } catch (e) {
+        moduleSelect.value = AT.colloquium.id;
+        ui.toast('Не удалось переключить коллоквиум: проверьте доступ к хранилищу браузера', 'warn');
+      }
+    });
   }
-
-  document.addEventListener('click', (e) => {
-    const button = e.target.closest('[data-action="open-colloquium"]');
-    if (button) openColloquium(button.getAttribute('data-colloquium'), '#/train');
-  });
 
   /* ---------------------------------------------------------------- запуск */
 
