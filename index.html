@@ -34,8 +34,8 @@
         </span>
       </a>
 
-      <label class="module-picker">
-        <span class="module-picker__label">Коллоквиум</span>
+      <div class="module-picker" id="modulePicker">
+        <label class="module-picker__label" for="colloquiumSelect">Коллоквиум</label>
         <select id="colloquiumSelect" aria-label="Выберите коллоквиум" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
           <optgroup label="Основные базы">
             <option value="1">1 · Остеология</option>
@@ -47,7 +47,7 @@
             <option value="stom-3">Стом · 3 · Ангионеврология</option>
           </optgroup>
         </select>
-      </label>
+      </div>
 
       <nav class="nav" id="mainNav" aria-label="Основная навигация">
         <a href="#/" data-route="dashboard">Главная</a>
@@ -95,6 +95,7 @@
   <script src="js/ui.js"></script>
   <script src="js/views-study.js"></script>
   <script src="js/views-pages.js"></script>
+  <script src="js/module-picker.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
