@@ -95,16 +95,32 @@
 
     let html = '<div class="view view--dashboard">';
 
+    html += '<section class="colloquiums" aria-labelledby="colloquiumsTitle">' +
+      '<div class="section__head"><div><h2 id="colloquiumsTitle">Коллоквиумы</h2>' +
+      '<p class="colloquiums__intro">Выберите раздел, чтобы перейти к тренировке</p></div></div>' +
+      '<div class="colloquiums__grid">' + AT.colloquiums.map((module) => {
+        const isCurrent = module.id === AT.colloquium.id;
+        return '<button type="button" class="colloquium-card' + (isCurrent ? ' is-current' : '') +
+          '" data-action="open-colloquium" data-colloquium="' + esc(module.id) + '">' +
+          '<span class="colloquium-card__number">Коллоквиум ' + esc(module.id) +
+          (isCurrent ? ' · выбран' : '') + '</span>' +
+          '<strong>' + esc(module.name) + '</strong>' +
+          '<span class="colloquium-card__details">Тренировка · ' + (module.questions ? module.questions.length : dataset.total) + ' вопросов</span>' +
+          '<span class="colloquium-card__exam">' + (module.examAvailable ? 'Экзамен доступен' : 'Экзамен скоро появится') + '</span>' +
+          '<span class="colloquium-card__link">Перейти к тренировке ' + icon('arrowRight') + '</span></button>';
+      }).join('') + '</div></section>';
+
     html +=
       '<section class="hero">' +
       '<div class="hero__body">' +
-      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · модуль 1</span>' +
+      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · коллоквиум ' + esc(AT.colloquium.id) + '</span>' +
       '<h1>Тренажёр к коллоквиуму</h1>' +
-      '<p class="hero__lead">' + total + ' экзаменационных заданий по костям, соединениям и черепу. ' +
-      'Учите по темам, разбирайте ошибки и проверяйте себя на время.</p>' +
+      '<p class="hero__module">' + esc(AT.colloquium.name) + '</p>' +
+      '<p class="hero__lead">' + total + ' заданий в этом коллоквиуме. Учите по темам и разбирайте ошибки.' +
+      (AT.colloquium.examAvailable ? ' Проверяйте себя на время.' : '') + '</p>' +
       '<div class="hero__actions">' +
       '<a href="#/train" class="btn btn--primary btn--lg">' + icon('play') + 'Тренироваться</a>' +
-      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + 'Пробный экзамен</a>' +
+      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + (AT.colloquium.examAvailable ? 'Пробный экзамен' : 'Экзамен · скоро') + '</a>' +
       '</div>' +
       '</div>' +
       '<div class="hero__aside">' +
@@ -152,7 +168,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
-      modeCard('Экзамен', examFormatText(), 'exam', '#/exam', 'violet') +
+      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро появится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       '</div></section>';
@@ -244,14 +260,22 @@
   /* -------------------------------------------------------- настройка: экзамен */
 
   views.examSetup = function () {
+    if (!AT.colloquium.examAvailable) {
+      return { title: 'Экзамен', html: '<div class="view">' +
+        pageHead('Экзамен', 'Коллоквиум ' + AT.colloquium.id + ' · ' + AT.colloquium.name) +
+        emptyState('clock', 'Скоро появится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
+          '<a class="btn btn--primary" href="#/train">Перейти к тренировке</a>') + '</div>' };
+    }
     const plan = AT.examPlan;
     const per = Math.round((plan.minutes * 60) / Math.max(1, plan.total));
+    const poolSize = new Set(plan.sections.flatMap((sec) => sec.questions.map((q) => q.id))).size;
 
     let html = '<div class="view">';
     html += pageHead('Экзамен', examFormatText() + '. Вопросы без подсказок, проверка — после завершения.');
 
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">План экзамена</div>' +
+      '<p class="muted small">В банке экзамена: ' + poolSize + ' ' + utils.plural(poolSize, 'вопрос', 'вопроса', 'вопросов') + '.</p>' +
       '<ol class="exam-plan">' +
       plan.sections.map((sec, i) => {
         return '<li class="exam-plan__row">' +
@@ -266,6 +290,7 @@
       '<p class="muted small">Итого ' + plan.total + ' ' + utils.plural(plan.total, 'вопрос', 'вопроса', 'вопросов') +
       ' — из каждого раздела случайно выбирается своё количество заданий, ' +
       'порядок вопросов совпадает с планом. На ответ — около ' + per + ' сек., таймер на ' + plan.minutes + ' мин.</p>' +
+      '<p class="muted small">Вопросы о черепе в целом и размерах таза распределены по ближайшим разделам.</p>' +
       '</div>' +
 
       '<div class="panel__footer">' +
@@ -303,7 +328,7 @@
         setup.train.limit = parseInt(el.getAttribute('data-limit'), 10);
         AT.rerender();
       } else if (action === 'start-train') {
-        startTraining('smart');
+        startTraining();
       } else if (action === 'start-exam') {
         startExam();
       }
@@ -334,6 +359,7 @@
   }
 
   function startExam() {
+    if (!AT.colloquium.examAvailable) return;
     const built = AT.buildExam();
     if (!built) {
       toast('Не удалось собрать экзамен по плану: недостаточно вопросов', 'warn');
@@ -461,7 +487,7 @@
         html += '<button class="btn btn--primary" data-action="check"' + (entry.selected.length ? '' : ' disabled') + '>' +
           icon('check') + 'Проверить</button>';
         html += '<button class="btn btn--ghost" data-action="skip">Пропустить</button>';
-        html += '<span class="question__kb"><kbd>1</kbd>–<kbd>5</kbd> выбор, <kbd>Enter</kbd> проверить</span>';
+        html += '<span class="question__kb"><kbd>1</kbd>–<kbd>' + q.options.length + '</kbd> выбор, <kbd>Enter</kbd> проверить</span>';
       } else {
         html += '<button class="btn btn--primary" data-action="next">' + icon('arrowRight') + 'Далее</button>';
         html += '<button class="btn btn--ghost" data-action="prev">' + icon('arrowLeft') + 'Назад</button>';
@@ -604,7 +630,7 @@
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
 
-        if (/^[1-5]$/.test(e.key)) {
+        if (/^[1-6]$/.test(e.key)) {
           const idx = parseInt(e.key, 10);
           if (idx <= q.options.length) {
             e.preventDefault();
@@ -661,7 +687,8 @@
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
         entry.revealed = true;
-        if (entry.correct === null) entry.self = true;
+        entry.correct = false;
+        entry.self = !keyApi.has(q);
         AT.recordAttempt(q, false, []);
         persist();
         renderInto(true);

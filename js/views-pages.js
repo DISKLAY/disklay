@@ -287,7 +287,7 @@
       '</div>' +
       '<hr class="hr">' +
       '<h2 class="card__title">' + icon('info') + 'Про нумерацию</h2>' +
-      '<p class="muted small">Номера совпадают с PDF. Вопрос № 58 встречается дважды — второй помечен «58а». Вопроса № 92 в файле нет.</p>' +
+      '<p class="muted small">' + (AT.colloquium.id === '1' ? 'Номера совпадают с PDF. Вопрос № 58 встречается дважды — второй помечен «58а». Вопроса № 92 в файле нет.' : 'Номера вопросов совпадают с исходным PDF.') + '</p>' +
       '</section></div>';
 
     html += '<section class="section">' +
@@ -546,9 +546,9 @@
       '</div></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">О тренажёре</h2>' +
-      '<p class="muted small">База: «Список заданий», модуль 1 — ' + dataset.total + ' заданий по анатомии человека. ' +
+      '<p class="muted small">Коллоквиум ' + esc(AT.colloquium.id) + ' · ' + esc(AT.colloquium.name) + ' — ' + dataset.total + ' заданий. ' +
       'Нумерация сохранена как в PDF. Приложение работает офлайн и не отправляет данные на сервер.</p>' +
-      '<p class="muted small">Ключ ответов взят из «Базы теста 1 коллоквиум» — верные варианты, отмеченные в PDF подсветкой. ' +
+      '<p class="muted small">Ключ ответов взят из «' + esc(AT.colloquium.source) + '» — варианты, отмеченные в PDF подсветкой. ' +
       'Спорные ответы можно поправить на странице «Ключ»: приоритет всегда у вашей правки.</p>' +
       '</section></div>';
 
@@ -574,7 +574,8 @@
           });
         } else if (action === 'export-progress') {
           const state = AT.getState();
-          downloadFile('anatomy-progress.json', JSON.stringify({
+          downloadFile('anatomy-progress-' + AT.colloquium.id + '.json', JSON.stringify({
+            colloquium: AT.colloquium.id,
             exportedAt: new Date().toISOString(),
             progress: state.progress,
             sessions: state.sessions,

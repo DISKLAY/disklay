@@ -83,3 +83,21 @@ test('подсказка о количестве ответов не показ�
   assert.doesNotMatch(AT.views.questionCard({ mode: 'exam' }, q, entry), /верных:/);
   assert.match(AT.views.questionCard({ mode: 'train' }, q, entry), /верных:/);
 });
+
+test('все 211 вопросов первого коллоквиума входят в банк экзамена ровно по одному разу', () => {
+  const { AT } = loadApp();
+  const questions = AT.examPlan.sections.flatMap((section) => section.questions);
+  const poolIds = questions.map((q) => q.id);
+  assert.equal(questions.length, 211);
+  assert.equal(new Set(poolIds).size, 211);
+  assert.deepEqual(Array.from(poolIds).sort(), Array.from(AT.dataset.questions, (q) => q.id).sort());
+  for (const [sectionId, numbers] of [
+    ['face-bones', Array.from({ length: 20 }, (_, i) => i + 118)],
+    ['brain-bones', [138, 139, 140]],
+    ['lower-bones', [188, 189, 190, 191]],
+  ]) {
+    const section = AT.examPlan.sections.find((item) => item.id === sectionId);
+    for (const num of numbers) assert.ok(section.questions.some((q) => q.num === num), `${sectionId}: № ${num}`);
+  }
+  assert.match(AT.views.examSetup().html, /В банке экзамена: 211 вопросов/);
+});

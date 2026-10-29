@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Тренажёр · Анатомия — коллоквиум</title>
-  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: 211 заданий, тренировка по темам, экзамен: 20 вопросов за 20 минут по плану, разбор ошибок.">
+  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: Три коллоквиума: остеология, миология и спланхнология. Тренировка по темам и разбор ошибок.">
   <meta name="theme-color" content="#f4f6fb">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
@@ -14,7 +14,7 @@
 
   <header class="topbar">
     <div class="topbar__inner">
-      <a class="brand" href="#/" aria-label="На главную">
+      <a class="brand" href="#/" aria-label="Арм РНИМУ — на главную">
         <span class="brand__mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="9" fill="url(#bg)"/>
@@ -29,8 +29,8 @@
           </svg>
         </span>
         <span class="brand__text">
-          <strong>Анатомия</strong>
-          <span>тренажёр к коллоквиуму</span>
+          <strong><svg class="brand__flag" viewBox="0 0 30 18" aria-hidden="true" focusable="false"><path fill="#d90012" d="M0 0h30v6H0z"/><path fill="#0033a0" d="M0 6h30v6H0z"/><path fill="#f2a800" d="M0 12h30v6H0z"/></svg>Арм РНИМУ</strong>
+          <span>Анатомия · тренажёр</span>
         </span>
       </a>
 
@@ -53,12 +53,17 @@
         </svg>
       </button>
     </div>
+    <nav class="colloquium-nav" aria-label="Выбор коллоквиума">
+      <button type="button" data-action="open-colloquium" data-colloquium="1"><span>1 коллоквиум</span><strong>Остеология</strong></button>
+      <button type="button" data-action="open-colloquium" data-colloquium="2"><span>2 коллоквиум</span><strong>Миология</strong></button>
+      <button type="button" data-action="open-colloquium" data-colloquium="3"><span>3 коллоквиум</span><strong>Спланхнология</strong></button>
+    </nav>
   </header>
 
   <main id="app" class="main" tabindex="-1"></main>
 
   <footer class="footer">
-    <p>Тренажёр по анатомии человека · модуль 1 · 211 заданий</p>
+    <p>Тренажёр по анатомии человека · АРМ РНИМУ</p>
     <p class="footer__muted">Данные хранятся локально в браузере. Работает офлайн.</p>
   </footer>
 
@@ -71,6 +76,9 @@
   <script src="js/data/questions.js"></script>
   <script src="js/data/answers.js"></script>
   <script src="js/data/exam.js"></script>
+  <script src="js/data/colloquium-2.js"></script>
+  <script src="js/data/colloquium-3.js"></script>
+  <script src="js/modules.js"></script>
   <script src="js/core.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/views-study.js"></script>
