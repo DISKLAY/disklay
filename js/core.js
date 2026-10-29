@@ -667,6 +667,36 @@
     };
   }
 
+  /**
+   * Проверяет ответы сессии перед подведением итогов.
+   * В экзамене проверка отложенная: считаем всё сразу при завершении.
+   */
+  function gradeSession(session) {
+    if (!session || session.graded) return 0;
+    const qs = sessionQuestions(session);
+    let graded = 0;
+    qs.forEach((q) => {
+      const answer = keyApi.forQuestion(q);
+      if (!answer) return;                     // без ключа — остаётся самооценка
+      let entry = session.results[q.id];
+      const selected = entry && entry.selected ? entry.selected.slice() : [];
+      if (session.mode !== 'exam' && entry && entry.graded) return;
+      const res = gradeQuestion(q, selected);
+      if (!entry) {
+        entry = session.results[q.id] = { selected: [], revealed: true, correct: null, self: false };
+      }
+      entry.correct = res.correct;
+      entry.revealed = true;
+      entry.self = false;
+      entry.graded = true;
+      recordAttempt(q, res.correct, selected);
+      graded += 1;
+    });
+    session.graded = true;
+    save(true);
+    return graded;
+  }
+
   function finishSession() {
     const session = state.session;
     if (!session) return null;
@@ -722,6 +752,7 @@
     currentSession,
     sessionQuestions,
     sessionStats,
+    gradeSession,
     finishSession,
     discardSession,
     resetProgress,

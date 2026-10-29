@@ -581,6 +581,7 @@
         if (finished) return;
         finished = true;
         session.limitSeconds = session.limitSeconds || 0;
+        AT.gradeSession(session);
         const record = AT.finishSession();
         if (record) AT.go('#/summary');
       };
