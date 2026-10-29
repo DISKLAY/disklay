@@ -94,6 +94,48 @@
     total: QUESTIONS.length,
   };
 
+  /* ------------------------------------------------------------- exam plan */
+
+  function examPoolFor(section) {
+    const pool = (section && section.pool) || {};
+    let out = [];
+    (pool.topics || []).forEach((id) => { out = out.concat(dataset.topicQuestions(id)); });
+    (pool.nums || []).forEach((n) => {
+      const q = byNum.get(String(n));
+      if (q) out.push(q);
+    });
+    const uniq = new Map();
+    out.forEach((q) => uniq.set(q.id, q));
+    return [...uniq.values()];
+  }
+
+  const RAW_EXAM_SECTIONS = window.EXAM_SECTIONS || [];
+
+  const examPlan = {
+    minutes: window.EXAM_MINUTES || 20,
+    total: 0,
+    sections: RAW_EXAM_SECTIONS.map((sec) => {
+      const questions = examPoolFor(sec);
+      return { id: sec.id, title: sec.title, questions, count: sec.count };
+    }),
+  };
+  examPlan.total = examPlan.sections.reduce((s, sec) => s + sec.count, 0);
+
+  /** Собирает экзамен: случайные вопросы в пределах квоты каждого раздела. */
+  function buildExam() {
+    const ids = [];
+    const sectionOf = {};
+    for (const sec of examPlan.sections) {
+      const available = sec.questions.filter((q) => !Object.prototype.hasOwnProperty.call(sectionOf, q.id));
+      if (available.length < sec.count) return null;
+      utils.shuffle(available).slice(0, sec.count).forEach((q) => {
+        ids.push(q.id);
+        sectionOf[q.id] = sec.title;
+      });
+    }
+    return ids.length === 20 ? { ids, sectionOf } : null;
+  }
+
   /* ---------------------------------------------------------------- storage */
 
   const DEFAULT_STATE = {
@@ -101,9 +143,6 @@
     settings: {
       theme: 'auto',
       strict: true,
-      examCount: 30,
-      examTimer: true,
-      examMinutes: 30,
       hintCount: false,
     },
     key: {},          // правки/импорт: { "1": [1,2] }
@@ -629,6 +668,7 @@
       finished: false,
       selfCheck: false,
       label: config.label || '',
+      sectionOf: config.sectionOf || null,
     };
     state.session = session;
     save(true);
@@ -748,6 +788,8 @@
     progressOf,
     analytics,
     pickQuestions,
+    examPlan,
+    buildExam,
     startSession,
     currentSession,
     sessionQuestions,
