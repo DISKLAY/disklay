@@ -1,205 +1,79 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Лист Персонажа D&D</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тренажёр · Анатомия — коллоквиум</title>
+  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: 211 заданий, тренировка по темам, экзамен на время, разбор ошибок.">
+  <meta name="theme-color" content="#f4f6fb">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#app">Перейти к содержимому</a>
 
-    <div class="container">
-        <header class="character-header">
-            <div class="char-name-container">
-                <input type="text" id="charName" placeholder="Имя Персонажа">
-            </div>
-            <div class="char-details-grid">
-                <div><label>Класс</label><select id="charClass"></select></div>
-                <div><label>Уровень</label><input type="number" id="charLevel" value="1" min="1" max="20"></div>
-                <div><label>Раса</label><input type="text" id="charRace" placeholder="Раса"></div>
-                <div><label>Предыстория</label><input type="text" id="charBackground" placeholder="Предыстория"></div>
-                <div><label>Мировоззрение</label><input type="text" id="charAlignment" placeholder="Мировоззрение"></div>
-            </div>
-        </header>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="#/" aria-label="На главную">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="9" fill="url(#bg)"/>
+            <path d="M16 6.5c4.2 0 6.4 3.1 6.4 6.6 0 4.6-4 5.4-4 8.4 0 2.3 1.8 3.4 1.8 3.4M16 6.5c-4.2 0-6.4 3.1-6.4 6.6 0 4.6 4 5.4 4 8.4 0 2.3-1.8 3.4-1.8 3.4"
+                  stroke="#fff" stroke-width="1.9" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="2.6" fill="#fff"/>
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5a4"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </span>
+        <span class="brand__text">
+          <strong>Анатомия</strong>
+          <span>тренажёр к коллоквиуму</span>
+        </span>
+      </a>
 
-        <main class="main-content">
-            <div class="left-column">
-                <!-- АТРИБУТЫ -->
-                <section class="stats-section">
-                    <div class="stat-box">
-                        <label>Сила</label>
-                        <div class="mod" id="strMod">0</div>
-                        <input type="number" class="score" id="strScore" value="10">
-                    </div>
-                    <div class="stat-box">
-                        <label>Ловкость</label>
-                        <div class="mod" id="dexMod">0</div>
-                        <input type="number" class="score" id="dexScore" value="10">
-                    </div>
-                    <div class="stat-box">
-                        <label>Телосложение</label>
-                        <div class="mod" id="conMod">0</div>
-                        <input type="number" class="score" id="conScore" value="10">
-                    </div>
-                    <div class="stat-box">
-                        <label>Интеллект</label>
-                        <div class="mod" id="intMod">0</div>
-                        <input type="number" class="score" id="intScore" value="10">
-                    </div>
-                    <div class="stat-box">
-                        <label>Мудрость</label>
-                        <div class="mod" id="wisMod">0</div>
-                        <input type="number" class="score" id="wisScore" value="10">
-                    </div>
-                    <div class="stat-box">
-                        <label>Харизма</label>
-                        <div class="mod" id="chaMod">0</div>
-                        <input type="number" class="score" id="chaScore" value="10">
-                    </div>
-                </section>
+      <nav class="nav" id="mainNav" aria-label="Основная навигация">
+        <a href="#/" data-route="dashboard">Главная</a>
+        <a href="#/train" data-route="train">Тренировка</a>
+        <a href="#/exam" data-route="exam">Экзамен</a>
+        <a href="#/mistakes" data-route="mistakes">Ошибки</a>
+        <a href="#/stats" data-route="stats">Статистика</a>
+        <a href="#/key" data-route="key">Ключ</a>
+        <a href="#/settings" data-route="settings">Настройки</a>
+      </nav>
 
-                <!-- СПАСБРОСКИ И НАВЫКИ -->
-                <div class="skills-saves-container">
-                    <div class="proficiency-bonus-box">
-                        <div id="profBonus" class="prof-bonus-value">+2</div>
-                        <div>Бонус Мастерства</div>
-                    </div>
-                    <section class="saving-throws">
-                        <h3>Спасброски</h3>
-                        <ul id="savingThrowsList"></ul>
-                    </section>
-                    <section class="skills">
-                        <h3>Навыки</h3>
-                        <ul id="skillsList"></ul>
-                    </section>
-                </div>
-            </div>
-
-            <div class="middle-column">
-                <!-- БОЕВЫЕ ХАРАКТЕРИСТИКИ -->
-                <section class="combat-stats">
-                    <div class="combat-box">
-                        <div class="combat-value" id="armorClass">10</div>
-                        <label>Класс Доспеха</label>
-                    </div>
-                    <div class="combat-box">
-                        <div class="combat-value" id="initiative">0</div>
-                        <label>Инициатива</label>
-                    </div>
-                    <div class="combat-box">
-                        <div class="combat-value"><input type="number" id="speed" value="30"></div>
-                        <label>Скорость</label>
-                    </div>
-                </section>
-
-                <!-- ЗДОРОВЬЕ -->
-                <section class="hit-points">
-                    <div class="hp-max">
-                        <label>Максимум хитов</label>
-                        <input type="number" id="maxHP" value="10">
-                    </div>
-                    <div class="hp-current-container">
-                        <input type="number" id="currentHP" value="10">
-                        <label>Текущие хиты</label>
-                    </div>
-                    <div class="hp-controls">
-                        <input type="number" id="hpChange" placeholder="±">
-                        <button id="healBtn">Лечить</button>
-                        <button id="damageBtn">Урон</button>
-                    </div>
-                </section>
-                
-                <!-- КОСТИ ХИТОВ -->
-                <section class="hit-dice">
-                    <div>
-                        <label>Всего костей</label>
-                        <span id="totalHitDice">1d8</span>
-                    </div>
-                    <button id="rollHitDice">Бросить кость хитов</button>
-                    <p id="hitDiceResult"></p>
-                </section>
-
-                <!-- ВКЛАДКИ -->
-                <nav class="tabs">
-                    <button class="tab-link active" data-tab="tab-inventory">Инвентарь</button>
-                    <button class="tab-link" data-tab="tab-spells">Заклинания</button>
-                    <button class="tab-link" data-tab="tab-features">Умения и черты</button>
-                </nav>
-
-                <!-- ================== ВКЛАДКА ИНВЕНТАРЯ (ИСПРАВЛЕНО) ================== -->
-                <div id="tab-inventory" class="tab-content active">
-                    <h4>Снаряжение</h4>
-                    <div class="inventory-section">
-                        <h5>Оружие</h5>
-                        <table id="weaponsTable">
-                            <thead><tr><th>Название</th><th>Бонус</th><th>Урон/Тип</th><th>Управление</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                        <form id="addWeaponForm" class="item-form">
-                            <input type="text" id="weaponName" placeholder="Название" required>
-                            <input type="text" id="weaponDamage" placeholder="1d8 рубящий" required>
-                            <button type="submit">Добавить оружие</button>
-                        </form>
-                    </div>
-                     <div class="inventory-section">
-                        <h5>Броня и прочие предметы</h5>
-                        <!-- ИСПРАВЛЕНО: Добавлена таблица для предметов -->
-                        <table id="itemsTable">
-                            <thead><tr><th>Название</th><th>Эффект</th><th>Характеристики</th><th>Управление</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                        <form id="addItemForm" class="item-form">
-                            <input type="text" id="itemName" placeholder="Название" required>
-                            <input type="text" id="itemEffect" placeholder="КД 16, макс. Ловк +2 / Бонус">
-                            <input type="text" id="itemProps" placeholder="Скрытность (помеха)">
-                            <label><input type="checkbox" id="itemIsArmor"> Броня</label>
-                            <label><input type="checkbox" id="itemIsShield"> Щит</label>
-                            <button type="submit">Добавить предмет</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- ================== ВКЛАДКА ЗАКЛИНАНИЙ (ИСПРАВЛЕНО) ================== -->
-                <div id="tab-spells" class="tab-content">
-                    <h4>Книга заклинаний</h4>
-                    <div id="spellSlotsContainer"></div>
-                    <table id="spellsTable">
-                        <thead><tr><th>Ур.</th><th>Название</th><th>Описание</th><th></th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                    <form id="addSpellForm" class="item-form">
-                        <input type="number" id="spellLevel" placeholder="Ур." min="0" max="9" required>
-                        <input type="text" id="spellName" placeholder="Название заклинания" required>
-                        <textarea id="spellDesc" placeholder="Краткое описание"></textarea>
-                        <button type="submit">Добавить заклинание</button>
-                    </form>
-                </div>
-
-                <!-- ================== ВКЛАДКА УМЕНИЙ (ИСПРАВЛЕНО) ================== -->
-                <div id="tab-features" class="tab-content">
-                     <h4>Умения класса, расы и черты</h4>
-                     <textarea id="featuresAndTraits" placeholder="Запишите сюда ваши умения, черты и прочие особенности..."></textarea>
-                </div>
-            </div>
-            
-            <div class="right-column">
-                <section class="export-import">
-                    <h3>Управление</h3>
-                    <button id="exportBtn">Экспорт персонажа</button>
-                    <label for="importFile" class="import-label">Импорт персонажа</label>
-                    <input type="file" id="importFile" accept=".json" style="display: none;">
-                </section>
-                <section class="notes">
-                    <h3>Заметки</h3>
-                    <textarea id="notes" placeholder="Союзники, организации, важные места и события..."></textarea>
-                </section>
-            </div>
-        </main>
+      <button class="icon-btn" data-action="toggle-theme" aria-label="Переключить тему" title="Переключить тему">
+        <svg class="icon icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>
+        </svg>
+        <svg class="icon icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.6 8.6 0 1 0 10.8 10.8Z"/>
+        </svg>
+      </button>
     </div>
+  </header>
 
-    <script src="script.js"></script>
+  <main id="app" class="main" tabindex="-1"></main>
+
+  <footer class="footer">
+    <p>Тренажёр по анатомии человека · модуль 1 · 211 заданий</p>
+    <p class="footer__muted">Данные хранятся локально в браузере. Работает офлайн.</p>
+  </footer>
+
+  <noscript>
+    <div class="noscript">Для работы тренажёра нужен JavaScript — включите его в настройках браузера.</div>
+  </noscript>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data/questions.js"></script>
+  <script src="js/data/answers.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/views-study.js"></script>
+  <script src="js/views-pages.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
