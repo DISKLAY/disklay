@@ -177,3 +177,10 @@ test('самооценка: неоценённые вопросы не счит�
   assert.match(html, /Ошибки<\/span><strong class="stat-card__value">0<\/strong>/);
   assert.equal(AT.sessionStats(session).wrong, 0);
 });
+
+test('в подвале есть контакты для сообщения об ошибке', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(html, /Нашли ошибку\?/);
+  assert.match(html, /href="https:\/\/t\.me\/D1sklay">@D1sklay<\/a>/);
+  assert.match(html, /href="mailto:davidka\.khachatryan\.00@gmail\.com">davidka\.khachatryan\.00@gmail\.com<\/a>/);
+});
