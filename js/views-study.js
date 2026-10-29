@@ -95,6 +95,21 @@
 
     let html = '<div class="view view--dashboard">';
 
+    html += '<section class="colloquiums" aria-labelledby="colloquiumsTitle">' +
+      '<div class="section__head"><div><h2 id="colloquiumsTitle">Коллоквиумы</h2>' +
+      '<p class="colloquiums__intro">Выберите раздел, чтобы перейти к тренировке</p></div></div>' +
+      '<div class="colloquiums__grid">' + AT.colloquiums.map((module) => {
+        const isCurrent = module.id === AT.colloquium.id;
+        return '<button type="button" class="colloquium-card' + (isCurrent ? ' is-current' : '') +
+          '" data-action="open-colloquium" data-colloquium="' + esc(module.id) + '">' +
+          '<span class="colloquium-card__number">Коллоквиум ' + esc(module.id) +
+          (isCurrent ? ' · выбран' : '') + '</span>' +
+          '<strong>' + esc(module.name) + '</strong>' +
+          '<span class="colloquium-card__details">Тренировка · ' + (module.questions ? module.questions.length : dataset.total) + ' вопросов</span>' +
+          '<span class="colloquium-card__exam">' + (module.examAvailable ? 'Экзамен доступен' : 'Экзамен скоро появится') + '</span>' +
+          '<span class="colloquium-card__link">Перейти к тренировке ' + icon('arrowRight') + '</span></button>';
+      }).join('') + '</div></section>';
+
     html +=
       '<section class="hero">' +
       '<div class="hero__body">' +
@@ -153,7 +168,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
-      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
+      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро появится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       '</div></section>';
@@ -248,17 +263,19 @@
     if (!AT.colloquium.examAvailable) {
       return { title: 'Экзамен', html: '<div class="view">' +
         pageHead('Экзамен', 'Коллоквиум ' + AT.colloquium.id + ' · ' + AT.colloquium.name) +
-        emptyState('clock', 'Скоро добавится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
+        emptyState('clock', 'Скоро появится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
           '<a class="btn btn--primary" href="#/train">Перейти к тренировке</a>') + '</div>' };
     }
     const plan = AT.examPlan;
     const per = Math.round((plan.minutes * 60) / Math.max(1, plan.total));
+    const poolSize = new Set(plan.sections.flatMap((sec) => sec.questions.map((q) => q.id))).size;
 
     let html = '<div class="view">';
     html += pageHead('Экзамен', examFormatText() + '. Вопросы без подсказок, проверка — после завершения.');
 
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">План экзамена</div>' +
+      '<p class="muted small">В банке экзамена: ' + poolSize + ' ' + utils.plural(poolSize, 'вопрос', 'вопроса', 'вопросов') + '.</p>' +
       '<ol class="exam-plan">' +
       plan.sections.map((sec, i) => {
         return '<li class="exam-plan__row">' +
@@ -273,6 +290,7 @@
       '<p class="muted small">Итого ' + plan.total + ' ' + utils.plural(plan.total, 'вопрос', 'вопроса', 'вопросов') +
       ' — из каждого раздела случайно выбирается своё количество заданий, ' +
       'порядок вопросов совпадает с планом. На ответ — около ' + per + ' сек., таймер на ' + plan.minutes + ' мин.</p>' +
+      '<p class="muted small">Вопросы о черепе в целом и размерах таза распределены по ближайшим разделам.</p>' +
       '</div>' +
 
       '<div class="panel__footer">' +
