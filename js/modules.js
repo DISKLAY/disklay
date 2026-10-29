@@ -10,7 +10,6 @@
   let selected = '1';
   try { selected = localStorage.getItem('anatomy-colloquium-selected') || '1'; } catch (e) { /* первый коллоквиум */ }
   const module = modules[selected] || modules['1'];
-  window.COLLOQUIUMS = modules;
   window.ACTIVE_COLLOQUIUM = module;
   window.QUESTIONS = module.questions;
   window.TOPICS = module.topics;

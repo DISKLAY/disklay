@@ -45,7 +45,7 @@ test('в первом коллоквиуме экзамен по схеме; в 
   for (const id of ['2', '3']) {
     AT = app(storage, id);
     const html = AT.views.examSetup().html;
-    assert.match(html, /Скоро появится/);
+    assert.match(html, /Скоро добавится/);
     assert.doesNotMatch(html, /data-action="start-exam"/);
   }
 });
@@ -101,18 +101,13 @@ test('проверенная попытка в тренировке записы
   assert.equal(AT.sessionStats(session).correct, 1);
 });
 
-
-test('в шапке и на главной видны три раздела и подпись землячества', () => {
+test('в шапке прежний выбор коллоквиума и подпись', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  assert.match(html, /Арм РНИМУ/);
+  assert.match(html, /<strong>Анатомия<\/strong>\s*<span>АРМ РНИМУ<\/span>/);
+  assert.match(html, /<select id="colloquiumSelect"/);
   for (const [id, name] of [['1', 'Остеология'], ['2', 'Миология'], ['3', 'Спланхнология']]) {
-    assert.match(html, new RegExp('data-colloquium="' + id + '"[^>]*>[^<]*<span>' + id + ' коллоквиум<\/span><strong>' + name));
+    assert.match(html, new RegExp('<option value="' + id + '">' + id + ' · ' + name + '</option>'));
   }
-  for (const id of ['1', '2', '3']) {
-    const dashboard = app({}, id).views.dashboard().html;
-    for (const other of ['1', '2', '3']) assert.match(dashboard, new RegExp('data-colloquium="' + other + '"'));
-    assert.match(dashboard, /Миология/);
-    assert.match(dashboard, /Спланхнология/);
-    assert.match(dashboard, /Экзамен скоро появится/);
-  }
+  assert.doesNotMatch(html, /class="colloquium-nav"/);
+  assert.doesNotMatch(app({}, '1').views.dashboard().html, /colloquium-card/);
 });

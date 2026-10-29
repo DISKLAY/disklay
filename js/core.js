@@ -789,7 +789,6 @@
     utils,
     dataset,
     colloquium: COLLOQUIUM,
-    colloquiums: Object.values(window.COLLOQUIUMS || { 1: COLLOQUIUM }),
     keyApi,
     keyParser,
     gradeQuestion,

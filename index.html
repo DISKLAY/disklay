@@ -14,7 +14,7 @@
 
   <header class="topbar">
     <div class="topbar__inner">
-      <a class="brand" href="#/" aria-label="Арм РНИМУ — на главную">
+      <a class="brand" href="#/" aria-label="На главную">
         <span class="brand__mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="9" fill="url(#bg)"/>
@@ -29,10 +29,19 @@
           </svg>
         </span>
         <span class="brand__text">
-          <strong><svg class="brand__flag" viewBox="0 0 30 18" aria-hidden="true" focusable="false"><path fill="#d90012" d="M0 0h30v6H0z"/><path fill="#0033a0" d="M0 6h30v6H0z"/><path fill="#f2a800" d="M0 12h30v6H0z"/></svg>Арм РНИМУ</strong>
-          <span>Анатомия · тренажёр</span>
+          <strong>Анатомия</strong>
+          <span>АРМ РНИМУ</span>
         </span>
       </a>
+
+      <label class="module-picker">
+        <span class="module-picker__label">Коллоквиум</span>
+        <select id="colloquiumSelect" aria-label="Выберите коллоквиум" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
+          <option value="1">1 · Остеология</option>
+          <option value="2">2 · Миология</option>
+          <option value="3">3 · Спланхнология</option>
+        </select>
+      </label>
 
       <nav class="nav" id="mainNav" aria-label="Основная навигация">
         <a href="#/" data-route="dashboard">Главная</a>
@@ -53,11 +62,6 @@
         </svg>
       </button>
     </div>
-    <nav class="colloquium-nav" aria-label="Выбор коллоквиума">
-      <button type="button" data-action="open-colloquium" data-colloquium="1"><span>1 коллоквиум</span><strong>Остеология</strong></button>
-      <button type="button" data-action="open-colloquium" data-colloquium="2"><span>2 коллоквиум</span><strong>Миология</strong></button>
-      <button type="button" data-action="open-colloquium" data-colloquium="3"><span>3 коллоквиум</span><strong>Спланхнология</strong></button>
-    </nav>
   </header>
 
   <main id="app" class="main" tabindex="-1"></main>
