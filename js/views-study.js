@@ -14,8 +14,13 @@
 
   const setup = (AT.setup = AT.setup || {
     train: { topics: ['all'], scope: 'smart', limit: 20 },
-    exam: { topics: ['all'], limit: 30, timer: true, minutes: 30 },
   });
+
+  function examFormatText() {
+    const plan = AT.examPlan;
+    return plan.total + ' ' + utils.plural(plan.total, 'вопрос', 'вопроса', 'вопросов') +
+      ' за ' + plan.minutes + ' ' + utils.plural(plan.minutes, 'минуту', 'минуты', 'минут');
+  }
 
   function topicTitle(id) {
     return id === 'all' ? 'Все темы' : dataset.topic(id).title;
@@ -147,7 +152,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
-      modeCard('Экзамен', 'N вопросов на время', 'exam', '#/exam', 'violet') +
+      modeCard('Экзамен', examFormatText(), 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       '</div></section>';
@@ -239,30 +244,28 @@
   /* -------------------------------------------------------- настройка: экзамен */
 
   views.examSetup = function () {
-    const s = setup.exam;
-    const total = availableCount(s.topics, 'all');
-    const count = s.limit === 0 ? total : Math.min(s.limit, total);
+    const plan = AT.examPlan;
+    const per = Math.round((plan.minutes * 60) / Math.max(1, plan.total));
 
     let html = '<div class="view">';
-    html += pageHead('Пробный экзамен', 'Вопросы идут без подсказок, проверка — после завершения.');
+    html += pageHead('Экзамен', examFormatText() + '. Вопросы без подсказок, проверка — после завершения.');
+
     html += '<div class="panel">' +
-      '<div class="panel__block"><div class="panel__label">Темы</div>' +
-      topicChips(s.topics, 'toggle-topic-exam') +
-      '<p class="muted small">Выбрано: ' + esc(sessionLabel(s.topics)) + ' · ' + total + ' ' +
-      utils.plural(total, 'вопрос', 'вопроса', 'вопросов') + '</p></div>' +
-
-      '<div class="panel__block"><div class="panel__label">Количество вопросов</div>' +
-      limitPicker(s.limit, [10, 20, 30, 50, 100, 0]) +
-      '<p class="muted small">Будет ' + count + ' ' + utils.plural(count, 'вопрос', 'вопроса', 'вопросов') + '</p></div>' +
-
-      '<div class="panel__block"><div class="panel__label">Время</div>' +
-      '<div class="switch-row">' +
-      '<label class="switch"><input type="checkbox" data-action="toggle-timer"' + (s.timer ? ' checked' : '') + '>' +
-      '<span class="switch__track"><span class="switch__thumb"></span></span>' +
-      '<span class="switch__label">Ограничить время</span></label>' +
-      (s.timer ? '<span class="timer-input"><input type="number" min="5" max="180" step="5" value="' + s.minutes + '" data-action="set-minutes"> мин</span>' : '') +
-      '</div>' +
-      '<p class="muted small">' + (s.timer ? 'На один вопрос — около ' + Math.round((s.minutes * 60) / Math.max(1, count)) + ' сек.' : 'Без таймера — в удобном темпе.') + '</p>' +
+      '<div class="panel__block"><div class="panel__label">План экзамена</div>' +
+      '<ol class="exam-plan">' +
+      plan.sections.map((sec, i) => {
+        return '<li class="exam-plan__row">' +
+          '<span class="exam-plan__num">' + utils.pad(i + 1) + '</span>' +
+          '<span class="exam-plan__title">' + esc(sec.title) + '</span>' +
+          '<span class="badge' + (sec.count ? ' badge--soft' : ' badge--muted') + '">' +
+          sec.count + ' ' + utils.plural(sec.count, 'вопрос', 'вопроса', 'вопросов') + '</span>' +
+          '<span class="exam-plan__pool muted small">в банке ' + sec.questions.length + '</span>' +
+          '</li>';
+      }).join('') +
+      '</ol>' +
+      '<p class="muted small">Итого ' + plan.total + ' ' + utils.plural(plan.total, 'вопрос', 'вопроса', 'вопросов') +
+      ' — из каждого раздела случайно выбирается своё количество заданий, ' +
+      'порядок вопросов совпадает с планом. На ответ — около ' + per + ' сек., таймер на ' + plan.minutes + ' мин.</p>' +
       '</div>' +
 
       '<div class="panel__footer">' +
@@ -297,28 +300,12 @@
         setup.train.scope = el.getAttribute('data-scope');
         AT.rerender();
       } else if (action === 'set-limit') {
-        const mode = AT.route() === 'exam' ? 'exam' : 'train';
-        setup[mode].limit = parseInt(el.getAttribute('data-limit'), 10);
-        AT.rerender();
-      } else if (action === 'toggle-topic-exam') {
-        setup.exam.topics = toggleTopic(setup.exam.topics, el.getAttribute('data-topic'));
+        setup.train.limit = parseInt(el.getAttribute('data-limit'), 10);
         AT.rerender();
       } else if (action === 'start-train') {
         startTraining('smart');
       } else if (action === 'start-exam') {
         startExam();
-      }
-    });
-
-    view.addEventListener('change', (e) => {
-      const el = e.target.closest('[data-action]');
-      if (!el) return;
-      const action = el.getAttribute('data-action');
-      if (action === 'toggle-timer') {
-        setup.exam.timer = el.checked;
-        AT.rerender();
-      } else if (action === 'set-minutes') {
-        setup.exam.minutes = utils.clamp(parseInt(el.value, 10) || 30, 5, 180);
       }
     });
   }
@@ -347,24 +334,19 @@
   }
 
   function startExam() {
-    const s = setup.exam;
-    const ids = AT.pickQuestions({
-      topicIds: s.topics,
-      scope: 'all',
-      limit: s.limit || 0,
-      shuffle: true,
-    });
-    if (!ids.length) {
-      toast('Нет вопросов для экзамена', 'warn');
+    const built = AT.buildExam();
+    if (!built) {
+      toast('Не удалось собрать экзамен по плану: недостаточно вопросов', 'warn');
       return;
     }
     AT.startSession({
       mode: 'exam',
-      ids,
+      ids: built.ids,
       scope: 'exam',
-      topicIds: s.topics,
-      label: sessionLabel(s.topics),
-      timerMinutes: s.timer ? s.minutes : 0,
+      topicIds: ['all'],
+      label: examFormatText(),
+      timerMinutes: AT.examPlan.minutes,
+      sectionOf: built.sectionOf,
     });
     AT.go('#/run');
   }
@@ -453,13 +435,14 @@
     const isExam = session.mode === 'exam';
     const answer = AT.keyApi.forQuestion(q);
     const revealed = !!entry.revealed && !isExam;
+    const section = session.sectionOf ? session.sectionOf[q.id] : '';
     const topic = dataset.topic(q.topic);
-    const hint = AT.getState().settings.hintCount && answer && !revealed;
+    const hint = !isExam && AT.getState().settings.hintCount && answer && !revealed;
 
     let html = '<article class="question">' +
       '<div class="question__meta">' +
       '<span class="badge">№ ' + esc(q.num) + '</span>' +
-      '<span class="badge badge--soft">' + esc(topic.title) + '</span>' +
+      '<span class="badge badge--soft">' + esc(section || topic.title) + '</span>' +
       (hint ? '<span class="badge badge--accent">верных: ' + answer.answers.length + '</span>' : '') +
       '</div>' +
       '<h2 class="question__text">' + esc(q.text) + '</h2>' +
@@ -554,7 +537,7 @@
     }
 
     function persist() {
-      AT.save();
+      AT.save(isExam);
     }
 
     function go(index) {
@@ -587,24 +570,34 @@
       };
 
       let tick = null;
+      const checkDeadline = () => {
+        if (!isExam || !session.limitSeconds || elapsed() < session.limitSeconds) return false;
+        if (tick) clearInterval(tick);
+        if (!finished) {
+          toast('Время вышло — экзамен завершён', 'warn');
+          finishUp();
+        }
+        return true;
+      };
       if (isExam && session.limitSeconds) {
-        tick = setInterval(() => {
+        // При возврате к сохранённому экзамену истёкшее время не восстанавливается.
+        if (elapsed() >= session.limitSeconds) {
+          const timeout = setTimeout(checkDeadline, 0);
+          if (window.AT.onCleanup) window.AT.onCleanup(() => clearTimeout(timeout));
+        } else tick = setInterval(() => {
           const left = session.limitSeconds - elapsed();
           const el = document.getElementById('examTimer');
           if (el) {
             el.textContent = utils.formatDuration(left);
             el.classList.toggle('is-low', left <= 60);
           }
-          if (left <= 0) {
-            clearInterval(tick);
-            toast('Время вышло — экзамен завершён', 'warn');
-            finishUp();
-          }
+          checkDeadline();
         }, 500);
         if (window.AT.onCleanup) window.AT.onCleanup(() => clearInterval(tick));
       }
 
       const onKey = (e) => {
+        if (checkDeadline() || finished) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         const tag = (e.target.tagName || '').toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
@@ -683,6 +676,7 @@
       }
 
       host.addEventListener('click', (e) => {
+        if (checkDeadline() || finished) return;
         const el = e.target.closest('[data-action]');
         if (!el || el.disabled) return;
         const action = el.getAttribute('data-action');
@@ -714,6 +708,7 @@
             text: unanswered ? 'Без ответа осталось вопросов: ' + unanswered + '. Они будут засчитаны как ошибки.' : 'Все вопросы отвечены. Покажем результат.',
             confirm: 'Завершить',
           }).then((ok) => {
+            if (checkDeadline()) return;
             if (ok) finishUp();
           });
         } else if (action === 'exit') {
@@ -723,7 +718,7 @@
             confirm: 'Выйти',
             danger: true,
           }).then((ok) => {
-            if (!ok) return;
+            if (checkDeadline() || !ok) return;
             AT.discardSession();
             AT.go(isExam ? '#/exam' : '#/train');
           });
@@ -791,6 +786,27 @@
         '<span>Отметьте, ответили ли вы верно — так они попадут в статистику.</span></span></div>';
     }
 
+    if (isExam && session.sectionOf) {
+      const groups = new Map();
+      qs.forEach((q) => {
+        const title = session.sectionOf[q.id] || 'Без раздела';
+        if (!groups.has(title)) groups.set(title, { total: 0, correct: 0 });
+        const g = groups.get(title);
+        g.total += 1;
+        const r = session.results[q.id];
+        if (r && r.correct === true) g.correct += 1;
+      });
+      html += '<section class="section"><div class="section__head"><h2>По разделам экзамена</h2></div>' +
+        '<div class="topic-progress">' +
+        [...groups.entries()].map(([title, g]) =>
+          '<div class="tp-row">' +
+          '<div class="tp-row__head"><span class="tp-row__name">' + esc(title) + '</span>' +
+          '<span class="tp-row__num">' + g.correct + ' / ' + g.total + '</span></div>' +
+          progressBar(utils.pct(g.correct, g.total)) +
+          '</div>').join('') +
+        '</div></section>';
+    }
+
     html += '<section class="section"><div class="section__head"><h2>Разбор</h2>' +
       '<span class="section__hint">' + qs.length + ' ' + utils.plural(qs.length, 'вопрос', 'вопроса', 'вопросов') + '</span></div>' +
       '<div class="review-list">';
@@ -809,7 +825,7 @@
         '<span class="review__status">' + icons[status] + '</span>' +
         '</summary>' +
         '<div class="review__body">' +
-        '<div class="review__meta"><span class="badge badge--soft">' + esc(topic.title) + '</span>' +
+        '<div class="review__meta"><span class="badge badge--soft">' + esc((session.sectionOf && session.sectionOf[q.id]) || topic.title) + '</span>' +
         '<span class="badge">№ ' + esc(q.num) + '</span></div>' +
         '<div class="review__cols">' +
         '<div><span class="feedback__label">Правильный ответ</span>' +
