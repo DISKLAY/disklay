@@ -340,6 +340,9 @@ img, svg { display: block; }
   justify-content: space-between;
 }
 .footer__muted { opacity: .8; }
+.footer__contact { flex-basis: 100%; margin-top: 6px; overflow-wrap: anywhere; }
+.footer__contact a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.footer__contact a:hover { color: var(--primary-strong); }
 
 .view { max-width: 100%; }
 .view--narrow { max-width: 760px; }
