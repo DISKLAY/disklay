@@ -161,6 +161,7 @@
         ui.toast('Не удалось переключить коллоквиум: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
+    window.initModulePicker(moduleSelect, document.getElementById('modulePicker'));
   }
 
   /* ---------------------------------------------------------------- запуск */

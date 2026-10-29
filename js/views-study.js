@@ -98,7 +98,7 @@
     html +=
       '<section class="hero">' +
       '<div class="hero__body">' +
-      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · коллоквиум ' + esc(AT.colloquium.id) + '</span>' +
+      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + '</span>' +
       '<h1>Тренажёр к коллоквиуму</h1>' +
       '<p class="hero__module">' + esc(AT.colloquium.name) + '</p>' +
       '<p class="hero__lead">' + total + ' заданий в этом коллоквиуме. Учите по темам и разбирайте ошибки.' +
@@ -220,7 +220,7 @@
     const total = availableCount(s.topics, 'all');
 
     let html = '<div class="view">';
-    html += pageHead('Тренировка', 'Режим с мгновенной проверкой и разбором каждого вопроса.');
+    html += pageHead('Тренировка', keyApi.count() === dataset.total ? 'Режим с мгновенной проверкой и разбором каждого вопроса.' : 'Для вопросов без ключа доступна самооценка: правильные ответы не показываются.');
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">Темы</div>' +
       topicChips(s.topics, 'toggle-topic-train') +
@@ -247,7 +247,7 @@
   views.examSetup = function () {
     if (!AT.colloquium.examAvailable) {
       return { title: 'Экзамен', html: '<div class="view">' +
-        pageHead('Экзамен', 'Коллоквиум ' + AT.colloquium.id + ' · ' + AT.colloquium.name) +
+        pageHead('Экзамен', 'Коллоквиум ' + (AT.colloquium.number || AT.colloquium.id) + ' · ' + AT.colloquium.name + (AT.colloquium.faculty ? ' · ' + AT.colloquium.faculty : '')) +
         emptyState('clock', 'Скоро добавится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
           '<a class="btn btn--primary" href="#/train">Перейти к тренировке</a>') + '</div>' };
     }
@@ -411,9 +411,12 @@
   function feedbackHtml(q, entry) {
     const answer = AT.keyApi.forQuestion(q);
     if (!answer) {
+      if (!entry.selected.length && entry.correct === null) {
+        return '<div class="feedback feedback--self"><div class="feedback__head">' + icon('info') + '<strong>Вопрос пропущен</strong></div><p>Ключа нет, вопрос остаётся без оценки.</p></div>';
+      }
       return '<div class="feedback feedback--self">' +
         '<div class="feedback__head">' + icon('info') + '<strong>Ключа для этого вопроса ещё нет</strong></div>' +
-        '<p>Оцените себя честно — результат пойдёт в статистику.</p>' +
+        '<p>Правильные варианты пока неизвестны. Сверьтесь с учебными материалами и оцените себя — результат пойдёт в статистику.</p>' +
         '<div class="feedback__actions">' +
         (entry.correct === null
           ? '<button class="btn btn--success" data-action="self-mark" data-value="1">' + icon('check') + 'Ответил верно</button>' +
@@ -453,6 +456,7 @@
     let html = '<article class="question">' +
       '<div class="question__meta">' +
       '<span class="badge">№ ' + esc(q.num) + '</span>' +
+      (q.sourcePage ? '<span class="badge">PDF: стр. ' + esc(q.sourcePage) + ', № ' + esc(q.sourceNumber) + '</span>' : '') +
       '<span class="badge badge--soft">' + esc(section || topic.title) + '</span>' +
       (hint ? '<span class="badge badge--accent">верных: ' + answer.answers.length + '</span>' : '') +
       '</div>' +
@@ -470,7 +474,7 @@
       html += '<div class="question__actions">';
       if (!revealed) {
         html += '<button class="btn btn--primary" data-action="check"' + (entry.selected.length ? '' : ' disabled') + '>' +
-          icon('check') + 'Проверить</button>';
+          icon('check') + (answer ? 'Проверить' : 'К самооценке') + '</button>';
         html += '<button class="btn btn--ghost" data-action="skip">Пропустить</button>';
         html += '<span class="question__kb"><kbd>1</kbd>–<kbd>' + q.options.length + '</kbd> выбор, <kbd>Enter</kbd> проверить</span>';
       } else {
@@ -672,9 +676,14 @@
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
         entry.revealed = true;
-        entry.correct = false;
-        entry.self = !keyApi.has(q);
-        AT.recordAttempt(q, false, []);
+        if (keyApi.has(q)) {
+          entry.correct = false;
+          entry.self = false;
+          AT.recordAttempt(q, false, []);
+        } else {
+          entry.correct = null;
+          entry.self = false;
+        }
         persist();
         renderInto(true);
       }
@@ -762,21 +771,24 @@
       const r = session.results[q.id];
       return !r || r.correct === null || r.correct === undefined;
     });
+    const ungradedWithAnswers = ungraded.filter((q) => {
+      const r = session.results[q.id];
+      return r && r.selected && r.selected.length;
+    });
     const wrongQs = qs.filter((q) => {
       const r = session.results[q.id];
       return !r || r.correct === false || r.correct === null;
     });
 
-    const scorePct = utils.pct(stats.correct, stats.total);
-    const graded = stats.correct + (stats.total - stats.correct);
+    const scorePct = utils.pct(stats.correct, stats.answered);
 
     let html = '<div class="view view--summary">';
     html += '<section class="result-hero' + (isExam ? ' result-hero--exam' : '') + '">' +
-      '<div class="result-hero__ring">' + ring(scorePct, 156, scorePct + '%', isExam ? 'результат' : 'верных') + '</div>' +
+      '<div class="result-hero__ring">' + ring(scorePct, 156, stats.answered ? scorePct + '%' : '—', isExam ? 'результат' : 'верных') + '</div>' +
       '<div class="result-hero__body">' +
       '<span class="eyebrow"><span class="eyebrow__dot"></span>' + (isExam ? 'Экзамен завершён' : 'Тренировка завершена') + '</span>' +
-      '<h1>' + resultTitle(scorePct, isExam) + '</h1>' +
-      '<p>' + stats.correct + ' из ' + stats.total + ' ' + utils.plural(stats.total, 'вопроса', 'вопросов', 'вопросов') + ' верно' +
+      '<h1>' + (stats.answered ? resultTitle(scorePct, isExam) : 'Результат ещё не оценён') + '</h1>' +
+      '<p>' + stats.correct + ' из ' + stats.answered + ' оценённых вопросов верно' + (ungraded.length ? ' · без оценки: ' + ungraded.length : '') +
       (duration ? ' · ' + utils.formatDuration(duration) : '') +
       (session.selfCheck || stats.self ? ' · с самопроверкой' : '') + '</p>' +
       '<div class="result-hero__actions">' +
@@ -787,14 +799,14 @@
 
     html += '<div class="stat-grid stat-grid--compact">' +
       statCard('Верно', stats.correct, 'вопросов', 'check') +
-      statCard('Ошибки', stats.total - stats.correct, 'вопросов', 'x') +
-      statCard('Точность', stats.accuracy + '%', 'за сессию', 'target') +
+      statCard('Ошибки', stats.wrong, 'вопросов', 'x') +
+      statCard('Точность', stats.answered ? stats.accuracy + '%' : '—', 'по оценённым вопросам', 'target') +
       statCard('Время', duration ? utils.formatDuration(duration) : '—', isExam && session.limitSeconds ? 'лимит ' + utils.formatDuration(session.limitSeconds) : 'без лимита', 'clock') +
       '</div>';
 
     if (ungraded.length) {
       html += '<div class="banner banner--info"><span class="banner__icon">' + icon('info') + '</span>' +
-        '<span class="banner__body"><strong>' + ungraded.length + ' ' + utils.plural(ungraded.length, 'вопрос', 'вопроса', 'вопросов') + ' без ключа</strong>' +
+        '<span class="banner__body"><strong>' + ungraded.length + ' ' + utils.plural(ungraded.length, 'вопрос', 'вопроса', 'вопросов') + ' без оценки</strong>' +
         '<span>Отметьте, ответили ли вы верно — так они попадут в статистику.</span></span></div>';
     }
 
