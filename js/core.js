@@ -4,7 +4,9 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'anatomy-colloquium-v1';
+  const COLLOQUIUM = window.ACTIVE_COLLOQUIUM || { id: '1', name: 'Остеология и артросиндесмология', source: 'База теста 1 коллоквиум', examAvailable: true };
+  // Ключ первого коллоквиума не меняется: старый прогресс и правки сохраняются.
+  const STORAGE_KEY = COLLOQUIUM.id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + COLLOQUIUM.id;
   const MAX_SESSIONS = 60;
 
   /* ------------------------------------------------------------------ utils */
@@ -713,6 +715,12 @@
    */
   function gradeSession(session) {
     if (!session || session.graded) return 0;
+    // В тренировке каждая попытка уже записана при проверке или пропуске.
+    if (session.mode !== 'exam') {
+      session.graded = true;
+      save(true);
+      return 0;
+    }
     const qs = sessionQuestions(session);
     let graded = 0;
     qs.forEach((q) => {
@@ -720,7 +728,6 @@
       if (!answer) return;                     // без ключа — остаётся самооценка
       let entry = session.results[q.id];
       const selected = entry && entry.selected ? entry.selected.slice() : [];
-      if (session.mode !== 'exam' && entry && entry.graded) return;
       const res = gradeQuestion(q, selected);
       if (!entry) {
         entry = session.results[q.id] = { selected: [], revealed: true, correct: null, self: false };
@@ -781,6 +788,7 @@
   window.AT = {
     utils,
     dataset,
+    colloquium: COLLOQUIUM,
     keyApi,
     keyParser,
     gradeQuestion,

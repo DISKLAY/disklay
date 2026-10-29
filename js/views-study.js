@@ -98,13 +98,14 @@
     html +=
       '<section class="hero">' +
       '<div class="hero__body">' +
-      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · модуль 1</span>' +
+      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · коллоквиум ' + esc(AT.colloquium.id) + '</span>' +
       '<h1>Тренажёр к коллоквиуму</h1>' +
-      '<p class="hero__lead">' + total + ' экзаменационных заданий по костям, соединениям и черепу. ' +
-      'Учите по темам, разбирайте ошибки и проверяйте себя на время.</p>' +
+      '<p class="hero__module">' + esc(AT.colloquium.name) + '</p>' +
+      '<p class="hero__lead">' + total + ' заданий в этом коллоквиуме. Учите по темам и разбирайте ошибки.' +
+      (AT.colloquium.examAvailable ? ' Проверяйте себя на время.' : '') + '</p>' +
       '<div class="hero__actions">' +
       '<a href="#/train" class="btn btn--primary btn--lg">' + icon('play') + 'Тренироваться</a>' +
-      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + 'Пробный экзамен</a>' +
+      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + (AT.colloquium.examAvailable ? 'Пробный экзамен' : 'Экзамен · скоро') + '</a>' +
       '</div>' +
       '</div>' +
       '<div class="hero__aside">' +
@@ -152,7 +153,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
-      modeCard('Экзамен', examFormatText(), 'exam', '#/exam', 'violet') +
+      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       '</div></section>';
@@ -244,6 +245,12 @@
   /* -------------------------------------------------------- настройка: экзамен */
 
   views.examSetup = function () {
+    if (!AT.colloquium.examAvailable) {
+      return { title: 'Экзамен', html: '<div class="view">' +
+        pageHead('Экзамен', 'Коллоквиум ' + AT.colloquium.id + ' · ' + AT.colloquium.name) +
+        emptyState('clock', 'Скоро добавится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
+          '<a class="btn btn--primary" href="#/train">Перейти к тренировке</a>') + '</div>' };
+    }
     const plan = AT.examPlan;
     const per = Math.round((plan.minutes * 60) / Math.max(1, plan.total));
 
@@ -303,7 +310,7 @@
         setup.train.limit = parseInt(el.getAttribute('data-limit'), 10);
         AT.rerender();
       } else if (action === 'start-train') {
-        startTraining('smart');
+        startTraining();
       } else if (action === 'start-exam') {
         startExam();
       }
@@ -334,6 +341,7 @@
   }
 
   function startExam() {
+    if (!AT.colloquium.examAvailable) return;
     const built = AT.buildExam();
     if (!built) {
       toast('Не удалось собрать экзамен по плану: недостаточно вопросов', 'warn');
@@ -461,7 +469,7 @@
         html += '<button class="btn btn--primary" data-action="check"' + (entry.selected.length ? '' : ' disabled') + '>' +
           icon('check') + 'Проверить</button>';
         html += '<button class="btn btn--ghost" data-action="skip">Пропустить</button>';
-        html += '<span class="question__kb"><kbd>1</kbd>–<kbd>5</kbd> выбор, <kbd>Enter</kbd> проверить</span>';
+        html += '<span class="question__kb"><kbd>1</kbd>–<kbd>' + q.options.length + '</kbd> выбор, <kbd>Enter</kbd> проверить</span>';
       } else {
         html += '<button class="btn btn--primary" data-action="next">' + icon('arrowRight') + 'Далее</button>';
         html += '<button class="btn btn--ghost" data-action="prev">' + icon('arrowLeft') + 'Назад</button>';
@@ -604,7 +612,7 @@
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
 
-        if (/^[1-5]$/.test(e.key)) {
+        if (/^[1-6]$/.test(e.key)) {
           const idx = parseInt(e.key, 10);
           if (idx <= q.options.length) {
             e.preventDefault();
@@ -661,7 +669,8 @@
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
         entry.revealed = true;
-        if (entry.correct === null) entry.self = true;
+        entry.correct = false;
+        entry.self = !keyApi.has(q);
         AT.recordAttempt(q, false, []);
         persist();
         renderInto(true);

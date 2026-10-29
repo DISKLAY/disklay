@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Тренажёр · Анатомия — коллоквиум</title>
-  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: 211 заданий, тренировка по темам, экзамен: 20 вопросов за 20 минут по плану, разбор ошибок.">
+  <meta name="description" content="Тренажёр для подготовки к коллоквиуму по анатомии человека: Три коллоквиума: остеология, миология и спланхнология. Тренировка по темам и разбор ошибок.">
   <meta name="theme-color" content="#f4f6fb">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
@@ -30,9 +30,18 @@
         </span>
         <span class="brand__text">
           <strong>Анатомия</strong>
-          <span>тренажёр к коллоквиуму</span>
+          <span>АРМ РНИМУ</span>
         </span>
       </a>
+
+      <label class="module-picker">
+        <span class="module-picker__label">Коллоквиум</span>
+        <select id="colloquiumSelect" aria-label="Выберите коллоквиум" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
+          <option value="1">1 · Остеология</option>
+          <option value="2">2 · Миология</option>
+          <option value="3">3 · Спланхнология</option>
+        </select>
+      </label>
 
       <nav class="nav" id="mainNav" aria-label="Основная навигация">
         <a href="#/" data-route="dashboard">Главная</a>
@@ -58,7 +67,7 @@
   <main id="app" class="main" tabindex="-1"></main>
 
   <footer class="footer">
-    <p>Тренажёр по анатомии человека · модуль 1 · 211 заданий</p>
+    <p>Тренажёр по анатомии человека · АРМ РНИМУ</p>
     <p class="footer__muted">Данные хранятся локально в браузере. Работает офлайн.</p>
   </footer>
 
@@ -71,6 +80,9 @@
   <script src="js/data/questions.js"></script>
   <script src="js/data/answers.js"></script>
   <script src="js/data/exam.js"></script>
+  <script src="js/data/colloquium-2.js"></script>
+  <script src="js/data/colloquium-3.js"></script>
+  <script src="js/modules.js"></script>
   <script src="js/core.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/views-study.js"></script>

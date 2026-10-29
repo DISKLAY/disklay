@@ -146,6 +146,23 @@
     render();
   });
 
+  const moduleSelect = document.getElementById('colloquiumSelect');
+  if (moduleSelect) {
+    moduleSelect.value = AT.colloquium.id;
+    moduleSelect.addEventListener('change', () => {
+      try {
+        // Сохраняем незавершённую сессию до перезагрузки и переключения банка.
+        AT.save(true);
+        localStorage.setItem('anatomy-colloquium-selected', moduleSelect.value);
+        location.hash = '#/';
+        location.reload();
+      } catch (e) {
+        moduleSelect.value = AT.colloquium.id;
+        ui.toast('Не удалось переключить коллоквиум: проверьте доступ к хранилищу браузера', 'warn');
+      }
+    });
+  }
+
   /* ---------------------------------------------------------------- запуск */
 
   ui.applyTheme();
