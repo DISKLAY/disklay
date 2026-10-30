@@ -546,7 +546,7 @@
       '</div></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">О тренажёре</h2>' +
-      '<p class="muted small">Коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id) + ' · ' + esc(AT.colloquium.name) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + ' — ' + dataset.total + ' заданий. ' +
+      '<p class="muted small">' + (AT.colloquium.semester ? esc(AT.colloquium.semester) + ' семестр · ' : '') + (AT.colloquium.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id)) + ' · ' + esc(AT.colloquium.name) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + ' — ' + dataset.total + ' заданий. ' +
       (AT.colloquium.renumbered ? 'Вопросы пронумерованы по порядку; страница и исходный номер указаны в задании. ' : 'Нумерация сохранена как в PDF. ') +
       'Приложение работает офлайн и не отправляет данные на сервер.</p>' +
       '<p class="muted small">' + (AT.colloquium.hasBaseKey === false ? 'База «' + esc(AT.colloquium.source) + '» предоставлена без ключа ответов. До его добавления используется самооценка.' : 'Ключ ответов взят из «' + esc(AT.colloquium.source) + '» — варианты, отмеченные в PDF подсветкой. Спорные ответы можно поправить на странице «Ключ»: приоритет всегда у вашей правки.') + '</p>' +

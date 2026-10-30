@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  window.initModulePicker = function (select, container) {
+  window.initModulePicker = function (select, container, sidebar, sidebarNav) {
     if (!select || !container) return;
 
     const trigger = document.createElement('button');
@@ -20,7 +20,7 @@
     list.id = 'modulePickerList';
     list.className = 'module-picker__list';
     list.setAttribute('role', 'listbox');
-    list.setAttribute('aria-label', 'Коллоквиумы');
+    list.setAttribute('aria-label', 'Разделы курса');
     list.hidden = true;
     const items = [];
 
@@ -54,13 +54,56 @@
         check.className = 'module-picker__check';
         check.setAttribute('aria-hidden', 'true');
         check.innerHTML = '<svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        item.setAttribute('aria-label', 'Коллоквиум ' + parts[0] + ' · ' + name.textContent);
+        item.setAttribute('aria-label', (/^\d+$/.test(parts[0]) ? 'Коллоквиум ' + parts[0] : parts[0]) + ' · ' + name.textContent);
         item.append(number, name, check);
         group.appendChild(item);
         items.push(item);
       });
       list.appendChild(group);
     });
+
+    const sidebarItems = [];
+    if (sidebar && sidebarNav) {
+      Array.from(select.querySelectorAll('optgroup')).forEach((optgroup) => {
+        const group = document.createElement('section');
+        group.className = 'course-sidebar__group';
+        const heading = document.createElement('h2');
+        heading.className = 'course-sidebar__group-title';
+        heading.textContent = optgroup.label;
+        group.appendChild(heading);
+        Array.from(optgroup.children).forEach((option) => {
+          const parts = option.textContent.replace(/^Стом\s*·\s*/, '').split(' · ');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'course-sidebar__item';
+          button.dataset.value = option.value;
+          const badge = document.createElement('span');
+          badge.className = 'course-sidebar__badge';
+          badge.setAttribute('aria-hidden', 'true');
+          badge.textContent = /^\d+$/.test(parts[0]) ? parts[0] : 'З';
+          const text = document.createElement('span');
+          text.className = 'course-sidebar__item-text';
+          const label = document.createElement('strong');
+          label.textContent = /^\d+$/.test(parts[0]) ? 'Коллоквиум ' + parts[0] : parts[0];
+          const subject = document.createElement('span');
+          subject.textContent = parts.slice(1).join(' · ');
+          text.append(label, subject);
+          button.append(badge, text);
+          button.addEventListener('click', () => {
+            if (option.value !== select.value) {
+              select.value = option.value;
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+              sync();
+            }
+          });
+          group.appendChild(button);
+          sidebarItems.push(button);
+        });
+        sidebarNav.appendChild(group);
+      });
+      sidebar.hidden = false;
+      document.documentElement.classList.add('has-course-sidebar');
+    }
 
     function sync() {
       const option = select.options[select.selectedIndex];
@@ -69,8 +112,12 @@
       const title = option.textContent.replace(/^Стом\s*·\s*/, '');
       trigger.querySelector('.module-picker__caption').textContent = group;
       trigger.querySelector('.module-picker__current').textContent = title;
-      trigger.setAttribute('aria-label', 'Выбрать коллоквиум: ' + group + ', ' + title);
+      trigger.setAttribute('aria-label', 'Выбрать раздел: ' + group + ', ' + title);
       items.forEach((item) => item.setAttribute('aria-selected', String(item.dataset.value === select.value)));
+      sidebarItems.forEach((item) => {
+        if (item.dataset.value === select.value) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
+      });
     }
 
     function close(restoreFocus) {

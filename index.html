@@ -35,12 +35,17 @@
       </a>
 
       <div class="module-picker" id="modulePicker">
-        <label class="module-picker__label" for="colloquiumSelect">Коллоквиум</label>
-        <select id="colloquiumSelect" aria-label="Выберите коллоквиум" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
-          <optgroup label="Основные базы">
+        <label class="module-picker__label" for="colloquiumSelect">Раздел курса</label>
+        <select id="colloquiumSelect" aria-label="Выберите раздел курса" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
+          <optgroup label="1 семестр">
             <option value="1">1 · Остеология</option>
             <option value="2">2 · Миология</option>
+            <option value="credit-1">Зачёт · Остеология и миология</option>
+          </optgroup>
+          <optgroup label="2 семестр">
             <option value="3">3 · Спланхнология</option>
+            <option value="4">4 · Центральная нервная система</option>
+            <option value="credit-2">Зачёт · Спланхнология и ЦНС</option>
           </optgroup>
           <optgroup label="Стоматологический факультет">
             <option value="stom-2">Стом · 2 · Спланхнология</option>
@@ -70,7 +75,13 @@
     </div>
   </header>
 
-  <main id="app" class="main" tabindex="-1"></main>
+  <div class="app-layout">
+    <aside class="course-sidebar" id="courseSidebar" aria-label="Разделы курса" hidden>
+      <div class="course-sidebar__heading"><span>Учебный план</span><strong>Первый курс</strong></div>
+      <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
+    </aside>
+    <main id="app" class="main" tabindex="-1"></main>
+  </div>
 
   <footer class="footer">
     <p>Тренажёр по анатомии человека · АРМ РНИМУ</p>
@@ -89,6 +100,9 @@
   <script src="js/data/exam.js"></script>
   <script src="js/data/colloquium-2.js"></script>
   <script src="js/data/colloquium-3.js"></script>
+  <script src="js/data/colloquium-4.js"></script>
+  <script src="js/data/credit-1.js"></script>
+  <script src="js/data/credit-2.js"></script>
   <script src="js/data/dental-2.js"></script>
   <script src="js/data/dental-3.js"></script>
   <script src="js/modules.js"></script>
