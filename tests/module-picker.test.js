@@ -6,11 +6,12 @@ const path = require('node:path');
 
 // Минимальная DOM-модель, чтобы проверить управление списком без зависимостей.
 function makePicker() {
-  const document = { activeElement: null, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; } };
+  const document = { activeElement: null, documentElement: { classList: { add() {} } }, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; } };
   class Element {
     constructor(tag) { this.tagName = tag; this.children = []; this.dataset = {}; this.attrs = {}; this.listeners = {}; this.hidden = false; this.classList = { add() {} }; }
     setAttribute(name, value) { this.attrs[name] = value; }
     getAttribute(name) { return this.attrs[name]; }
+    removeAttribute(name) { delete this.attrs[name]; }
     appendChild(child) { child.parentElement = this; this.children.push(child); return child; }
     append(...children) { children.forEach(child => this.appendChild(child)); }
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
@@ -32,7 +33,8 @@ function makePicker() {
   const select = new Element('select');
   select.title = 'Прогресс сохраняется отдельно';
   const groups = [
-    { label: 'Основные базы', choices: [['1', '1 · Остеология'], ['2', '2 · Миология'], ['3', '3 · Спланхнология']] },
+    { label: '1 семестр', choices: [['1', '1 · Остеология'], ['2', '2 · Миология'], ['credit-1', 'Зачёт · Остеология и миология']] },
+    { label: '2 семестр', choices: [['3', '3 · Спланхнология'], ['4', '4 · Центральная нервная система'], ['credit-2', 'Зачёт · Спланхнология и ЦНС']] },
     { label: 'Стоматологический факультет', choices: [['stom-2', 'Стом · 2 · Спланхнология'], ['stom-3', 'Стом · 3 · Ангионеврология']] },
   ].map(({label, choices}) => {
     const group = new Element('optgroup'); group.label = label;
@@ -46,19 +48,22 @@ function makePicker() {
   class Event { constructor(type, options) { this.type = type; Object.assign(this, options); } }
   const context = vm.createContext({ window: {}, document, Event });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/module-picker.js'), 'utf8'), context);
-  context.window.initModulePicker(select, container);
+  const sidebar = new Element('aside');
+  sidebar.hidden = true;
+  const sidebarNav = new Element('nav');
+  context.window.initModulePicker(select, container, sidebar, sidebarNav);
   const [trigger, list] = container.children;
   const items = list.children.flatMap(group => group.children.filter(child => child.getAttribute('role') === 'option'));
   const key = (target, key) => target.dispatchEvent({ type: 'keydown', key, preventDefault() {} });
   const click = (target, eventTarget = target) => target.dispatchEvent({ type: 'click', target: eventTarget });
-  return { document, select, trigger, list, items, key, click };
+  return { document, select, trigger, list, items, key, click, sidebar, sidebarNav };
 }
 
 test('список показывает группы и выбранную базу, открывается и закрывается', () => {
   const {document, select, trigger, list, items, click} = makePicker();
   assert.equal(select.hidden, true);
   assert.equal(trigger.current.textContent, '1 · Остеология');
-  assert.equal(items.length, 5);
+  assert.equal(items.length, 8);
   assert.equal(items[0].getAttribute('aria-selected'), 'true');
   assert.equal(list.hidden, true);
   click(trigger);
@@ -77,15 +82,46 @@ test('клавиатура и выбор пункта работают чере�
   key(list, 'ArrowDown');
   assert.equal(document.activeElement, items[1]);
   key(list, 'End');
-  assert.equal(document.activeElement, items[4]);
+  assert.equal(document.activeElement, items[7]);
   key(list, 'Escape');
   assert.equal(document.activeElement, trigger);
   assert.equal(list.hidden, true);
   click(trigger);
-  click(list, items[4]);
+  click(list, items[7]);
   assert.equal(select.value, 'stom-3');
   assert.equal(changes, 1);
   assert.equal(trigger.caption.textContent, 'Стоматологический факультет');
   assert.equal(trigger.current.textContent, '3 · Ангионеврология');
-  assert.equal(items[4].getAttribute('aria-selected'), 'true');
+  assert.equal(items[7].getAttribute('aria-selected'), 'true');
+});
+
+
+test('боковая панель показывает семестры и использует то же переключение', () => {
+  const { sidebar, sidebarNav, select, trigger, click } = makePicker();
+  const groups = sidebarNav.children;
+  assert.equal(sidebar.hidden, false);
+  assert.deepEqual(groups.map(group => group.children[0].textContent), ['1 семестр', '2 семестр', 'Стоматологический факультет']);
+  assert.equal(groups[0].children[1].getAttribute('aria-current'), 'page');
+  let changes = 0;
+  select.addEventListener('change', () => changes++);
+  const credit = groups[1].children[3];
+  click(credit);
+  assert.equal(select.value, 'credit-2');
+  assert.equal(changes, 1);
+  assert.equal(credit.getAttribute('aria-current'), 'page');
+  assert.equal(groups[0].children[1].getAttribute('aria-current'), undefined);
+  assert.equal(trigger.caption.textContent, '2 семестр');
+  assert.equal(trigger.current.textContent, 'Зачёт · Спланхнология и ЦНС');
+});
+
+
+test('в боковой панели зачёты обозначены значком, а номера коллоквиумов сохранены', () => {
+  const { sidebarNav } = makePicker();
+  for (const group of sidebarNav.children.slice(0, 2)) {
+    const badge = group.children[3].children[0];
+    assert.match(badge._html, /<svg/);
+    assert.equal(badge.getAttribute('aria-hidden'), 'true');
+    assert.equal(group.children[3].children[1].children[0].textContent, 'Зачёт');
+  }
+  assert.equal(sidebarNav.children[1].children[1].children[0].textContent, '3');
 });

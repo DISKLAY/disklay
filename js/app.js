@@ -79,7 +79,7 @@
         console.error(err);
       }
     }
-    document.title = (result.title || 'Тренажёр') + ' · Анатомия — коллоквиум';
+    document.title = (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум');
     updateNav(route.name);
     const routeKey = route.name + ':' + JSON.stringify(route.params);
     if (routeKey !== lastRouteKey) {
@@ -158,14 +158,18 @@
         location.reload();
       } catch (e) {
         moduleSelect.value = AT.colloquium.id;
-        ui.toast('Не удалось переключить коллоквиум: проверьте доступ к хранилищу браузера', 'warn');
+        ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
-    window.initModulePicker(moduleSelect, document.getElementById('modulePicker'));
+    window.initModulePicker(moduleSelect, document.getElementById('modulePicker'), document.getElementById('courseSidebar'), document.getElementById('courseSidebarNav'));
   }
 
   /* ---------------------------------------------------------------- запуск */
 
+  if (AT.colloquium.kind === 'credit') {
+    const examLink = nav.querySelector('[data-route="exam"]');
+    if (examLink) examLink.textContent = 'Пробный зачёт';
+  }
   ui.applyTheme();
   render();
 

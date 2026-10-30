@@ -322,6 +322,52 @@ img, svg { display: block; }
 [data-theme="dark"] .icon--sun { display: none; }
 [data-theme="dark"] .icon--moon { display: block; }
 
+.course-sidebar { display: none; }
+.course-sidebar[hidden] { display: none; }
+@media (min-width: 1101px) {
+  .has-course-sidebar .module-picker { display: none; }
+  .has-course-sidebar .app-layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    max-width: 1390px;
+    margin: 0 auto;
+    padding: 0 20px;
+    gap: 24px;
+    align-items: start;
+  }
+  .has-course-sidebar .main { width: 100%; padding-left: 0; padding-right: 0; }
+  .course-sidebar:not([hidden]) {
+    display: block;
+    position: sticky;
+    top: 82px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    margin-top: 30px;
+    padding: 16px 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
+    scrollbar-width: thin;
+  }
+}
+.course-sidebar__heading { display: flex; flex-direction: column; gap: 2px; padding: 2px 10px 14px; border-bottom: 1px solid var(--border); }
+.course-sidebar__heading span { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.course-sidebar__heading strong { font-size: .96rem; letter-spacing: -.01em; }
+.course-sidebar__group { padding-top: 14px; }
+.course-sidebar__group + .course-sidebar__group { margin-top: 10px; border-top: 1px solid var(--border); }
+.course-sidebar__group-title { padding: 0 9px 7px; color: var(--muted); font-size: .67rem; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; line-height: 1.35; }
+.course-sidebar__item { display: flex; align-items: center; width: 100%; gap: 9px; padding: 8px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-2); text-align: left; }
+.course-sidebar__item:hover { background: var(--surface-3); color: var(--text); }
+.course-sidebar__item[aria-current="page"] { background: var(--primary-soft); color: var(--primary); }
+.course-sidebar__badge { display: grid; place-items: center; width: 29px; height: 29px; flex: none; border-radius: 9px; background: var(--surface-3); color: var(--muted); font-size: .76rem; font-weight: 700; }
+.course-sidebar__badge svg { width: 18px; height: 18px; }
+.course-sidebar__item[aria-current="page"] .course-sidebar__badge { background: var(--surface); color: var(--primary); }
+.course-sidebar__item-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; line-height: 1.25; }
+.course-sidebar__item-text strong { font-size: .79rem; font-weight: 700; }
+.course-sidebar__item-text span { color: var(--muted); font-size: .7rem; }
+.course-sidebar__item[aria-current="page"] .course-sidebar__item-text span { color: var(--primary); opacity: .85; }
+
 .main {
   max-width: 1120px;
   margin: 0 auto;
@@ -388,6 +434,13 @@ img, svg { display: block; }
   box-shadow: 0 10px 24px -14px rgba(79, 70, 229, .95);
 }
 .btn--primary:hover { box-shadow: 0 16px 30px -14px rgba(79, 70, 229, .95); }
+
+/* Небольшой цветовой акцент для тренировок к семестровым зачётам. */
+.btn--credit {
+  --btn-bg: linear-gradient(135deg, #365cc6, #2f4aa4);
+  box-shadow: 0 10px 24px -14px rgba(47, 74, 164, .95);
+}
+.btn--credit:hover { box-shadow: 0 16px 30px -14px rgba(47, 74, 164, .95); }
 
 .btn--ghost {
   --btn-bg: transparent;
@@ -547,6 +600,27 @@ img, svg { display: block; }
 .hero__ring-note { font-size: .82rem; color: var(--muted); text-align: center; max-width: 17ch; }
 
 .hero .ring__label strong { font-size: 1.9rem; }
+
+/* Зачётные базы: глубокий синий → индиго, с контрастными деталями в обеих темах. */
+.hero--credit {
+  background: linear-gradient(120deg, #102b58 0%, #202c68 50%, #362765 100%);
+  border-color: #344a83;
+  color: #f5f7ff;
+}
+.hero--credit::after {
+  background-image: radial-gradient(circle at 1px 1px, rgba(211, 223, 255, .65) 1px, transparent 0);
+  opacity: .2;
+}
+.hero--credit .eyebrow, .hero--credit .hero__ring-note, .hero--credit .ring__label span { color: #cbd8f3; }
+.hero--credit .eyebrow__dot { background: #a7c4ff; box-shadow: 0 0 0 4px rgba(167, 196, 255, .18); }
+.hero--credit .hero__module { color: #b9d0ff; }
+.hero--credit .hero__lead { color: #e0e8fb; }
+.hero--credit .ring__track { stroke: rgba(221, 232, 255, .22); }
+.hero--credit .ring__value { stroke: #a9c6ff; }
+.hero--credit .btn--ghost { --btn-fg: #f1f5ff; --btn-border: rgba(215, 226, 255, .55); }
+.hero--credit .btn--ghost:hover { --btn-bg: rgba(255, 255, 255, .12); --btn-fg: #fff; }
+.hero--credit :focus-visible { outline-color: #dbe8ff; }
+
 
 .stat-grid {
   display: grid;

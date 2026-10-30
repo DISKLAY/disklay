@@ -82,6 +82,12 @@
     return AT.pickQuestions({ topicIds, scope, limit: 0 }).length;
   }
 
+  function courseLabel() {
+    const module = AT.colloquium;
+    const unit = module.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + (module.number || module.id);
+    return (module.semester ? module.semester + ' семестр · ' : '') + unit + (module.faculty ? ' · ' + module.faculty : '');
+  }
+
   /* ---------------------------------------------------------------- главная */
 
   views.dashboard = function () {
@@ -96,16 +102,16 @@
     let html = '<div class="view view--dashboard">';
 
     html +=
-      '<section class="hero">' +
+      '<section class="hero' + (AT.colloquium.kind === 'credit' ? ' hero--credit' : '') + '">' +
       '<div class="hero__body">' +
-      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + '</span>' +
-      '<h1>Тренажёр к коллоквиуму</h1>' +
+      '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · ' + esc(courseLabel()) + '</span>' +
+      '<h1>Тренажёр к ' + (AT.colloquium.kind === 'credit' ? 'зачёту' : 'коллоквиуму') + '</h1>' +
       '<p class="hero__module">' + esc(AT.colloquium.name) + '</p>' +
-      '<p class="hero__lead">' + total + ' заданий в этом коллоквиуме. Учите по темам и разбирайте ошибки.' +
+      '<p class="hero__lead">' + total + ' заданий в этой базе. Учите по темам и разбирайте ошибки.' +
       (AT.colloquium.examAvailable ? ' Проверяйте себя на время.' : '') + '</p>' +
       '<div class="hero__actions">' +
-      '<a href="#/train" class="btn btn--primary btn--lg">' + icon('play') + 'Тренироваться</a>' +
-      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + (AT.colloquium.examAvailable ? 'Пробный экзамен' : 'Экзамен · скоро') + '</a>' +
+      '<a href="#/train" class="btn btn--primary btn--lg' + (AT.colloquium.kind === 'credit' ? ' btn--credit' : '') + '">' + icon('play') + 'Тренироваться</a>' +
+      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + (AT.colloquium.examAvailable ? 'Пробный экзамен' : AT.colloquium.kind === 'credit' ? 'Пробный зачёт · скоро' : 'Экзамен · скоро') + '</a>' +
       '</div>' +
       '</div>' +
       '<div class="hero__aside">' +
@@ -153,7 +159,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
-      modeCard('Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
+      modeCard(AT.colloquium.kind === 'credit' ? 'Пробный зачёт' : 'Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       '</div></section>';
@@ -246,9 +252,11 @@
 
   views.examSetup = function () {
     if (!AT.colloquium.examAvailable) {
-      return { title: 'Экзамен', html: '<div class="view">' +
-        pageHead('Экзамен', 'Коллоквиум ' + (AT.colloquium.number || AT.colloquium.id) + ' · ' + AT.colloquium.name + (AT.colloquium.faculty ? ' · ' + AT.colloquium.faculty : '')) +
-        emptyState('clock', 'Скоро добавится', 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
+      const credit = AT.colloquium.kind === 'credit';
+      const title = credit ? 'Пробный зачёт' : 'Экзамен';
+      return { title, html: '<div class="view">' +
+        pageHead(title, courseLabel() + ' · ' + AT.colloquium.name) +
+        emptyState('clock', 'Скоро добавится', credit ? 'Формат пробного зачёта пока не определён. А пока можно тренироваться по вопросам базы.' : 'Формат экзамена для этого коллоквиума пока не определён. А пока можно тренироваться по вопросам базы.',
           '<a class="btn btn--primary" href="#/train">Перейти к тренировке</a>') + '</div>' };
     }
     const plan = AT.examPlan;

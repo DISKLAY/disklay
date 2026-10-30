@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const scripts = ['js/data/questions.js', 'js/data/answers.js', 'js/data/exam.js',
-  'js/data/colloquium-2.js', 'js/data/colloquium-3.js', 'js/data/dental-2.js', 'js/data/dental-3.js', 'js/modules.js',
+  'js/data/colloquium-2.js', 'js/data/colloquium-3.js', 'js/data/colloquium-4.js', 'js/data/credit-1.js', 'js/data/credit-2.js', 'js/data/dental-2.js', 'js/data/dental-3.js', 'js/modules.js',
   'js/core.js', 'js/ui.js', 'js/views-study.js', 'js/views-pages.js'];
 
 function app(storage, selected) {
@@ -18,7 +18,7 @@ function app(storage, selected) {
 
 test('во всех коллоквиумах загружены вопросы, темы и ключи', () => {
   const storage = {};
-  for (const [id, count] of [['1', 211], ['2', 188], ['3', 254]]) {
+  for (const [id, count] of [['1', 211], ['2', 188], ['3', 254], ['4', 257], ['credit-1', 245], ['credit-2', 297]]) {
     const AT = app(storage, id);
     assert.equal(AT.colloquium.id, id);
     assert.equal(AT.dataset.total, count);
@@ -42,7 +42,7 @@ test('в первом коллоквиуме экзамен по схеме; в 
   let AT = app(storage, '1');
   assert.match(AT.views.examSetup().html, /20 вопросов за 20 минут/);
   assert.equal(AT.buildExam().ids.length, 20);
-  for (const id of ['2', '3', 'stom-2', 'stom-3']) {
+  for (const id of ['2', '3', '4', 'credit-1', 'credit-2', 'stom-2', 'stom-3']) {
     AT = app(storage, id);
     const html = AT.views.examSetup().html;
     assert.match(html, /Скоро добавится/);
@@ -183,4 +183,70 @@ test('в подвале есть контакты для сообщения об
   assert.match(html, /Нашли ошибку\?/);
   assert.match(html, /href="https:\/\/t\.me\/D1sklay">@D1sklay<\/a>/);
   assert.match(html, /href="mailto:davidka\.khachatryan\.00@gmail\.com">davidka\.khachatryan\.00@gmail\.com<\/a>/);
+});
+
+
+test('семестры, зачёты и четвёртый коллоквиум сохраняют отдельные базы', () => {
+  const storage = {};
+  for (const [id, semester, kind] of [['1', 1, undefined], ['2', 1, undefined], ['credit-1', 1, 'credit'], ['3', 2, undefined], ['4', 2, undefined], ['credit-2', 2, 'credit']]) {
+    const AT = app(storage, id);
+    assert.equal(AT.colloquium.semester, semester);
+    assert.equal(AT.colloquium.kind, kind);
+    assert.match(AT.views.dashboard().html, new RegExp(semester + ' семестр'));
+    if (kind === 'credit') {
+      assert.match(AT.views.dashboard().html, /Тренажёр к зачёту/);
+      assert.match(AT.views.examSetup().html, /Формат пробного зачёта пока не определён/);
+      assert.match(AT.views.settings().html, /Зачёт/);
+    }
+    if (['4', 'credit-1', 'credit-2'].includes(id)) {
+      AT.recordAttempt(AT.dataset.questions[0], true, [1]);
+      AT.save(true);
+      assert.ok(storage['anatomy-colloquium-v1-' + id]);
+    }
+  }
+  assert.equal(app(storage, '3').progressOf('q1').attempts, 0);
+  for (const id of ['4', 'credit-1', 'credit-2']) assert.equal(app(storage, id).progressOf('q1').attempts, 1);
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(html, /optgroup label="1 семестр"[\s\S]*value="1"[\s\S]*value="2"[\s\S]*value="credit-1"/);
+  assert.match(html, /optgroup label="2 семестр"[\s\S]*value="3"[\s\S]*value="4"[\s\S]*value="credit-2"/);
+  assert.match(html, /id="courseSidebar"/);
+});
+
+test('новые PDF перенесены целиком с подсветкой и исходной нумерацией', () => {
+  for (const [id, count, firstText, key] of [
+    ['4', 257, 'Верхняя граница спинного мозга', [1, 3]],
+    ['credit-1', 245, 'В строении тела человека', [1, 2]],
+    ['credit-2', 297, 'Нижняя стенка ротовой полости', [4, 5]],
+  ]) {
+    const AT = app({}, id);
+    assert.equal(AT.dataset.total, count);
+    assert.ok(AT.dataset.questions[0].text.startsWith(firstText));
+    assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.questions[0]).answers), key);
+    for (const [index, question] of AT.dataset.questions.entries()) {
+      assert.equal(question.num, index + 1);
+      assert.equal(question.options.length, 5);
+      assert.ok(AT.keyApi.forQuestion(question).answers.length);
+    }
+    assert.ok(AT.dataset.topics.every(topic => AT.dataset.topicQuestions(topic.id).length));
+  }
+});
+
+test('кнопка тренировки на главной зачёта выделена отдельным цветом', () => {
+  for (const id of ['credit-1', 'credit-2']) {
+    const html = app({}, id).views.dashboard().html;
+    assert.match(html, /href="#\/train" class="btn btn--primary btn--lg btn--credit"/);
+    assert.match(html, /href="#\/exam" class="btn btn--ghost btn--lg"/);
+  }
+  for (const id of ['1', '2', '3', '4', 'stom-2', 'stom-3']) {
+    assert.doesNotMatch(app({}, id).views.dashboard().html, /btn--credit/);
+  }
+});
+
+test('сине-индиговое оформление блока применяется только к зачётам', () => {
+  for (const id of ['credit-1', 'credit-2']) {
+    assert.match(app({}, id).views.dashboard().html, /<section class="hero hero--credit">/);
+  }
+  for (const id of ['1', '2', '3', '4', 'stom-2', 'stom-3']) {
+    assert.doesNotMatch(app({}, id).views.dashboard().html, /hero--credit/);
+  }
 });
