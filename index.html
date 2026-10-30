@@ -36,12 +36,10 @@
 
       <button type="button" class="course-toggle" id="courseToggle" aria-label="Открыть навигацию" aria-controls="courseSidebar" aria-expanded="false" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        <span class="course-toggle__text"><span>Разделы</span><span class="course-toggle__current" id="courseToggleCurrent"></span></span>
+        <span class="course-toggle__text"><span>Меню</span><span class="course-toggle__current" id="courseToggleCurrent"></span></span>
       </button>
 
-      <div class="module-picker" id="modulePicker">
-        <label class="module-picker__label" for="colloquiumSelect">Раздел курса</label>
-        <select id="colloquiumSelect" aria-label="Выберите раздел курса" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
+      <select id="colloquiumSelect" hidden aria-label="Выберите раздел курса" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
           <optgroup label="1 семестр">
             <option value="1">1 · Остеология</option>
             <option value="2">2 · Миология</option>
@@ -56,8 +54,7 @@
             <option value="stom-2">Стом · 2 · Спланхнология</option>
             <option value="stom-3">Стом · 3 · Ангионеврология</option>
           </optgroup>
-        </select>
-      </div>
+      </select>
 
       <nav class="nav" id="mainNav" aria-label="Основная навигация">
         <a href="#/" data-route="dashboard">Главная</a>
@@ -84,7 +81,8 @@
   <div class="app-layout">
     <button type="button" class="course-backdrop" id="courseBackdrop" aria-label="Закрыть навигацию" tabindex="-1" hidden></button>
     <aside class="course-sidebar" id="courseSidebar" role="dialog" aria-modal="true" aria-labelledby="courseSidebarTitle" hidden>
-      <div class="course-sidebar__heading"><div><span>Навигация</span><strong id="courseSidebarTitle">Первый курс</strong></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
+      <div class="course-sidebar__heading"><div><span>Первый курс</span><strong id="courseSidebarTitle">Меню</strong><p class="course-sidebar__current" id="courseSidebarCurrent"></p></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
+      <div class="course-sidebar__section-title">Навигация</div>
       <nav class="course-sidebar__pages" aria-label="Разделы приложения">
         <a href="#/" data-sidebar-route="dashboard">Главная</a>
         <a href="#/train" data-sidebar-route="train">Тренировка</a>
@@ -95,7 +93,8 @@
         <a href="#/key" data-sidebar-route="key">Ключ</a>
         <a href="#/settings" data-sidebar-route="settings">Настройки</a>
       </nav>
-      <div class="course-sidebar__section-title">Выберите базу</div>
+      <div class="course-sidebar__section-title">Выбрать базу</div>
+      <p class="course-sidebar__note">Прогресс хранится отдельно. Таймер экзамена при переключении продолжает идти.</p>
       <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
     </aside>
     <main id="app" class="main" tabindex="-1"></main>

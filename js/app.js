@@ -94,7 +94,8 @@
 
   function updateNav(name) {
     if (!nav) return;
-    const active = name === 'run' || name === 'summary' ? 'train' : name;
+    const session = AT.getState().session;
+    const active = name === 'run' || name === 'summary' ? (session && session.mode === 'exam' ? 'exam' : 'train') : name;
     nav.querySelectorAll('[data-route]').forEach((link) => {
       const r = link.getAttribute('data-route');
       const isActive = r === active || (active === 'dashboard' && r === 'dashboard');
@@ -171,15 +172,17 @@
     });
     const courseToggle = document.getElementById('courseToggle');
     const courseToggleCurrent = document.getElementById('courseToggleCurrent');
+    const courseSidebarCurrent = document.getElementById('courseSidebarCurrent');
     const syncCourseToggle = () => {
       const option = moduleSelect.options[moduleSelect.selectedIndex];
       if (!option || !courseToggle || !courseToggleCurrent) return;
       courseToggleCurrent.textContent = option.textContent;
-      courseToggle.setAttribute('aria-label', 'Открыть навигацию. Текущая база: ' + option.textContent);
+      if (courseSidebarCurrent) courseSidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
+      courseToggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
     };
     moduleSelect.addEventListener('change', syncCourseToggle);
     syncCourseToggle();
-    window.initModulePicker(moduleSelect, document.getElementById('modulePicker'), document.getElementById('courseSidebar'), document.getElementById('courseSidebarNav'));
+    window.initModulePicker(moduleSelect, document.getElementById('courseSidebarNav'));
     window.initCourseDrawer(document.getElementById('courseSidebar'), document.getElementById('courseToggle'), document.getElementById('courseClose'), document.getElementById('courseBackdrop'));
   }
 
