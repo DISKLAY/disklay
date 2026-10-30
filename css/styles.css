@@ -601,6 +601,27 @@ img, svg { display: block; }
 
 .hero .ring__label strong { font-size: 1.9rem; }
 
+/* Зачётные базы: глубокий синий → индиго, с контрастными деталями в обеих темах. */
+.hero--credit {
+  background: linear-gradient(120deg, #102b58 0%, #202c68 50%, #362765 100%);
+  border-color: #344a83;
+  color: #f5f7ff;
+}
+.hero--credit::after {
+  background-image: radial-gradient(circle at 1px 1px, rgba(211, 223, 255, .65) 1px, transparent 0);
+  opacity: .2;
+}
+.hero--credit .eyebrow, .hero--credit .hero__ring-note, .hero--credit .ring__label span { color: #cbd8f3; }
+.hero--credit .eyebrow__dot { background: #a7c4ff; box-shadow: 0 0 0 4px rgba(167, 196, 255, .18); }
+.hero--credit .hero__module { color: #b9d0ff; }
+.hero--credit .hero__lead { color: #e0e8fb; }
+.hero--credit .ring__track { stroke: rgba(221, 232, 255, .22); }
+.hero--credit .ring__value { stroke: #a9c6ff; }
+.hero--credit .btn--ghost { --btn-fg: #f1f5ff; --btn-border: rgba(215, 226, 255, .55); }
+.hero--credit .btn--ghost:hover { --btn-bg: rgba(255, 255, 255, .12); --btn-fg: #fff; }
+.hero--credit :focus-visible { outline-color: #dbe8ff; }
+
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

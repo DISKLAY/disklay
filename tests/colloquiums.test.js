@@ -241,3 +241,12 @@ test('кнопка тренировки на главной зачёта выд�
     assert.doesNotMatch(app({}, id).views.dashboard().html, /btn--credit/);
   }
 });
+
+test('сине-индиговое оформление блока применяется только к зачётам', () => {
+  for (const id of ['credit-1', 'credit-2']) {
+    assert.match(app({}, id).views.dashboard().html, /<section class="hero hero--credit">/);
+  }
+  for (const id of ['1', '2', '3', '4', 'stom-2', 'stom-3']) {
+    assert.doesNotMatch(app({}, id).views.dashboard().html, /hero--credit/);
+  }
+});

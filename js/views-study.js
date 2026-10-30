@@ -102,7 +102,7 @@
     let html = '<div class="view view--dashboard">';
 
     html +=
-      '<section class="hero">' +
+      '<section class="hero' + (AT.colloquium.kind === 'credit' ? ' hero--credit' : '') + '">' +
       '<div class="hero__body">' +
       '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · ' + esc(courseLabel()) + '</span>' +
       '<h1>Тренажёр к ' + (AT.colloquium.kind === 'credit' ? 'зачёту' : 'коллоквиуму') + '</h1>' +
