@@ -147,6 +147,7 @@
       strict: true,
       hintCount: false,
       shuffleAnswers: true,
+      germSquad: true, // Временно 100% для проверки эксперимента пользователем.
     },
     key: {},          // правки/импорт: { "1": [1,2] }
     keyMeta: { updatedAt: null, source: '' },
@@ -641,6 +642,41 @@
     },
   };
 
+  // Портфель объединяет закладки, но сами данные остаются в своих базах.
+  const portfolio = {
+    allFavorites() {
+      const modules = window.COLLOQUIUM_MODULES || { [COLLOQUIUM.id]: COLLOQUIUM };
+      const groups = [];
+      Object.keys(modules).forEach(id => {
+        const module = modules[id];
+        let saved;
+        try { saved = id === COLLOQUIUM.id ? state : JSON.parse(localStorage.getItem(id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id) || '{}'); }
+        catch (e) { return; }
+        if (!saved || !saved.favorites || typeof saved.favorites !== 'object') return;
+        const questions = (module.questions || []).filter(q => saved.favorites[q.id]).map(q => ({
+          question: q,
+          comment: saved.comments && typeof saved.comments[q.id] === 'string' ? saved.comments[q.id] : '',
+        }));
+        if (questions.length) groups.push({ module, questions });
+      });
+      return groups;
+    },
+    removeFavorite(id, qid) {
+      const modules = window.COLLOQUIUM_MODULES || { [COLLOQUIUM.id]: COLLOQUIUM };
+      const module = modules[id];
+      if (!module || !(module.questions || []).some(q => q.id === qid)) return false;
+      if (id === COLLOQUIUM.id) return !annotations.isFavorite(qid) || annotations.toggleFavorite(qid);
+      const key = id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id;
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || '{}');
+        if (!saved || typeof saved !== 'object' || !saved.favorites || typeof saved.favorites !== 'object') return false;
+        delete saved.favorites[qid];
+        localStorage.setItem(key, JSON.stringify(saved));
+        return true;
+      } catch (e) { return false; }
+    },
+  };
+
   /* --------------------------------------------------------------- sessions */
 
   function pickQuestions(opts) {
@@ -857,6 +893,7 @@
     progressOf,
     analytics,
     annotations,
+    portfolio,
     pickQuestions,
     optionOrder,
     examPlan,

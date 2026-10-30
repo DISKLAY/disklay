@@ -171,6 +171,7 @@
       modeCard(AT.colloquium.kind === 'credit' ? 'Пробный зачёт' : 'Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
+      modeCard('Портфель избранного', 'Отмеченные вопросы из всех баз', 'star', '#/portfolio', 'primary') +
       '</div></section>';
 
     if (lastSessions.length) {
@@ -561,10 +562,11 @@
         html += '<button class="btn btn--primary" data-action="check"' + (entry.selected.length ? '' : ' disabled') + '>' +
           icon('check') + (answer ? 'Проверить' : 'К самооценке') + '</button>';
         html += '<button class="btn btn--ghost" data-action="skip">Пропустить</button>';
+        html += '<button class="btn btn--ghost" data-action="prev"' + (session.index === 0 ? ' disabled' : '') + '>' + icon('arrowLeft') + 'Назад</button>';
         html += '<span class="question__kb"><kbd>1</kbd>–<kbd>' + q.options.length + '</kbd> выбор, <kbd>Enter</kbd> проверить</span>';
       } else {
         html += '<button class="btn btn--primary" data-action="next">' + icon('arrowRight') + 'Далее</button>';
-        html += '<button class="btn btn--ghost" data-action="prev">' + icon('arrowLeft') + 'Назад</button>';
+        html += '<button class="btn btn--ghost" data-action="prev"' + (session.index === 0 ? ' disabled' : '') + '>' + icon('arrowLeft') + 'Назад</button>';
         html += '<span class="question__kb"><kbd>Enter</kbd> далее</span>';
       }
       html += '</div>';
@@ -640,15 +642,20 @@
       AT.save(isExam);
     }
 
+    let squad = null;
     function go(index) {
+      if (squad) squad.leave();
       session.index = utils.clamp(index, 0, qs.length - 1);
+      AT.save(true);
       renderInto(true);
+      if (squad) squad.enter();
     }
 
     function renderInto(scroll) {
       const host = document.getElementById('runnerHost');
       if (!host) return;
       host.innerHTML = render();
+      if (squad) squad.refresh();
       if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -658,12 +665,24 @@
       host.innerHTML = render();
       root.appendChild(host);
       mountAnnotations(host);
+      if (AT.germSquad) {
+        squad = AT.germSquad.mount({host, session, questions: qs, onChooseWrong: (index) => {
+          const q = qs[session.index];
+          const entry = q && entryOf(session, q.id);
+          if (!entry || entry.revealed || entry.selected.includes(index) || (entry.hiddenOptions || []).includes(index)) return false;
+          toggleOption(index);
+          return true;
+        }});
+        squad.enter();
+        if (AT.onCleanup) AT.onCleanup(() => squad.dispose());
+      }
 
       let finished = false;
 
       const finishUp = () => {
         if (finished) return;
         finished = true;
+        if (squad) squad.leave();
         session.limitSeconds = session.limitSeconds || 0;
         AT.gradeSession(session);
         const record = AT.finishSession();
@@ -739,7 +758,7 @@
         if (pos === -1) entry.selected.push(idx);
         else entry.selected.splice(pos, 1);
         entry.selected.sort((a, b) => a - b);
-        if (isExam) persist();
+        AT.save(true);
         renderInto(false);
       }
 
@@ -748,6 +767,7 @@
         const entry = entryOf(session, q.id);
         if (!entry.selected.length || entry.revealed) return;
         entry.revealed = true;
+        if (squad) squad.leave();
         const answer = keyApi.forQuestion(q);
         if (answer) {
           const res = AT.gradeQuestion(q, entry.selected);
@@ -767,6 +787,7 @@
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
         entry.revealed = true;
+        if (squad) squad.leave();
         if (keyApi.has(q)) {
           entry.correct = false;
           entry.self = false;
@@ -905,6 +926,7 @@
       const sign = n => (n > 0 ? '+' : '') + n;
       html += '<div class="game-result"><div><strong>Игровой результат</strong><span>Валюта: ' + sign(game.coinsChange) + ' · Рейтинг: ' + sign(game.ratingChange) + '</span></div>' +
         (isExam ? '<p>Начислено за ответы: ' + game.coinsEarned + ' валюты и ' + game.ratingEarned + ' рейтинга; штраф за ошибки: −' + game.coinsPenalty + ' и −' + game.ratingPenalty + '. Баланс и рейтинг не опускаются ниже нуля.</p>' : '') +
+        (game.germsPopped ? '<p>Микробы: ' + game.germsPopped + ' · +' + game.germCoins + ' валюты.</p>' : '') +
         (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ' + game.bonusEffects.map(effect => effect === 'currency' ? '×2 валюта' : '×2 рейтинг').join(', ') : '') + '.</p>' : '<p>Без усилений.</p>') + '</div>';
     }
 

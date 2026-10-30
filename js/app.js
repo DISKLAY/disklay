@@ -45,6 +45,7 @@
     run: 'run',
     summary: 'summary',
     mistakes: 'mistakes',
+    portfolio: 'portfolio',
     stats: 'stats',
     rewards: 'rewards',
     key: 'key',
@@ -58,8 +59,9 @@
     currentRoute = route;
     const viewName = ROUTES[route.name] || 'notFound';
 
-    if (viewName === 'trainSetup' && route.params.topic) {
-      AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];
+    if (viewName === 'trainSetup' && (route.params.topic || route.params.scope === 'favorites')) {
+      if (route.params.topic) AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];
+      if (route.params.scope === 'favorites') AT.setup.train.scope = 'favorites';
       history.replaceState(null, '', '#/train');
     }
 

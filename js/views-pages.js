@@ -18,6 +18,55 @@
     keyByPosition: false,
   });
 
+  /* Портфель — обзор избранного из всех локальных баз. */
+  views.portfolio = function () {
+    const groups = AT.portfolio.allFavorites();
+    const count = groups.reduce((n, group) => n + group.questions.length, 0);
+    let html = '<div class="view view--portfolio"><div class="page-head"><h1>Портфель избранного</h1>' +
+      '<p>Все отмеченные вопросы на этом устройстве, сгруппированные по базам. Варианты показаны в исходном порядке.</p></div>';
+    if (!count) html += emptyState('star', 'Портфель пока пуст', 'Отметьте вопрос звёздочкой во время тренировки или в разборе.', '<a class="btn btn--primary" href="#/train">К тренировке</a>');
+    else {
+      html += '<p class="portfolio-total">Всего вопросов: <strong>' + count + '</strong></p>';
+      groups.forEach(({module, questions}) => {
+        const title = (module.faculty ? module.faculty + ' · ' : '') + (module.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + (module.number || module.id)) + ' · ' + module.name;
+        html += '<section class="portfolio-group"><div class="section__head"><h2>' + esc(title) + '</h2><span class="badge badge--soft">' + questions.length + '</span></div>';
+        if (module.id === AT.colloquium.id) html += '<p class="muted small">Текущая база · <a class="link" href="#/train?scope=favorites">Тренировать избранное по темам</a></p>';
+        else html += '<button class="btn btn--sm btn--ghost" data-action="open-favorite-base" data-module="' + esc(module.id) + '">Выбрать эту базу</button>';
+        html += '<div class="portfolio-list">';
+        questions.forEach(({question:q, comment}) => {
+          const topic = (module.topics || []).find(t => t.id === q.topic);
+          html += '<details class="portfolio-item"><summary><span class="badge">№ ' + esc(q.num) + '</span><span class="portfolio-item__text">' + esc(q.text) + '</span>' + icon('chevronDown') + '</summary>' +
+            '<div class="portfolio-item__body"><p class="muted small">' + esc(topic ? topic.title : '') + '</p>' +
+            '<ol class="portfolio-options">' + q.options.map(opt => '<li>' + esc(opt) + '</li>').join('') + '</ol>' +
+            (comment ? '<div class="portfolio-comment"><strong>Личный комментарий</strong><p>' + esc(comment) + '</p></div>' : '') +
+            '<button class="btn btn--sm btn--ghost" data-action="remove-favorite" data-module="' + esc(module.id) + '" data-qid="' + esc(q.id) + '">' + icon('star') + 'Убрать из избранного</button></div></details>';
+        });
+        html += '</div></section>';
+      });
+    }
+    html += '</div>';
+    const mount = root => {
+      const view = root.querySelector('.view--portfolio');
+      view.addEventListener('click', e => {
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        const action = el.getAttribute('data-action'), id = el.getAttribute('data-module');
+        if (action === 'remove-favorite') {
+          if (AT.portfolio.removeFavorite(id, el.getAttribute('data-qid'))) { AT.rerender(); toast('Вопрос убран из избранного'); }
+          else toast('Не удалось сохранить изменение', 'warn');
+        } else if (action === 'open-favorite-base' && window.COLLOQUIUM_MODULES && window.COLLOQUIUM_MODULES[id]) {
+          try {
+            if (!AT.save(true)) throw new Error('storage');
+            localStorage.setItem('anatomy-colloquium-selected', id);
+            location.hash = '#/portfolio';
+            location.reload();
+          } catch (err) { toast('Не удалось переключить базу', 'warn'); }
+        }
+      });
+    };
+    return {title: 'Портфель избранного', html, mount};
+  };
+
   /* ---------------------------------------------------------------- ошибки */
 
   views.mistakes = function () {
@@ -536,6 +585,8 @@
         settings.strict) +
       switchRow('hintCount', 'Подсказывать число верных ответов',
         'В тренировке показывать, сколько правильных вариантов в задании.', settings.hintCount) +
+      switchRow('germSquad', 'Бригада микробов · эксперимент',
+        'Появляется с вероятностью 0,5% на подходящем вопросе тренировки. Можно отключить. За каждого лопнувшего микроба — 50 валюты. Они выбирают неверные варианты, но не отправляют ответ.', settings.germSquad) +
       switchRow('shuffleAnswers', 'Перемешивать варианты ответов',
         'В тренировке и экзамене варианты меняют порядок. Для новых сессий этой базы; зависимые от порядка варианты не перемешиваются.', settings.shuffleAnswers) +
       '</section>';

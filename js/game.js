@@ -58,7 +58,7 @@
   function sessionGame(session) {
     if (!session.game || typeof session.game !== 'object') session.game = {};
     const g = session.game;
-    for (const field of ['coinsEarned', 'ratingEarned', 'coinsPenalty', 'ratingPenalty', 'hintsUsed', 'bonusRemaining']) g[field] = number(g[field]);
+    for (const field of ['coinsEarned', 'ratingEarned', 'coinsPenalty', 'ratingPenalty', 'hintsUsed', 'bonusRemaining', 'germCoins', 'germsPopped']) g[field] = number(g[field]);
     for (const field of ['coinsChange', 'ratingChange']) g[field] = Number.isFinite(g[field]) ? Math.trunc(g[field]) : 0;
     // Старое уже активированное усиление остаётся валютным до конца действия.
     if (g.bonusUsed && !g.bonusEffect) g.bonusEffect = 'currency';
@@ -309,6 +309,31 @@
     AT.save(true);
     return { ok: true, message: 'Двойной рейтинг за 20 верных ответов' };
   }
+  // Однократная награда за конкретного микроба в вопросе этой сессии.
+  function awardMicrobe(session, q, index) {
+    if (!session || AT.currentSession() !== session || session.mode !== 'train' || session.finished ||
+        !q || AT.dataset.byId.get(q.id) !== q || session.ids[session.index] !== q.id ||
+        !session.results[q.id] || session.results[q.id].revealed || !session.germSeen || !session.germSeen[q.id] ||
+        !Number.isInteger(index) || index < 0 || index > 2) return {ok: false, message: 'Награда сейчас недоступна'};
+    const game = ensure(), g = sessionGame(session);
+    if (!g.germAwards || typeof g.germAwards !== 'object' || Array.isArray(g.germAwards)) g.germAwards = {};
+    const hadReceipt = Object.prototype.hasOwnProperty.call(g.germAwards, q.id);
+    const oldReceipt = g.germAwards[q.id];
+    const mask = number(oldReceipt), bit = 1 << index;
+    if (mask & bit) return {ok: false, message: 'Этот микроб уже учтён'};
+    const before = {coins: game.coins, earned: g.coinsEarned, change: g.coinsChange, germCoins: g.germCoins, popped: g.germsPopped};
+    g.germAwards[q.id] = mask | bit;
+    game.coins += 50;
+    g.coinsEarned += 50; g.coinsChange += 50; g.germCoins += 50; g.germsPopped++;
+    if (!AT.save(true)) {
+      game.coins = before.coins; g.coinsEarned = before.earned; g.coinsChange = before.change;
+      g.germCoins = before.germCoins; g.germsPopped = before.popped;
+      if (hadReceipt) g.germAwards[q.id] = oldReceipt; else delete g.germAwards[q.id];
+      return {ok: false, message: 'Не удалось сохранить награду — попробуйте ещё раз'};
+    }
+    return {ok: true, coins: 50};
+  }
+
   function awardTraining(session, q, entry, previouslyMastered) {
     if (!session || session.mode !== 'train' || session.finished || !q || !entry || entry.gameRewarded || entry.correct !== true || entry.self || !AT.keyApi.has(q)) return;
     const game = ensure(), g = sessionGame(session);
@@ -357,7 +382,7 @@
     g.examScored = true;
     syncAchievements();
   }
-  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, walletBalances, buyAppearance, count, buy, useHint, activateDouble, awardTraining, awardExam };
+  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, walletBalances, buyAppearance, count, buy, useHint, activateDouble, awardMicrobe, awardTraining, awardExam };
   // Старый прогресс признаём только достижениями. Очки задним числом не начисляем.
   syncAchievements();
   AT.save(true);

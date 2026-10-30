@@ -828,3 +828,90 @@ test('режим избранного выбирает только отмече
     assert.match(AT.views.trainSetup().html, /data-scope="favorites"/);
   }
 });
+
+test('общий портфель собирает избранные вопросы и заметки всех баз без смешения одинаковых ID', () => {
+  const storage = {}; const a = app(storage, '1'), q1 = a.dataset.questions[0];
+  a.annotations.toggleFavorite(q1.id); a.annotations.setComment(q1.id, 'первый <script>');
+  const b = app(storage, '2'), q2 = b.dataset.questions[0];
+  assert.equal(q1.id, q2.id); b.annotations.toggleFavorite(q2.id); b.annotations.setComment(q2.id, 'второй');
+  const bstate = b.getState(); bstate.progress[q2.id] = {attempts:7,correct:4,wrong:3,streak:0}; b.game.ensure().coins = 33; b.save(true);
+  const groups = a.portfolio.allFavorites();
+  assert.deepEqual(Array.from(groups, group => group.module.id), ['1','2']);
+  assert.equal(groups[0].questions[0].comment, 'первый <script>');
+  assert.equal(groups[1].questions[0].comment, 'второй');
+  const html = a.views.portfolio().html;
+  assert.match(html, /первый &lt;script&gt;/); assert.match(html, /второй/);
+  assert.match(html, /Миология/); assert.match(html, /Остеология/);
+  assert.equal(a.portfolio.removeFavorite('2', q2.id), true);
+  assert.equal(a.portfolio.allFavorites().length, 1);
+  const bAgain = app(storage, '2');
+  assert.equal(bAgain.annotations.isFavorite(q2.id), false);
+  assert.equal(bAgain.annotations.comment(q2.id), 'второй');
+  assert.equal(bAgain.progressOf(q2.id).attempts, 7);
+  assert.equal(bAgain.game.ensure().coins, 33);
+  assert.equal(a.annotations.isFavorite(q1.id), true);
+  assert.equal(a.portfolio.removeFavorite('unknown', q1.id), false);
+});
+
+test('возврат назад доступен без проверки и отключён на первом вопросе', () => {
+  const AT = app(); const qs = AT.dataset.questions.slice(0,2);
+  const session = AT.startSession({mode:'train', ids:qs.map(q => q.id)});
+  let html = AT.views.questionCard(session, qs[0], {selected:[], revealed:false});
+  assert.match(html, /data-action="prev" disabled/);
+  session.index = 1;
+  html = AT.views.questionCard(session, qs[1], {selected:[2], revealed:false});
+  assert.match(html, /data-action="prev"(?! disabled)/);
+  assert.equal(AT.progressOf(qs[1].id).attempts, 0);
+});
+
+test('каждый микроб даёт ровно 50 валюты текущей базы без рейтинга и без повторных начислений', () => {
+  const storage = {}; let AT = app(storage, '1');
+  const q = AT.dataset.questions[0];
+  const s = AT.startSession({mode:'train',ids:[q.id]});
+  s.results[q.id] = {selected:[],revealed:false,correct:null}; s.germSeen = {[q.id]:true};
+  AT.game.ensure().coins = 10; AT.game.ensure().rating = 23;
+  const g = AT.game.sessionGame(s); g.bonusRemaining = 20; g.bonusEffect = 'rating';
+  for (let i = 0; i < 3; i++) assert.equal(AT.game.awardMicrobe(s, q, i).ok, true);
+  assert.equal(AT.game.ensure().coins, 160); assert.equal(AT.game.ensure().rating, 23);
+  assert.equal(g.coinsChange, 150); assert.equal(g.coinsEarned, 150); assert.equal(g.germCoins, 150); assert.equal(g.germsPopped, 3);
+  assert.equal(g.bonusRemaining, 20); assert.equal(AT.progressOf(q.id).attempts, 0);
+  assert.equal(AT.game.awardMicrobe(s, q, 0).ok, false);
+  AT = app(storage, '1');
+  const restored = AT.currentSession(), qr = AT.dataset.byId.get(q.id);
+  assert.equal(AT.game.ensure().coins, 160);
+  assert.equal(AT.game.awardMicrobe(restored, qr, 2).ok, false);
+  assert.equal(AT.game.ensure().coins, 160);
+  assert.equal(app(storage, '2').game.ensure().coins, 0);
+  AT.finishSession();
+  assert.match(AT.views.summary().html, /Микробы: 3 · \+150 валюты/);
+});
+
+test('награда за микроба откатывается при ошибке записи и не начисляется в недопустимых состояниях', () => {
+  const AT = app(), q = AT.dataset.questions[0], s = AT.startSession({mode:'train',ids:[q.id]});
+  s.results[q.id] = {selected:[],revealed:false,correct:null}; s.germSeen = {[q.id]:true};
+  const game = AT.game.ensure(), g = AT.game.sessionGame(s);
+  game.coins = 7; game.rating = 11;
+  const save = AT.save; AT.save = () => false;
+  assert.equal(AT.game.awardMicrobe(s, q, 1).ok, false);
+  assert.equal(game.coins, 7); assert.equal(game.rating, 11);
+  assert.equal(g.coinsEarned, 0); assert.equal(g.coinsChange, 0); assert.equal(g.germCoins, 0); assert.equal(g.germsPopped, 0);
+  AT.save = save;
+  assert.equal(AT.game.awardMicrobe(s, q, 1).ok, true); assert.equal(game.coins, 57);
+  assert.equal(AT.game.awardMicrobe(s, q, -1).ok, false);
+  assert.equal(AT.game.awardMicrobe(s, q, 3).ok, false);
+  s.results[q.id].revealed = true; assert.equal(AT.game.awardMicrobe(s, q, 0).ok, false);
+  const exam = AT.startSession({mode:'exam',ids:[q.id]}); exam.germSeen = {[q.id]:true}; exam.results[q.id] = {selected:[],revealed:false};
+  assert.equal(AT.game.awardMicrobe(exam, q, 0).ok, false);
+  assert.equal(AT.game.awardMicrobe(s, q, 0).ok, false);
+});
+
+test('награда за микроба сохраняется даже при выходе из незавершённой тренировки', () => {
+  const storage = {}; let AT = app(storage, '1'); const q = AT.dataset.questions[0];
+  const s = AT.startSession({mode:'train', ids:[q.id]});
+  s.results[q.id] = {selected:[], revealed:false, correct:null}; s.germSeen = {[q.id]:true};
+  assert.equal(AT.game.awardMicrobe(s, q, 0).ok, true);
+  AT.discardSession(); AT = app(storage, '1');
+  assert.equal(AT.currentSession(), null);
+  assert.equal(AT.game.ensure().coins, 50);
+  assert.equal(AT.game.ensure().rating, 0);
+});
