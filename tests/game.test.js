@@ -488,3 +488,33 @@ test('верные ответы и завершённые прохождения
   assert.equal(AT.game.achievements().find(a => a.id === 'sessions-10').unlocked, true);
   assert.equal(AT.game.totalRating(), 0);
 });
+
+test('сезонные оформления покупаются, сохраняются и доступны во всех базах', () => {
+  for (const id of ['autumn', 'winter', 'spring']) {
+    const storage = {};
+    let AT = app(storage, '1');
+    assert.equal(AT.game.appearances[id].price, 1500);
+    AT.game.ensure().coins = 1500;
+    assert.equal(AT.game.buyAppearance(id).ok, true);
+    assert.equal(AT.game.ensure().coins, 0);
+    assert.equal(AT.game.profile().appearance, id);
+    AT = app(storage, 'stom-2');
+    assert.equal(AT.game.profile().appearances[id], true);
+    assert.equal(AT.game.profile().appearance, id);
+    assert.equal(AT.game.selectAppearance('default').ok, true);
+    assert.equal(AT.game.selectAppearance(id).ok, true);
+    assert.match(AT.views.rewards().html, new RegExp('appearance-preview--' + id));
+  }
+});
+
+test('сезонные рисунки локальны, статичны и доступны в обеих темах', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const id of ['autumn', 'winter', 'spring']) {
+    const image = fs.readFileSync(path.join(__dirname, '..', 'assets', 'season-' + id + '.svg'), 'utf8');
+    assert.match(image, /<svg\b/);
+    assert.match(image, /<use\b/);
+    assert.doesNotMatch(image, /<(?:script|animate|foreignObject)\b|https?:\/\/(?!www\.w3\.org)/i);
+    assert.match(css, new RegExp('data-theme="dark"\\]\\[data-accent="' + id + '"'));
+    assert.match(css, new RegExp('appearance-preview--' + id));
+  }
+});

@@ -1682,3 +1682,38 @@ kbd {
 
 .settings-appearance-link { margin-top: 14px; color: var(--primary); font-size: .85rem; font-weight: 600; }
 .settings-appearance-link a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Сезонные оформления: статичные декоративные узоры не перекрывают контент. */
+[data-accent="autumn"] { --primary: #9c3c22; --primary-strong: #7c2f1b; --primary-soft: #fff0e5; --primary-border: #e9c0a8; --season-art: url('../assets/season-autumn.svg'); }
+[data-accent="winter"] { --primary: #245f8c; --primary-strong: #1b4c71; --primary-soft: #eaf4fb; --primary-border: #b7d6e9; --season-art: url('../assets/season-winter.svg'); }
+[data-accent="spring"] { --primary: #a03456; --primary-strong: #80233f; --primary-soft: #fcecf1; --primary-border: #ecc1cf; --season-art: url('../assets/season-spring.svg'); }
+[data-theme="dark"][data-accent="autumn"] { --primary: #f3a67e; --primary-strong: #ffc2a4; --primary-soft: #3d251c; --primary-border: #79523e; }
+[data-theme="dark"][data-accent="winter"] { --primary: #8bd2f4; --primary-strong: #b5e4fa; --primary-soft: #172d3d; --primary-border: #355d73; }
+[data-theme="dark"][data-accent="spring"] { --primary: #f3a4ba; --primary-strong: #ffc4d4; --primary-soft: #3a202e; --primary-border: #754555; }
+[data-accent="autumn"] body { background-image: radial-gradient(900px 520px at 8% -12%, rgba(218, 118, 53, .15), transparent 60%), radial-gradient(760px 460px at 96% 4%, rgba(195, 74, 54, .09), transparent 62%); }
+[data-accent="winter"] body { background-image: radial-gradient(900px 520px at 8% -12%, rgba(93, 169, 212, .16), transparent 60%), radial-gradient(760px 460px at 96% 4%, rgba(102, 146, 202, .10), transparent 62%); }
+[data-accent="spring"] body { background-image: radial-gradient(900px 520px at 8% -12%, rgba(230, 130, 163, .14), transparent 60%), radial-gradient(760px 460px at 96% 4%, rgba(109, 172, 118, .11), transparent 62%); }
+[data-accent="autumn"] body, [data-accent="winter"] body, [data-accent="spring"] body { isolation: isolate; }
+[data-accent="autumn"] body::before, [data-accent="winter"] body::before, [data-accent="spring"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: var(--season-art); background-size: 320px 320px; background-repeat: repeat; opacity: .22;
+}
+[data-theme="dark"][data-accent="autumn"] body::before, [data-theme="dark"][data-accent="winter"] body::before, [data-theme="dark"][data-accent="spring"] body::before { opacity: .28; }
+[data-accent="autumn"] .hero::after, [data-accent="winter"] .hero::after, [data-accent="spring"] .hero::after {
+  inset: auto 0 0 auto; width: 120px; height: 120px;
+  background-image: var(--season-art); background-size: 240px 240px; background-position: right bottom; background-repeat: no-repeat;
+  mask-image: none; opacity: .4;
+}
+[data-accent="autumn"] .hero__body, [data-accent="winter"] .hero__body, [data-accent="spring"] .hero__body { position: relative; z-index: 1; }
+[data-accent="autumn"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(135deg, #b5502e, #8a341f); box-shadow: 0 10px 24px -14px rgba(150, 58, 31, .8); }
+[data-accent="winter"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(135deg, #327cab, #245b88); box-shadow: 0 10px 24px -14px rgba(34, 94, 139, .8); }
+[data-accent="spring"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(135deg, #ba4a6e, #8c294a); box-shadow: 0 10px 24px -14px rgba(151, 49, 86, .8); }
+
+.appearance-preview--autumn, .appearance-preview--winter, .appearance-preview--spring { position: relative; overflow: hidden; }
+.appearance-preview--autumn::after, .appearance-preview--winter::after, .appearance-preview--spring::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-position: right center; background-repeat: no-repeat; background-size: 190px 190px;
+}
+.appearance-preview--autumn::after { background-image: url('../assets/season-autumn.svg'); }
+.appearance-preview--winter::after { background-image: url('../assets/season-winter.svg'); }
+.appearance-preview--spring::after { background-image: url('../assets/season-spring.svg'); }

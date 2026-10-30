@@ -74,6 +74,9 @@
     ocean: { title: 'Океан', description: 'Прохладные сине-бирюзовые акценты.', price: 500, color: '#087d8c' },
     ruby: { title: 'Гранат', description: 'Тёплые рубиновые акценты.', price: 800, color: '#bc3658' },
     amber: { title: 'Янтарь', description: 'Золотистые акценты.', price: 1200, color: '#9a5a06' },
+    autumn: { title: 'Осень', description: 'Тёплые краски, листья и жёлуди.', price: 1500, color: '#a64929' },
+    winter: { title: 'Зима', description: 'Морозные оттенки и снежинки.', price: 1500, color: '#316f9e' },
+    spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
   let shared = { achievements: {}, appearances: {}, appearance: 'default' };

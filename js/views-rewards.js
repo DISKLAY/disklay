@@ -28,7 +28,7 @@
         const label = active ? 'Выбрано' : owned ? 'Применить' : style.price + ' валюты';
         const disabled = active || (!owned && wallet.coins < style.price);
         return '<article class="appearance-card' + (active ? ' is-active' : '') + '">' +
-          '<div class="appearance-preview" style="--preview-color:' + esc(style.color) + '"><span></span><span></span><span></span></div>' +
+          '<div class="appearance-preview appearance-preview--' + esc(id) + '" aria-hidden="true" style="--preview-color:' + esc(style.color) + '"><span></span><span></span><span></span></div>' +
           '<div class="appearance-card__body"><h3>' + esc(style.title) + '</h3><p>' + esc(style.description) + '</p>' +
           '<div class="appearance-card__footer"><span>' + (active ? 'Используется' : owned ? 'Куплено' : 'Навсегда') + '</span>' +
           '<button class="btn ' + (owned ? 'btn--ghost' : 'btn--primary') + ' btn--sm" data-action="' + action + '" data-appearance="' + esc(id) + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button></div></div></article>';
