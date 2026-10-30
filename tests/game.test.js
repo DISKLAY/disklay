@@ -828,3 +828,38 @@ test('режим избранного выбирает только отмече
     assert.match(AT.views.trainSetup().html, /data-scope="favorites"/);
   }
 });
+
+test('общий портфель собирает избранные вопросы и заметки всех баз без смешения одинаковых ID', () => {
+  const storage = {}; const a = app(storage, '1'), q1 = a.dataset.questions[0];
+  a.annotations.toggleFavorite(q1.id); a.annotations.setComment(q1.id, 'первый <script>');
+  const b = app(storage, '2'), q2 = b.dataset.questions[0];
+  assert.equal(q1.id, q2.id); b.annotations.toggleFavorite(q2.id); b.annotations.setComment(q2.id, 'второй');
+  const bstate = b.getState(); bstate.progress[q2.id] = {attempts:7,correct:4,wrong:3,streak:0}; b.game.ensure().coins = 33; b.save(true);
+  const groups = a.portfolio.allFavorites();
+  assert.deepEqual(Array.from(groups, group => group.module.id), ['1','2']);
+  assert.equal(groups[0].questions[0].comment, 'первый <script>');
+  assert.equal(groups[1].questions[0].comment, 'второй');
+  const html = a.views.portfolio().html;
+  assert.match(html, /первый &lt;script&gt;/); assert.match(html, /второй/);
+  assert.match(html, /Миология/); assert.match(html, /Остеология/);
+  assert.equal(a.portfolio.removeFavorite('2', q2.id), true);
+  assert.equal(a.portfolio.allFavorites().length, 1);
+  const bAgain = app(storage, '2');
+  assert.equal(bAgain.annotations.isFavorite(q2.id), false);
+  assert.equal(bAgain.annotations.comment(q2.id), 'второй');
+  assert.equal(bAgain.progressOf(q2.id).attempts, 7);
+  assert.equal(bAgain.game.ensure().coins, 33);
+  assert.equal(a.annotations.isFavorite(q1.id), true);
+  assert.equal(a.portfolio.removeFavorite('unknown', q1.id), false);
+});
+
+test('возврат назад доступен без проверки и отключён на первом вопросе', () => {
+  const AT = app(); const qs = AT.dataset.questions.slice(0,2);
+  const session = AT.startSession({mode:'train', ids:qs.map(q => q.id)});
+  let html = AT.views.questionCard(session, qs[0], {selected:[], revealed:false});
+  assert.match(html, /data-action="prev" disabled/);
+  session.index = 1;
+  html = AT.views.questionCard(session, qs[1], {selected:[2], revealed:false});
+  assert.match(html, /data-action="prev"(?! disabled)/);
+  assert.equal(AT.progressOf(qs[1].id).attempts, 0);
+});
