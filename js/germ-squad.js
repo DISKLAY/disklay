@@ -1,4 +1,4 @@
-/* Эксперимент: микробы шалят, но не отправляют ответы и не меняют статистику. */
+/* Эксперимент: микробы выбирают неверные варианты, но не отправляют ответ. */
 (function () {
   'use strict';
   const AT = window.AT;
@@ -12,12 +12,18 @@
   const germImages = [virus, bacterium, virus];
 
   function mount(options) {
-    const { host, session, questions, onAdvance } = options;
+    const { host, session, questions, onChooseWrong } = options;
     let encounter = null;
     let timer = null;
     let disposed = false;
     let overlay = null;
     let frame = null;
+    let cursor = null;
+    function onPointerMove(event) {
+      if (event.pointerType === 'touch' || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
+      cursor = { x: event.clientX, y: event.clientY };
+    }
+    if (window.addEventListener) window.addEventListener('pointermove', onPointerMove, { passive: true });
     function clearTimer() { if (timer) clearTimeout(timer); timer = null; }
     function removeOverlay() {
       if (frame !== null && window.cancelAnimationFrame) window.cancelAnimationFrame(frame);
@@ -69,7 +75,15 @@
       const eased = 1 - Math.pow(1 - progress, 1.4);
       const attackTarget = encounter.phase === 'mischief' && host.querySelector('[data-action="toggle-option"][data-index="' + encounter.wrong + '"]');
       const attackBounds = attackTarget && attackTarget.getBoundingClientRect();
-      const destinations = [
+      const destinations = cursor ? [[-55, 40], [55, 40], [0, -60]].map(([dx, dy]) => {
+        let x = clamp(cursor.x + dx, 28, width - 28);
+        let y = clamp(cursor.y + dy, 28, height - 28);
+        // У краёв не перекрываем самой фигуркой точку нажатия курсора.
+        if (Math.abs(x - cursor.x) < 30 && Math.abs(y - cursor.y) < 30) {
+          y = cursor.y < height / 2 ? clamp(cursor.y + 65, 28, height - 28) : clamp(cursor.y - 65, 28, height - 28);
+        }
+        return [x, y];
+      }) : [
         [clamp(centerX - Math.min(110, width * .25), 28, width - 28), clamp(centerY - 45, 78, height - 65)],
         [clamp(centerX + Math.min(110, width * .25), 28, width - 28), clamp(centerY + 30, 78, height - 65)],
         [centerX, clamp(centerY + 95, 78, height - 65)],
@@ -89,13 +103,20 @@
         let y = origin[1] + (destY - origin[1]) * eased + Math.cos(elapsed / motion.yPeriod + motion.phase * 1.3) * 22 * sway;
         // В финале один из оставшихся микробов плавно подползает к неверному ответу.
         const previous = encounter.positions[index];
-        if (previous && attackBounds && index === encounter.alive.findIndex(Boolean) && !reduced) {
-          const alpha = 1 - Math.exp(-delta / 480);
+        const hovered = button.matches && button.matches(':hover');
+        // Рядом с курсором микроб замирает: иначе цель может ускользнуть между наведением и кликом.
+        const held = hovered || !!(cursor && previous && Math.hypot(cursor.x - previous[0], cursor.y - previous[1]) < 44);
+        if (previous && held) {
+          x = previous[0]; y = previous[1];
+        } else if (previous && !reduced && (cursor || (attackBounds && index === encounter.alive.findIndex(Boolean)))) {
+          const alpha = 1 - Math.exp(-delta / (attackBounds && index === encounter.alive.findIndex(Boolean) ? 480 : 220));
           x = previous[0] + (x - previous[0]) * alpha;
           y = previous[1] + (y - previous[1]) * alpha;
         }
         encounter.positions[index] = [x, y];
-        const rotation = reduced ? 0 : Math.sin(elapsed / 240 + motion.phase) * 22;
+        const rotation = held && encounter.rotations[index] !== undefined
+          ? encounter.rotations[index] : reduced ? 0 : Math.sin(elapsed / 240 + motion.phase) * 22;
+        encounter.rotations[index] = rotation;
         button.style.transform = 'translate3d(' + (x - 26) + 'px,' + (y - 26) + 'px,0) rotate(' + rotation + 'deg)';
       });
       frame = window.requestAnimationFrame(moveGerms);
@@ -111,34 +132,26 @@
         timer = setTimeout(beginMischief, 1500); return;
       }
       const q = questions[session.index], entry = session.results[q.id], key = AT.keyApi.forQuestion(q);
-      const wrong = key && q.options.map((_, i) => i + 1).filter(i => !key.answers.includes(i) && !(entry.hiddenOptions || []).includes(i));
-      if (!wrong || !wrong.length) { leave(); return; }
+      const wrong = key && q.options.map((_, i) => i + 1).filter(i => !key.answers.includes(i) && !(entry.hiddenOptions || []).includes(i) && !entry.selected.includes(i));
+      if (!wrong || !wrong.length) { timer = setTimeout(beginMischief, REACTION_TIME); return; }
       encounter.phase = 'mischief';
       encounter.wrong = wrong[Math.floor(Math.random() * wrong.length)];
       refresh();
       timer = setTimeout(completeMischief, MOVE_TIME);
     }
     function completeMischief() {
-        if (!valid()) return leave();
-        if (blocked()) { timer = setTimeout(completeMischief, 1500); return; }
-        const q = questions[session.index], entry = session.results[q.id], key = AT.keyApi.forQuestion(q);
-        if (!key || key.answers.includes(encounter.wrong) || (entry.hiddenOptions || []).includes(encounter.wrong)) {
-          leave();
-          const target = host.querySelector('.option--germ-target');
-          if (target) target.classList.remove('option--germ-target');
-          return;
-        }
-        // Это только визуальная шалость: не трогаем выбор, попытки, рейтинг и валюту.
-        const hasNext = session.index < questions.length - 1;
-        leave();
-        if (hasNext) {
-          AT.ui.toast('Микробы отвлекли вас и перелистнули вопрос — ответ не отправлен');
-          onAdvance();
-        } else {
-          const target = host.querySelector('.option--germ-target');
-          if (target) target.classList.remove('option--germ-target');
-          AT.ui.toast('Микробы нашалили, но последний вопрос не завершён');
-        }
+      if (!valid()) return leave();
+      if (blocked()) { timer = setTimeout(completeMischief, 1500); return; }
+      const q = questions[session.index], entry = session.results[q.id], key = AT.keyApi.forQuestion(q);
+      const wrong = encounter.wrong;
+      const available = key && !key.answers.includes(wrong) && !(entry.hiddenOptions || []).includes(wrong) && !entry.selected.includes(wrong);
+      encounter.phase = 'approach';
+      encounter.wrong = null;
+      const target = host.querySelector('.option--germ-target');
+      if (target) target.classList.remove('option--germ-target');
+      // Выбор меняется, но ни проверка, ни статистика, ни переход не запускаются.
+      if (available && onChooseWrong && onChooseWrong(wrong)) AT.ui.toast('Микроб выбрал неверный вариант — его можно снять');
+      if (valid() && encounter.alive.some(Boolean)) timer = setTimeout(beginMischief, REACTION_TIME);
     }
     function enter() {
       leave();
@@ -155,7 +168,7 @@
       if (Math.random() >= APPEARANCE_CHANCE) return;
       encounter = {
         qid: q.id, alive: [true, true, true], phase: 'approach', wrong: null,
-        startedAt: null, lastFrameAt: null, positions: [],
+        startedAt: null, lastFrameAt: null, positions: [], rotations: [],
         motion: germImages.map(() => ({phase: Math.random() * Math.PI * 2, xPeriod: 340 + Math.random() * 160, yPeriod: 260 + Math.random() * 180})),
       };
       refresh();
@@ -185,7 +198,7 @@
         if (target) target.classList.remove('option--germ-target');
       }
     }
-    function dispose() { disposed = true; leave(); }
+    function dispose() { disposed = true; leave(); if (window.removeEventListener) window.removeEventListener('pointermove', onPointerMove); }
     return { enter, leave, refresh, dispose };
   }
   AT.germSquad = { mount, APPEARANCE_CHANCE };

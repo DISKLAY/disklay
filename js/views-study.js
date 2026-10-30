@@ -666,7 +666,13 @@
       root.appendChild(host);
       mountAnnotations(host);
       if (AT.germSquad) {
-        squad = AT.germSquad.mount({host, session, questions: qs, onAdvance: () => go(session.index + 1)});
+        squad = AT.germSquad.mount({host, session, questions: qs, onChooseWrong: (index) => {
+          const q = qs[session.index];
+          const entry = q && entryOf(session, q.id);
+          if (!entry || entry.revealed || entry.selected.includes(index) || (entry.hiddenOptions || []).includes(index)) return false;
+          toggleOption(index);
+          return true;
+        }});
         squad.enter();
         if (AT.onCleanup) AT.onCleanup(() => squad.dispose());
       }
