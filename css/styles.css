@@ -1771,10 +1771,11 @@ kbd {
 .appearance-preview--anime::after { content: ""; position: absolute; inset: 0; background: url('../assets/attack-on-titan-key-visual.jpg') center 8% / cover no-repeat; }
 .appearance-preview--anime span { display: none; }
 @media (max-width: 760px) {
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__body { grid-row: 1; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media { position: relative; inset: auto; grid-row: 2; width: 100%; height: clamp(190px, 55vw, 310px); border-radius: 14px; background: var(--special-art) no-repeat center 20% / cover; mask-image: none; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { grid-row: 3; width: 100%; flex-direction: row; justify-content: flex-start; gap: 16px; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note { max-width: 20ch; text-align: left; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media {
+    position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; mask-image: none;
+    background: linear-gradient(180deg, rgba(25,26,24,.78), rgba(34,27,24,.72)), var(--special-art) center 22% / cover no-repeat;
+  }
+  .hero__titan-intro { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .hero__titan-intro { display: none; animation: none; } }
 
