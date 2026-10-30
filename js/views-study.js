@@ -104,6 +104,7 @@
 
     html +=
       '<section class="hero' + (AT.colloquium.kind === 'credit' ? ' hero--credit' : '') + '">' +
+      '<div class="hero__titan-media" aria-hidden="true"></div>' +
       '<div class="hero__body">' +
       '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · ' + esc(courseLabel()) + '</span>' +
       '<h1>Тренажёр к ' + (AT.colloquium.kind === 'credit' ? 'зачёту' : 'коллоквиуму') + '</h1>' +
@@ -193,15 +194,15 @@
     const mount = (root) => {
       if (titanIntroPlayed || AT.colloquium.kind === 'credit' || !AT.game || AT.game.profile().appearance !== 'anime') return;
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const hero = root.querySelector('.hero:not(.hero--credit)');
-      if (!hero) return;
+      const media = root.querySelector('.hero:not(.hero--credit) .hero__titan-media');
+      if (!media) return;
       titanIntroPlayed = true;
       const clip = document.createElement('img');
       clip.className = 'hero__titan-intro'; clip.alt = ''; clip.setAttribute('aria-hidden', 'true');
       clip.addEventListener('animationend', () => clip.remove(), { once: true });
       clip.addEventListener('error', () => clip.remove(), { once: true });
       clip.addEventListener('load', () => { if (clip.isConnected) clip.classList.add('is-playing'); }, { once: true });
-      hero.appendChild(clip);
+      media.appendChild(clip);
       clip.src = 'assets/titan-intro.gif';
     };
     return { title: 'Главная', html, mount };

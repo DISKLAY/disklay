@@ -1746,12 +1746,14 @@ kbd {
 [data-accent="anime"] { --primary: #6f3c8f; --primary-strong: #53296d; --primary-soft: #f3eaf8; --primary-border: #d9badd; --special-art: url('../assets/attack-on-titan-key-visual.jpg'); }
 [data-theme="dark"][data-accent="anime"] { --primary: #e2b6ef; --primary-strong: #f0d2f8; --primary-soft: #2e1e38; --primary-border: #684875; }
 [data-accent="anime"] body { isolation: isolate; background-image: none; }
-[data-accent="anime"] body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(rgba(250,247,251,.69), rgba(250,247,251,.69)), url('../assets/titan-sunset.webp') center / cover no-repeat; }
+[data-accent="anime"] body::before { content: ""; position: fixed; inset: auto; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none; background: linear-gradient(rgba(250,247,251,.69), rgba(250,247,251,.69)), url('../assets/titan-sunset.webp') center / cover no-repeat; }
 [data-theme="dark"][data-accent="anime"] body::before { background-image: linear-gradient(rgba(11,9,20,.72), rgba(11,9,20,.72)), url('../assets/titan-sunset.webp'); }
 [data-accent="anime"] .topbar { border-bottom-color: #b491af; }
 [data-accent="anime"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #70407f, #94544e); box-shadow: 0 10px 24px -12px rgba(86, 51, 94, .8); }
 [data-accent="anime"] .hero:not(.hero--credit) { color: #fff; background: linear-gradient(125deg, #1a211e, #3d302a 58%, #684527); border-color: #8a6d4a; }
-[data-accent="anime"] .hero:not(.hero--credit)::after { inset: 0 140px 0 auto; width: min(57%, 610px); z-index: 0; background: linear-gradient(to right, rgba(29,32,27,.94), transparent 58%), var(--special-art); background-size: cover, cover; background-position: center, center 21%; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); opacity: .85; }
+.hero__titan-media { display: none; }
+[data-accent="anime"] .hero:not(.hero--credit)::after { display: none; }
+[data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media { display: block; position: absolute; inset: 0 140px 0 auto; width: min(57%, 610px); z-index: 0; overflow: hidden; background: linear-gradient(to right, rgba(29,32,27,.94), transparent 58%), var(--special-art); background-size: cover, cover; background-position: center, center 21%; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); }
 [data-accent="anime"] .hero:not(.hero--credit) .hero__body, [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { position: relative; z-index: 2; }
 [data-accent="anime"] .hero:not(.hero--credit) .eyebrow, [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note, [data-accent="anime"] .hero:not(.hero--credit) .ring__label span { color: #e8dbcf; }
 [data-accent="anime"] .hero:not(.hero--credit) .hero__module { color: #f8d3b4; }
@@ -1762,17 +1764,17 @@ kbd {
 [data-accent="anime"] .hero:not(.hero--credit) .btn--ghost { --btn-fg: #fff; --btn-border: rgba(255,255,255,.55); }
 [data-accent="anime"] .hero:not(.hero--credit) .btn--ghost:hover { --btn-bg: rgba(255,255,255,.12); }
 [data-accent="anime"] .hero:not(.hero--credit) :focus-visible { outline-color: #fff; }
-.hero__titan-intro { position: absolute; inset: 0 140px 0 auto; width: min(57%, 610px); height: 100%; z-index: 1; object-fit: cover; object-position: center; pointer-events: none; opacity: 0; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); }
+.hero__titan-intro { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; object-fit: cover; object-position: center; pointer-events: none; opacity: 0; }
 .hero__titan-intro.is-playing { animation: titan-intro 3.5s ease-out forwards; }
-@keyframes titan-intro { 0% { opacity: .85; filter: brightness(.85); } 75% { opacity: .85; filter: brightness(.85); } 100% { opacity: 0; filter: brightness(1.15); } }
+@keyframes titan-intro { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
 .appearance-preview--anime { position: relative; overflow: hidden; background: #242024; }
 .appearance-preview--anime::after { content: ""; position: absolute; inset: 0; background: url('../assets/attack-on-titan-key-visual.jpg') center 8% / cover no-repeat; }
 .appearance-preview--anime span { display: none; }
 @media (max-width: 760px) {
-  [data-accent="anime"] .hero:not(.hero--credit)::after, .hero__titan-intro { inset: auto 0 0 auto; width: 58%; height: 210px; mask-image: radial-gradient(ellipse 110% 100% at 80% 70%, #000 30%, transparent 85%); }
-  [data-accent="anime"] .hero:not(.hero--credit)::after { background: var(--special-art) no-repeat center 20% / cover; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { width: 46%; flex-direction: column; justify-content: center; gap: 8px; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note { max-width: 16ch; text-align: center; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__body { grid-row: 1; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media { position: relative; inset: auto; grid-row: 2; width: 100%; height: clamp(190px, 55vw, 310px); border-radius: 14px; background: var(--special-art) no-repeat center 20% / cover; mask-image: none; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { grid-row: 3; width: 100%; flex-direction: row; justify-content: flex-start; gap: 16px; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note { max-width: 20ch; text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .hero__titan-intro { display: none; animation: none; } }
 

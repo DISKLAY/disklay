@@ -669,6 +669,9 @@ test('аниме оформление имеет локальный полноэ
   assert.match(css, /data-theme="dark"\]\[data-accent="anime"/); assert.match(css, /prefers-reduced-motion/);
   for (const name of ['attack-on-titan-key-visual.jpg', 'titan-sunset.webp', 'titan-intro.gif']) assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', name)).size > 10000);
   assert.match(css, /titan-sunset\.webp/); assert.match(css, /cover no-repeat/);
+  assert.match(css, /height: 100lvh/); assert.match(css, /0%, 75% \{ opacity: 1; \}/);
+  assert.match(css, /hero__titan-media \{ position: relative; inset: auto; grid-row: 2; width: 100%/);
+  assert.match(app().views.dashboard().html, /hero__titan-media/);
   const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'titan-intro.gif'));
   assert.match(gif.toString('ascii', 0, 6), /^GIF8/); assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
   assert.match(css, /--teal: var\(--primary\)/); assert.match(css, /\.hero:not\(\.hero--credit\)/);
