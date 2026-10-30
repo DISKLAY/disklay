@@ -113,3 +113,15 @@ test('боковая панель показывает семестры и ис�
   assert.equal(trigger.caption.textContent, '2 семестр');
   assert.equal(trigger.current.textContent, 'Зачёт · Спланхнология и ЦНС');
 });
+
+
+test('в боковой панели зачёты обозначены значком, а номера коллоквиумов сохранены', () => {
+  const { sidebarNav } = makePicker();
+  for (const group of sidebarNav.children.slice(0, 2)) {
+    const badge = group.children[3].children[0];
+    assert.match(badge._html, /<svg/);
+    assert.equal(badge.getAttribute('aria-hidden'), 'true');
+    assert.equal(group.children[3].children[1].children[0].textContent, 'Зачёт');
+  }
+  assert.equal(sidebarNav.children[1].children[1].children[0].textContent, '3');
+});

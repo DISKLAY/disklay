@@ -80,7 +80,12 @@
           const badge = document.createElement('span');
           badge.className = 'course-sidebar__badge';
           badge.setAttribute('aria-hidden', 'true');
-          badge.textContent = /^\d+$/.test(parts[0]) ? parts[0] : 'З';
+          if (/^\d+$/.test(parts[0])) {
+            badge.textContent = parts[0];
+          } else {
+            // Зачёт обозначаем чек-листом, чтобы буква «З» не читалась как цифра 3.
+            badge.innerHTML = '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><rect x="4.5" y="3.5" width="11" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 3.5h4M7.3 10.1l1.7 1.7 3.7-3.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          }
           const text = document.createElement('span');
           text.className = 'course-sidebar__item-text';
           const label = document.createElement('strong');
