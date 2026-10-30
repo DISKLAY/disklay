@@ -16,14 +16,18 @@
       '<h1>Учитесь и открывайте больше</h1><p>Отвечайте по ключу, получайте валюту и используйте её для усилений.</p></div>' +
       '<div class="rewards-hero__metrics"><div><span>Валюта этой базы</span><strong>' + wallet.coins + '</strong><small>для покупок</small></div>' +
       '<div><span>Общий рейтинг</span><strong>' + game.totalRating() + '</strong><small>сумма всех баз</small></div></div></section>' +
-      '<div class="rewards-context">' + icon('info') + '<span>Валюта, покупки и достижения принадлежат выбранной базе. Рейтинг — общий, личный и хранится на этом устройстве. Самооценка без ключа не начисляет очки.</span></div>';
+      '<div class="rewards-context">' + icon('info') + '<span>Валюта, покупки и достижения принадлежат выбранной базе. Рейтинг — общий, личный и хранится на этом устройстве; достижения фиксируются в выбранной базе. Самооценка без ключа не начисляет очки.</span></div>';
 
+    function achievementCard(a) {
+      return '<article class="achievement' + (a.unlocked ? ' is-unlocked' : '') + (a.absolute ? ' achievement--absolute' : '') + '"><div class="achievement__icon">' + icon(a.unlocked ? 'check' : 'target') + '</div>' +
+        '<div class="achievement__content"><span class="achievement__status">' + (a.absolute ? 'Абсолютное · ' : '') + (a.unlocked ? 'Получено' : 'В процессе') + '</span><strong>' + esc(a.title) + '</strong><p>' + esc(a.description) + '</p>' +
+        '<div class="achievement__progress"><span style="width:' + Math.round(a.current / a.goal * 100) + '%"></span></div><small>' + a.current + ' / ' + a.goal + '</small></div></article>';
+    }
     html += '<section class="section"><div class="section__head"><div><span class="overline">ВАША КОЛЛЕКЦИЯ</span><h2>Достижения</h2></div><span class="section__hint">' + unlocked + ' из ' + achievements.length + '</span></div>' +
-      '<div class="achievement-grid">' + achievements.map(a =>
-        '<article class="achievement' + (a.unlocked ? ' is-unlocked' : '') + '"><div class="achievement__icon">' + icon(a.unlocked ? 'check' : 'target') + '</div>' +
-        '<div class="achievement__content"><span class="achievement__status">' + (a.unlocked ? 'Получено' : 'В процессе') + '</span><strong>' + esc(a.title) + '</strong><p>' + esc(a.description) + '</p>' +
-        '<div class="achievement__progress"><span style="width:' + Math.round(a.current / a.goal * 100) + '%"></span></div><small>' + a.current + ' / ' + a.goal + '</small></div></article>'
-      ).join('') + '</div><p class="rewards-footnote">Достижения за изученные вопросы и завершённые сессии учитывают прежний прогресс, включая самооценку. Валюта и рейтинг задним числом не начисляются.</p></section>';
+      '<div class="achievement-grid">' + achievements.filter(a => !a.absolute).map(achievementCard).join('') + '</div>' +
+      '<h3 class="achievement-absolute-heading">Абсолютные достижения</h3><p class="rewards-intro">Особые цели за освоение, экзамен и общий рейтинг.</p>' +
+      '<div class="achievement-grid">' + achievements.filter(a => a.absolute).map(achievementCard).join('') + '</div>' +
+      '<p class="rewards-footnote">Достижения за изученные вопросы и завершённые сессии учитывают прежний прогресс, включая самооценку. Валюта и рейтинг задним числом не начисляются.</p></section>';
 
     html += '<section class="section"><div class="section__head"><div><span class="overline">ПОДГОТОВКА</span><h2>Магазин усилений</h2></div><span class="section__hint">Баланс: ' + wallet.coins + '</span></div>' +
       '<p class="rewards-intro">Купите заранее, затем активируйте во время прохождения. Каждое усиление расходуется один раз.</p><div class="shop-grid">' +
@@ -39,7 +43,7 @@
     html += '<section class="section rewards-rules"><div class="section__head"><div><span class="overline">КАК ЭТО РАБОТАЕТ</span><h2>Правила начисления</h2></div></div>' +
       '<div class="rules-grid"><div><strong>Тренировка</strong><p>Верный ответ по ключу: +10 валюты и +5 рейтинга. Если вопрос уже освоен до ответа — +2 и +1.</p></div>' +
       '<div><strong>Пробный экзамен</strong><p>Верный ответ: +25 валюты и +15 рейтинга; для освоенного вопроса — +5 и +3. Ошибка или пропуск: −5 валюты и −3 рейтинга.</p></div>' +
-      '<div><strong>Усиления</strong><p>Подсказка убирает один неверный вариант. ×2 удваивает валюту, но не рейтинг, за 5 верных ответов в текущей сессии. На экзамене усиления дороже, а их использование отмечается в итогах.</p></div>' +
+      '<div><strong>Усиления</strong><p>Подсказка убирает один неверный вариант. ×2 удваивает валюту, но не рейтинг, за 20 верных ответов в текущей сессии. На экзамене усиления дороже, а их использование отмечается в итогах.</p></div>' +
       '<div><strong>Важно</strong><p>Баланс и рейтинг базы не уходят ниже нуля. Начисления зависят от используемого ключа и настроек проверки; их можно получить и за повторный ответ. Это личный рейтинг, не таблица лидеров.</p></div></div></section></div>';
 
     function mount(root) {

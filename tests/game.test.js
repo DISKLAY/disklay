@@ -75,7 +75,7 @@ test('покупка и использование подсказки атома
   assert.equal(game.buy('hint-train').ok, false);
   game.ensure().coins = 100;
   assert.equal(game.buy('hint-train').ok, true);
-  assert.equal(game.ensure().coins, 70);
+  assert.equal(game.ensure().coins, 20);
   const session = AT.startSession({mode:'train', ids:[q.id]});
   const entry = session.results[q.id] = {selected:[], correct:null, revealed:false};
   assert.equal(game.useHint(session, q, entry).ok, true);
@@ -104,20 +104,20 @@ test('экзамен даёт больше очков, ошибки штрафу
   assert.equal(record.assisted, false);
 });
 
-test('экзаменационные усиления дороже, бонус действует на пять верных ответов и помечается', () => {
+test('экзаменационные усиления дороже, бонус действует на двадцать верных ответов и помечается', () => {
   const AT = app(), game = AT.game;
-  game.ensure().coins = 200;
+  game.ensure().coins = 500;
   assert.ok(game.products['hint-exam'].price > game.products['hint-train'].price);
   assert.ok(game.products['double-exam'].price > game.products['double-train'].price);
   assert.equal(game.buy('double-exam').ok, true);
-  const qs = AT.dataset.questions.slice(0,6);
+  const qs = AT.dataset.questions.slice(0,21);
   const session = AT.startSession({mode:'exam', ids:qs.map(q => q.id)});
   assert.equal(game.activateDouble(session).ok, true);
   assert.equal(game.activateDouble(session).ok, false);
   qs.forEach(q => { session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers}; });
   AT.gradeSession(session);
-  assert.equal(session.game.coinsEarned, 5*50+25);
-  assert.equal(session.game.ratingEarned, 6*15);
+  assert.equal(session.game.coinsEarned, 20*50+25);
+  assert.equal(session.game.ratingEarned, 21*15);
   assert.equal(AT.finishSession().assisted, true);
   assert.match(AT.views.summary().html, /Использованы усиления/);
   assert.match(AT.views.stats().html, /с усилениями/);
@@ -165,14 +165,68 @@ test('покупки, активные усиления и начисления 
   assert.equal(AT.game.buy('hint-train').ok, true);
   const q = AT.dataset.questions[0];
   const {session, entry} = attempt(AT, q);
-  assert.equal(AT.game.ensure().coins, 80);
+  assert.equal(AT.game.ensure().coins, 30);
   AT = app(storage);
-  assert.equal(AT.game.ensure().coins, 80);
+  assert.equal(AT.game.ensure().coins, 30);
   assert.equal(AT.game.count('hint-train'), 1);
   assert.equal(AT.game.ensure().rating, 5);
   const loaded = AT.currentSession(), question = AT.dataset.byId.get(q.id);
   assert.equal(loaded.id, session.id);
   AT.game.awardTraining(loaded, question, loaded.results[q.id], false);
-  assert.equal(AT.game.ensure().coins, 80);
+  assert.equal(AT.game.ensure().coins, 30);
   assert.equal(loaded.results[q.id].gameRewarded, entry.gameRewarded);
+});
+
+test('достижения рейтинга используют общую сумму из разных баз', () => {
+  const storage = {};
+  let AT = app(storage, '1'); AT.game.ensure().rating = 350; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().rating = 150; AT.game.syncAchievements(); AT.save(true);
+  assert.equal(AT.game.totalRating(), 500);
+  assert.equal(AT.game.achievements().find(a => a.id === 'rating-500').unlocked, true);
+  assert.equal(AT.game.achievements().find(a => a.id === 'rating-2000').unlocked, false);
+  AT = app(storage, '1');
+  assert.equal(AT.game.achievements().find(a => a.id === 'rating-500').unlocked, true);
+});
+
+test('абсолютное освоение требует всю выбранную базу', () => {
+  const AT = app({}, 'stom-2');
+  const qs = AT.dataset.questions;
+  for (const q of qs.slice(0, -1)) AT.getState().progress[q.id] = { attempts: 2, correct: 2, streak: 2 };
+  let badge = AT.game.achievements().find(a => a.id === 'absolute-mastery');
+  assert.equal(badge.goal, qs.length); assert.equal(badge.unlocked, false);
+  AT.getState().progress[qs.at(-1).id] = { attempts: 2, correct: 2, streak: 2 };
+  badge = AT.game.achievements().find(a => a.id === 'absolute-mastery');
+  assert.equal(badge.unlocked, true);
+});
+
+test('абсолютный экзамен требует 20 из 20 без усилений', () => {
+  for (const assisted of [false, true]) {
+    const AT = app(), qs = AT.dataset.questions.slice(0, 20);
+    const session = AT.startSession({mode:'exam', ids: qs.map(q => q.id)});
+    qs.forEach(q => { session.results[q.id] = { selected: AT.keyApi.forQuestion(q).answers }; });
+    if (assisted) session.game = { hintsUsed: 1 };
+    AT.gradeSession(session); AT.finishSession();
+    assert.equal(AT.game.achievements().find(a => a.id === 'absolute-exam').unlocked, !assisted);
+  }
+  assert.equal(app({}, 'credit-1').game.achievements().some(a => a.id === 'absolute-exam'), false);
+});
+
+test('обновлённые цены и ассортимент доступны в правилах и магазине', () => {
+  const AT = app();
+  assert.equal(AT.game.products['hint-train'].price, 80);
+  assert.equal(AT.game.products['hint-exam'].price, 240);
+  assert.equal(AT.game.products['double-train'].price, 160);
+  assert.equal(AT.game.products['double-exam'].price, 400);
+  const html = AT.views.rewards().html;
+  assert.match(html, /Абсолютные достижения/);
+  assert.match(html, /50 000 общего рейтинга/);
+  assert.match(html, /400 валюты/);
+});
+
+test('подорожание не удаляет ранее купленные усиления и не списывает валюту', () => {
+  const storage = { 'anatomy-colloquium-v1': JSON.stringify({ game: { coins: 37, rating: 4, inventory: { 'hint-train': 2, 'double-exam': 1 } } }) };
+  const AT = app(storage);
+  assert.equal(AT.game.ensure().coins, 37);
+  assert.equal(AT.game.count('hint-train'), 2);
+  assert.equal(AT.game.count('double-exam'), 1);
 });

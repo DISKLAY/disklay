@@ -4,10 +4,10 @@
   const AT = window.AT;
   const BANKS = window.COLLOQUIUM_IDS || [AT.colloquium.id];
   const PRODUCTS = {
-    'hint-train': { title: 'Убрать неверный вариант', mode: 'train', kind: 'hint', price: 30, description: 'Убирает один неверный вариант в тренировке.' },
-    'hint-exam': { title: 'Подсказка на экзамене', mode: 'exam', kind: 'hint', price: 80, description: 'Убирает один неверный вариант в пробном экзамене.' },
-    'double-train': { title: 'Двойная награда', mode: 'train', kind: 'double', price: 60, description: 'Удваивает валюту за следующие 5 верных ответов в этой тренировке.' },
-    'double-exam': { title: 'Двойная награда на экзамене', mode: 'exam', kind: 'double', price: 150, description: 'Удваивает валюту за первые 5 верных ответов при проверке экзамена.' },
+    'hint-train': { title: 'Убрать неверный вариант', mode: 'train', kind: 'hint', price: 80, description: 'Убирает один неверный вариант в тренировке.' },
+    'hint-exam': { title: 'Подсказка на экзамене', mode: 'exam', kind: 'hint', price: 240, description: 'Убирает один неверный вариант в пробном экзамене.' },
+    'double-train': { title: 'Двойная награда', mode: 'train', kind: 'double', price: 160, description: 'Удваивает валюту за следующие 20 верных ответов в этой тренировке.' },
+    'double-exam': { title: 'Двойная награда на экзамене', mode: 'exam', kind: 'double', price: 400, description: 'Удваивает валюту за первые 20 верных ответов при проверке экзамена.' },
   };
   const ACHIEVEMENTS = [
     { id: 'explore-1', title: 'Первый шаг', description: 'Открыть и оценить 1 вопрос', metric: 'explored', goal: 1 },
@@ -20,6 +20,15 @@
     { id: 'sessions-10', title: 'Постоянство', description: 'Завершить 10 прохождений', metric: 'sessions', goal: 10 },
     { id: 'verified-25', title: 'Проверено ключом', description: 'Дать 25 верных ответов по ключу после обновления', metric: 'verified', goal: 25 },
     { id: 'verified-100', title: 'Знаток', description: 'Дать 100 верных ответов по ключу после обновления', metric: 'verified', goal: 100 },
+    { id: 'master-100', title: 'Железная память', description: 'Освоить 100 вопросов этой базы', metric: 'mastered', goal: 100 },
+    { id: 'verified-500', title: 'Настойчивость', description: 'Дать 500 верных ответов по ключу', metric: 'verified', goal: 500 },
+    { id: 'verified-2000', title: 'Выдающаяся подготовка', description: 'Дать 2 000 верных ответов по ключу', metric: 'verified', goal: 2000 },
+    { id: 'rating-500', title: 'Первые вершины', description: 'Набрать 500 общего рейтинга', metric: 'rating', goal: 500 },
+    { id: 'rating-2000', title: 'Высокий результат', description: 'Набрать 2 000 общего рейтинга', metric: 'rating', goal: 2000 },
+    { id: 'rating-10000', title: 'Эксперт курса', description: 'Набрать 10 000 общего рейтинга', metric: 'rating', goal: 10000 },
+    { id: 'absolute-rating', title: 'Легенда курса', description: 'Набрать 50 000 общего рейтинга', metric: 'rating', goal: 50000, absolute: true },
+    { id: 'absolute-mastery', title: 'Вся база покорена', description: 'Освоить каждый вопрос выбранной базы (включая самооценку)', metric: 'mastered', goal: 'all', absolute: true },
+    { id: 'absolute-exam', title: 'Идеальный экзамен', description: 'Ответить верно на все 20 вопросов пробного экзамена без усилений', metric: 'perfectExam', goal: 1, absolute: true, examOnly: true },
   ];
 
   function number(value) { return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0; }
@@ -49,19 +58,24 @@
       mastered: progress.filter(p => p && p.streak >= 2).length,
       sessions: (state.sessions || []).length,
       verified: ensure().verified,
+      rating: totalRating(),
+      perfectExam: (state.sessions || []).some(s => s.mode === 'exam' && s.total === 20 && s.correct === 20 && s.assisted === false) ? 1 : 0,
     };
+  }
+  function definitions() {
+    return ACHIEVEMENTS.filter(a => !a.examOnly || AT.colloquium.examAvailable).map(a => ({ ...a, goal: a.goal === 'all' ? AT.dataset.total : a.goal }));
   }
   function syncAchievements() {
     const game = ensure();
     const counts = metrics();
-    ACHIEVEMENTS.forEach(a => {
+    definitions().forEach(a => {
       if (!game.achievements[a.id] && counts[a.metric] >= a.goal) game.achievements[a.id] = Date.now();
     });
   }
   function achievements() {
     syncAchievements();
     const counts = metrics();
-    return ACHIEVEMENTS.map(a => ({ ...a, current: ensure().achievements[a.id] ? a.goal : Math.min(counts[a.metric], a.goal), unlocked: !!ensure().achievements[a.id] }));
+    return definitions().map(a => ({ ...a, current: ensure().achievements[a.id] ? a.goal : Math.min(counts[a.metric], a.goal), unlocked: !!ensure().achievements[a.id] }));
   }
   function totalRating() {
     return BANKS.reduce((total, id) => {
@@ -106,10 +120,10 @@
     if (g.bonusRemaining) return { ok: false, message: 'Бонус уже действует' };
     if (!count(product)) return { ok: false, message: 'Нет бонусов: их можно купить в магазине' };
     ensure().inventory[product] = count(product) - 1;
-    g.bonusRemaining = 5;
+    g.bonusRemaining = 20;
     g.bonusUsed = true;
     AT.save(true);
-    return { ok: true, message: 'Двойная валюта за 5 верных ответов' };
+    return { ok: true, message: 'Двойная валюта за 20 верных ответов' };
   }
   function awardTraining(session, q, entry, previouslyMastered) {
     if (!session || session.mode !== 'train' || session.finished || !q || !entry || entry.gameRewarded || entry.correct !== true || entry.self || !AT.keyApi.has(q)) return;

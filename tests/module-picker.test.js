@@ -99,7 +99,7 @@ test('клавиатура и выбор пункта работают чере�
 test('боковая панель показывает семестры и использует то же переключение', () => {
   const { sidebar, sidebarNav, select, trigger, click } = makePicker();
   const groups = sidebarNav.children;
-  assert.equal(sidebar.hidden, false);
+  assert.equal(sidebar.hidden, true);
   assert.deepEqual(groups.map(group => group.children[0].textContent), ['1 семестр', '2 семестр', 'Стоматологический факультет']);
   assert.equal(groups[0].children[1].getAttribute('aria-current'), 'page');
   let changes = 0;

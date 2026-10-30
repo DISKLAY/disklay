@@ -102,6 +102,13 @@
       if (isActive) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
+    const sidebar = document.getElementById('courseSidebar');
+    if (sidebar) sidebar.querySelectorAll('[data-sidebar-route]').forEach((link) => {
+      const isActive = link.getAttribute('data-sidebar-route') === active;
+      link.classList.toggle('is-active', isActive);
+      if (isActive) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
   }
 
   function notFound() {
@@ -162,7 +169,18 @@
         ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
+    const courseToggle = document.getElementById('courseToggle');
+    const courseToggleCurrent = document.getElementById('courseToggleCurrent');
+    const syncCourseToggle = () => {
+      const option = moduleSelect.options[moduleSelect.selectedIndex];
+      if (!option || !courseToggle || !courseToggleCurrent) return;
+      courseToggleCurrent.textContent = option.textContent;
+      courseToggle.setAttribute('aria-label', 'Открыть навигацию. Текущая база: ' + option.textContent);
+    };
+    moduleSelect.addEventListener('change', syncCourseToggle);
+    syncCourseToggle();
     window.initModulePicker(moduleSelect, document.getElementById('modulePicker'), document.getElementById('courseSidebar'), document.getElementById('courseSidebarNav'));
+    window.initCourseDrawer(document.getElementById('courseSidebar'), document.getElementById('courseToggle'), document.getElementById('courseClose'), document.getElementById('courseBackdrop'));
   }
 
   /* ---------------------------------------------------------------- запуск */
@@ -170,6 +188,8 @@
   if (AT.colloquium.kind === 'credit') {
     const examLink = nav.querySelector('[data-route="exam"]');
     if (examLink) examLink.textContent = 'Пробный зачёт';
+    const sidebarExamLink = document.querySelector('[data-sidebar-route="exam"]');
+    if (sidebarExamLink) sidebarExamLink.textContent = 'Пробный зачёт';
   }
   ui.applyTheme();
   render();

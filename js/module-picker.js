@@ -65,9 +65,10 @@
     const sidebarItems = [];
     if (sidebar && sidebarNav) {
       Array.from(select.querySelectorAll('optgroup')).forEach((optgroup) => {
-        const group = document.createElement('section');
+        const group = document.createElement('details');
+        group.open = true;
         group.className = 'course-sidebar__group';
-        const heading = document.createElement('h2');
+        const heading = document.createElement('summary');
         heading.className = 'course-sidebar__group-title';
         heading.textContent = optgroup.label;
         group.appendChild(heading);
@@ -106,7 +107,6 @@
         });
         sidebarNav.appendChild(group);
       });
-      sidebar.hidden = false;
       document.documentElement.classList.add('has-course-sidebar');
     }
 
