@@ -926,6 +926,7 @@
       const sign = n => (n > 0 ? '+' : '') + n;
       html += '<div class="game-result"><div><strong>Игровой результат</strong><span>Валюта: ' + sign(game.coinsChange) + ' · Рейтинг: ' + sign(game.ratingChange) + '</span></div>' +
         (isExam ? '<p>Начислено за ответы: ' + game.coinsEarned + ' валюты и ' + game.ratingEarned + ' рейтинга; штраф за ошибки: −' + game.coinsPenalty + ' и −' + game.ratingPenalty + '. Баланс и рейтинг не опускаются ниже нуля.</p>' : '') +
+        (game.germsPopped ? '<p>Микробы: ' + game.germsPopped + ' · +' + game.germCoins + ' валюты.</p>' : '') +
         (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ' + game.bonusEffects.map(effect => effect === 'currency' ? '×2 валюта' : '×2 рейтинг').join(', ') : '') + '.</p>' : '<p>Без усилений.</p>') + '</div>';
     }
 

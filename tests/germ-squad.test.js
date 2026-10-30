@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
   let now = 0, nextId = 1, advances = 0, nextFrameId = 1;
-  const choices = [], listeners = {};
+  const choices = [], rewards = [], listeners = {};
   const frames = new Map();
   const sprites = Array.from({length:3}, (_, i) => ({style:{}, hovered:false, matches(){return this.hovered}, getAttribute:()=>String(i)}));
   const timers = new Map();
@@ -32,19 +32,19 @@ function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
     createElement(){return {innerHTML:'', listeners:{}, setAttribute(){}, addEventListener(k, fn){this.listeners[k]=fn}, contains:()=>true,
       querySelector:()=>null, querySelectorAll:()=>sprites, remove(){if (overlay === this) overlay=null; else panel=null}}}};
   let saves = 0;
-  const AT = {getState:()=>({settings:{germSquad:enabled}}), currentSession:()=>session, save:()=>{saves++}, keyApi:{forQuestion:()=>key ? {answers:key} : null}, ui:{toast:()=>{}}};
+  const AT = {getState:()=>({settings:{germSquad:enabled}}), currentSession:()=>session, save:()=>{saves++}, keyApi:{forQuestion:()=>key ? {answers:key} : null}, game:{awardMicrobe:(_, q, i)=>{rewards.push([q.id,i]); return {ok:true,coins:50}}}, ui:{toast:()=>{}}};
   const win = {AT, innerWidth:390, innerHeight:844, matchMedia:()=>({matches:false}), addEventListener(k,fn){listeners[k]=fn}, removeEventListener(k){delete listeners[k]},
     requestAnimationFrame(fn){const id = nextFrameId++; frames.set(id, fn); return id}, cancelAnimationFrame(id){frames.delete(id)}};
   const ctx = vm.createContext({window:win, document:doc, setTimeout:setTimeoutFake, clearTimeout:id=>timers.delete(id), Math});
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/germ-squad.js'), 'utf8'), ctx);
   const squad = AT.germSquad.mount({host, session, questions:qs, onChooseWrong:index=>{choices.push(index); session.results.q1.selected.push(index); return true;}});
   function pop(i) {
-    const button = {disabled:false, classList:{add(){}}, getAttribute:()=>String(i), setAttribute(){}, closest(){return this}};
+    const button = {disabled:false, classList:{add(){}}, getAttribute:()=>String(i), setAttribute(){}, insertAdjacentHTML(){}, closest(){return this}};
     overlay.listeners.click({target:button});
     return button;
   }
   function frame(time) { const [id, callback] = frames.entries().next().value; frames.delete(id); callback(time); }
-  return {AT, squad, session, qs, tick, pop, doc, target, timers, frames, sprites, frame, listeners, choices, getOverlay:()=>overlay, getPanel:()=>panel, getAdvances:()=>advances, getSaves:()=>saves};
+  return {AT, squad, session, qs, tick, pop, doc, target, timers, frames, sprites, frame, listeners, choices, rewards, getOverlay:()=>overlay, getPanel:()=>panel, getAdvances:()=>advances, getSaves:()=>saves};
 }
 
 test('тестовая вероятность 100%, три клика останавливают проделку и повторно не запускают её на вопросе', () => {
@@ -52,6 +52,7 @@ test('тестовая вероятность 100%, три клика остан
   h.squad.enter(); assert.equal(h.getPanel(), null); assert.match(h.getOverlay().innerHTML, /data-action="pop-germ"/);
   assert.equal(h.getSaves(), 1);
   for (let i = 0; i < 3; i++) assert.equal(h.pop(i).disabled, true);
+  assert.equal(h.rewards.length, 3);
   h.tick(30000); assert.equal(h.getAdvances(), 0); assert.deepEqual(h.session.results.q1.selected, [1]);
   h.squad.leave(); h.squad.enter(); assert.equal(h.timers.size, 0);
 });
@@ -105,16 +106,22 @@ test('микробы появляются за тремя краями экра�
 });
 
 
-test('микробы следуют за курсором, замирают при наведении и удаляют обработчик при выходе', () => {
-  const h = harness(); h.squad.enter(); h.frame(0); h.frame(8500);
-  const coord = s => s.style.transform.match(/translate3d\(([-.\d]+)px,([-.\d]+)px/).slice(1).map(Number);
-  const before = coord(h.sprites[0]);
-  h.listeners.pointermove({pointerType:'mouse', clientX:80, clientY:90});
-  for (let time = 8516; time <= 9500; time += 16) h.frame(time);
-  const after = coord(h.sprites[0]);
-  assert.ok(Math.hypot(after[0]-80, after[1]-90) < Math.hypot(before[0]-80, before[1]-90));
-  h.sprites[0].hovered = true;
-  h.listeners.pointermove({pointerType:'mouse', clientX:280, clientY:500});
-  h.frame(9520); assert.deepEqual(coord(h.sprites[0]), after);
-  h.squad.dispose(); assert.equal(h.listeners.pointermove, undefined);
+test('микробы не подписываются на движение курсора и не зависят от него', () => {
+  const h = harness(); h.squad.enter();
+  assert.equal(h.listeners.pointermove, undefined);
+  h.frame(0); h.frame(4000);
+  assert.ok(h.sprites.every(s => s.style.transform.startsWith('translate3d(')));
+  h.squad.dispose(); assert.equal(h.frames.size, 0);
+});
+
+test('каждый микроб награждает лишь один раз и остаётся доступен при ошибке сохранения', () => {
+  const h = harness(); h.squad.enter();
+  h.AT.game.awardMicrobe = () => ({ok:false, message:'Ошибка записи'});
+  assert.equal(h.pop(0).disabled, false);
+  h.AT.game.awardMicrobe = (_, q, index) => { h.rewards.push([q.id,index]); return {ok:true}; };
+  assert.equal(h.pop(0).disabled, true);
+  assert.equal(h.pop(0).disabled, false);
+  assert.deepEqual(h.rewards, [['q1',0]]);
+  h.pop(1); h.pop(2);
+  assert.equal(h.rewards.length, 3);
 });

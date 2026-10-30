@@ -18,12 +18,6 @@
     let disposed = false;
     let overlay = null;
     let frame = null;
-    let cursor = null;
-    function onPointerMove(event) {
-      if (event.pointerType === 'touch' || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
-      cursor = { x: event.clientX, y: event.clientY };
-    }
-    if (window.addEventListener) window.addEventListener('pointermove', onPointerMove, { passive: true });
     function clearTimer() { if (timer) clearTimeout(timer); timer = null; }
     function removeOverlay() {
       if (frame !== null && window.cancelAnimationFrame) window.cancelAnimationFrame(frame);
@@ -75,15 +69,7 @@
       const eased = 1 - Math.pow(1 - progress, 1.4);
       const attackTarget = encounter.phase === 'mischief' && host.querySelector('[data-action="toggle-option"][data-index="' + encounter.wrong + '"]');
       const attackBounds = attackTarget && attackTarget.getBoundingClientRect();
-      const destinations = cursor ? [[-55, 40], [55, 40], [0, -60]].map(([dx, dy]) => {
-        let x = clamp(cursor.x + dx, 28, width - 28);
-        let y = clamp(cursor.y + dy, 28, height - 28);
-        // У краёв не перекрываем самой фигуркой точку нажатия курсора.
-        if (Math.abs(x - cursor.x) < 30 && Math.abs(y - cursor.y) < 30) {
-          y = cursor.y < height / 2 ? clamp(cursor.y + 65, 28, height - 28) : clamp(cursor.y - 65, 28, height - 28);
-        }
-        return [x, y];
-      }) : [
+      const destinations = [
         [clamp(centerX - Math.min(110, width * .25), 28, width - 28), clamp(centerY - 45, 78, height - 65)],
         [clamp(centerX + Math.min(110, width * .25), 28, width - 28), clamp(centerY + 30, 78, height - 65)],
         [centerX, clamp(centerY + 95, 78, height - 65)],
@@ -104,12 +90,12 @@
         // В финале один из оставшихся микробов плавно подползает к неверному ответу.
         const previous = encounter.positions[index];
         const hovered = button.matches && button.matches(':hover');
-        // Рядом с курсором микроб замирает: иначе цель может ускользнуть между наведением и кликом.
-        const held = hovered || !!(cursor && previous && Math.hypot(cursor.x - previous[0], cursor.y - previous[1]) < 44);
+        // При наведении микроб замирает, чтобы по нему можно было попасть.
+        const held = hovered;
         if (previous && held) {
           x = previous[0]; y = previous[1];
-        } else if (previous && !reduced && (cursor || (attackBounds && index === encounter.alive.findIndex(Boolean)))) {
-          const alpha = 1 - Math.exp(-delta / (attackBounds && index === encounter.alive.findIndex(Boolean) ? 480 : 220));
+        } else if (previous && !reduced && attackBounds && index === encounter.alive.findIndex(Boolean)) {
+          const alpha = 1 - Math.exp(-delta / 480);
           x = previous[0] + (x - previous[0]) * alpha;
           y = previous[1] + (y - previous[1]) * alpha;
         }
@@ -180,16 +166,20 @@
       if (!button || !overlay || !overlay.contains(button) || !valid()) return;
       const index = Number(button.getAttribute('data-germ'));
       if (!Number.isInteger(index) || !encounter.alive[index]) return;
+      const q = questions[session.index];
+      const reward = AT.game && AT.game.awardMicrobe(session, q, index);
+      if (!reward || !reward.ok) { AT.ui.toast(reward ? reward.message : 'Не удалось начислить валюту', 'warn'); return; }
       encounter.alive[index] = false;
+      button.insertAdjacentHTML('beforeend', '<span class="germ-squad__reward" aria-hidden="true">+50</span>');
       button.classList.add('is-popping');
       button.disabled = true;
       button.setAttribute('aria-label', 'Микроб лопнул');
       const status = overlay.querySelector('.germ-squad__status');
       const remaining = encounter.alive.filter(Boolean).length;
       if (status) status.textContent = remaining ? 'В живых: ' + remaining + ' из 3' : 'Все микробы лопнули! Вопрос спасён.';
+      AT.ui.toast(remaining ? 'Микроб лопнул: +50 валюты' : 'Все микробы лопнули! +50 валюты');
       if (!remaining) {
         clearTimer(); encounter.phase = 'saved';
-        AT.ui.toast('Все микробы лопнули! Вопрос спасён.');
         if (frame !== null && window.cancelAnimationFrame) window.cancelAnimationFrame(frame);
         frame = null;
         // Даём анимации лопания закончиться, после чего убираем слой.
@@ -198,7 +188,7 @@
         if (target) target.classList.remove('option--germ-target');
       }
     }
-    function dispose() { disposed = true; leave(); if (window.removeEventListener) window.removeEventListener('pointermove', onPointerMove); }
+    function dispose() { disposed = true; leave(); }
     return { enter, leave, refresh, dispose };
   }
   AT.germSquad = { mount, APPEARANCE_CHANCE };
