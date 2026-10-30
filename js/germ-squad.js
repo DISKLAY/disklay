@@ -32,19 +32,9 @@
         session.results[encounter.qid] && !session.results[encounter.qid].revealed;
     }
     function refresh() {
-      if (!valid()) return;
-      const card = host.querySelector('.question');
-      if (!card) return;
-      const panel = document.createElement('div');
-      panel.className = 'germ-squad';
-      panel.innerHTML = '<div class="germ-squad__head"><strong>Бригада микробов!</strong><span>Они выползают с краёв экрана. Лопните каждого!</span></div>' +
-        '<p class="germ-squad__status" role="status">' + (encounter.phase === 'mischief' ? 'Микробы выбирают неверный вариант…' : encounter.phase === 'saved' ? 'Все микробы лопнули! Вопрос спасён.' : 'В живых: ' + encounter.alive.filter(Boolean).length + ' из 3') + '</p>';
-      const hint = card.querySelector('.question__hint');
-      if (hint) hint.insertAdjacentElement('afterend', panel);
-      if (encounter.phase === 'mischief') {
-        const target = host.querySelector('[data-action="toggle-option"][data-index="' + encounter.wrong + '"]');
-        if (target) target.classList.add('option--germ-target');
-      }
+      if (!valid() || encounter.phase !== 'mischief') return;
+      const target = host.querySelector('[data-action="toggle-option"][data-index="' + encounter.wrong + '"]');
+      if (target) target.classList.add('option--germ-target');
     }
 
     // Отдельный слой не пересоздаётся при выборе ответа: полёт и клики не сбрасываются.
@@ -52,7 +42,7 @@
       overlay = document.createElement('div');
       overlay.className = 'germ-squad-flight';
       overlay.setAttribute('aria-label', 'Микробы, которых можно лопнуть');
-      overlay.innerHTML = germImages.map((image, i) =>
+      overlay.innerHTML = '<span class="germ-squad__status" role="status" aria-live="polite">Появились три микроба. Лопните каждого.</span>' + germImages.map((image, i) =>
         '<button type="button" class="germ-squad__germ germ-squad__germ--' + i + '" data-action="pop-germ" data-germ="' + i + '" aria-label="Лопнуть ' + (i === 1 ? 'бактерию' : 'вирус') + '">' + image + '</button>'
       ).join('');
       overlay.addEventListener('click', pop);
@@ -122,11 +112,9 @@
       }
       const q = questions[session.index], entry = session.results[q.id], key = AT.keyApi.forQuestion(q);
       const wrong = key && q.options.map((_, i) => i + 1).filter(i => !key.answers.includes(i) && !(entry.hiddenOptions || []).includes(i));
-      if (!wrong || !wrong.length) { leave(); const panel = host.querySelector('.germ-squad'); if (panel) panel.remove(); return; }
+      if (!wrong || !wrong.length) { leave(); return; }
       encounter.phase = 'mischief';
       encounter.wrong = wrong[Math.floor(Math.random() * wrong.length)];
-      const panel = host.querySelector('.germ-squad');
-      if (panel) panel.remove();
       refresh();
       timer = setTimeout(completeMischief, MOVE_TIME);
     }
@@ -136,8 +124,8 @@
         const q = questions[session.index], entry = session.results[q.id], key = AT.keyApi.forQuestion(q);
         if (!key || key.answers.includes(encounter.wrong) || (entry.hiddenOptions || []).includes(encounter.wrong)) {
           leave();
-          const panel = host.querySelector('.germ-squad');
-          if (panel) panel.remove();
+          const target = host.querySelector('.option--germ-target');
+          if (target) target.classList.remove('option--germ-target');
           return;
         }
         // Это только визуальная шалость: не трогаем выбор, попытки, рейтинг и валюту.
@@ -149,8 +137,6 @@
         } else {
           const target = host.querySelector('.option--germ-target');
           if (target) target.classList.remove('option--germ-target');
-          const panel = host.querySelector('.germ-squad');
-          if (panel) panel.remove();
           AT.ui.toast('Микробы нашалили, но последний вопрос не завершён');
         }
     }
@@ -185,11 +171,12 @@
       button.classList.add('is-popping');
       button.disabled = true;
       button.setAttribute('aria-label', 'Микроб лопнул');
-      const status = host.querySelector('.germ-squad__status');
+      const status = overlay.querySelector('.germ-squad__status');
       const remaining = encounter.alive.filter(Boolean).length;
       if (status) status.textContent = remaining ? 'В живых: ' + remaining + ' из 3' : 'Все микробы лопнули! Вопрос спасён.';
       if (!remaining) {
         clearTimer(); encounter.phase = 'saved';
+        AT.ui.toast('Все микробы лопнули! Вопрос спасён.');
         if (frame !== null && window.cancelAnimationFrame) window.cancelAnimationFrame(frame);
         frame = null;
         // Даём анимации лопания закончиться, после чего убираем слой.

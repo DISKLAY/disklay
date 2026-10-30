@@ -48,7 +48,7 @@ function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
 
 test('тестовая вероятность 100%, три клика останавливают проделку и повторно не запускают её на вопросе', () => {
   const h = harness(); assert.equal(h.AT.germSquad.APPEARANCE_CHANCE, 1);
-  h.squad.enter(); assert.match(h.getPanel().innerHTML, /Бригада микробов/);
+  h.squad.enter(); assert.equal(h.getPanel(), null); assert.match(h.getOverlay().innerHTML, /data-action="pop-germ"/);
   assert.equal(h.getSaves(), 1);
   for (let i = 0; i < 3; i++) assert.equal(h.pop(i).disabled, true);
   h.tick(30000); assert.equal(h.getAdvances(), 0); assert.deepEqual(h.session.results.q1.selected, [1]);
@@ -67,7 +67,7 @@ test('на последнем вопросе, при выходе, экзаме�
   const last = harness({total:1}); last.squad.enter(); last.tick(14000); assert.equal(last.getAdvances(), 0);
   const left = harness(); left.squad.enter(); left.squad.dispose(); left.tick(20000); assert.equal(left.getAdvances(), 0);
   for (const opts of [{mode:'exam'}, {key:null}, {key:[1,2,3]}, {enabled:false}]) {
-    const h = harness(opts); h.squad.enter(); assert.equal(h.timers.size, 0); assert.equal(h.getPanel(), null);
+    const h = harness(opts); h.squad.enter(); assert.equal(h.timers.size, 0); assert.equal(h.getOverlay(), null);
   }
 });
 
