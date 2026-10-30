@@ -673,16 +673,22 @@ test('предыдущая коллекция не считается полно
   assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, false);
 });
 
-test('особые оформления используют локальные иллюстрации и доступны в обеих темах', () => {
+test('особые оформления используют локальные изображения и доступны в обеих темах', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
   for (const id of ['anime', 'meme']) {
-    const image = fs.readFileSync(path.join(__dirname, '..', 'assets', 'appearance-' + id + '.svg'), 'utf8');
-    assert.match(image, /<svg\b/); assert.ok(image.length > 4000);
-    assert.doesNotMatch(image, /<(?:script|animate|foreignObject)\b|https?:\/\/(?!www\.w3\.org)/i);
     assert.match(css, new RegExp('data-theme="dark"\\]\\[data-accent="' + id + '"'));
     assert.match(css, new RegExp('appearance-preview--' + id));
   }
-  assert.match(app().views.rewards().html, /Полная коллекция/);
+  const poster = fs.readFileSync(path.join(__dirname, '..', 'assets', 'attack-on-titan-key-visual.jpg'));
+  assert.equal(poster[0], 0xff); assert.equal(poster[1], 0xd8);
+  for (const name of ['meme-strip.webp', 'meme-grid.webp']) {
+    const image = fs.readFileSync(path.join(__dirname, '..', 'assets', name));
+    assert.equal(image.toString('ascii', 0, 4), 'RIFF'); assert.equal(image.toString('ascii', 8, 12), 'WEBP');
+    assert.ok(image.length > 10000); assert.ok(css.includes(name));
+  }
+  assert.match(css, /attack-on-titan-key-visual\.jpg/);
+  const html = app().views.rewards().html;
+  assert.match(html, /Атака титанов/); assert.match(html, /67, Chill Guy, Ждун/); assert.match(html, /Полная коллекция/);
 });
 
 test('импорт оформлений добавляет коллекцию, сохраняя прогресс, валюту и выбранную тему', () => {

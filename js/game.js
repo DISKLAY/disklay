@@ -84,8 +84,8 @@
     autumn: { title: 'Осень', description: 'Тёплые краски, листья и жёлуди.', price: 1500, color: '#a64929' },
     winter: { title: 'Зима', description: 'Морозные оттенки и снежинки.', price: 1500, color: '#316f9e' },
     spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
-    anime: { title: 'Аниме · Ночная смена', description: 'Неон, звёзды и аниме-студентка на ночной смене.', price: 5000, color: '#7841cc', premium: true },
-    meme: { title: 'Мем · Всё под контролем', description: 'Безумный комикс и кот-доктор, который точно всё знает.', price: 6000, color: '#b82b62', premium: true },
+    anime: { title: 'Аниме · Атака титанов', description: 'Атмосфера Attack on Titan: титаны, тёмный город и огонь.', price: 5000, color: '#745337', premium: true },
+    meme: { title: 'Мем · Мемопад', description: '67, Chill Guy, Ждун, брейнрот, тролль и мемные коты.', price: 6000, color: '#b82b62', premium: true },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
   let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, appearance: 'default' };
