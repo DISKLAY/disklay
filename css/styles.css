@@ -434,6 +434,13 @@ img, svg { display: block; }
 }
 .btn--primary:hover { box-shadow: 0 16px 30px -14px rgba(79, 70, 229, .95); }
 
+/* Небольшой цветовой акцент для тренировок к семестровым зачётам. */
+.btn--credit {
+  --btn-bg: linear-gradient(135deg, #365cc6, #2f4aa4);
+  box-shadow: 0 10px 24px -14px rgba(47, 74, 164, .95);
+}
+.btn--credit:hover { box-shadow: 0 16px 30px -14px rgba(47, 74, 164, .95); }
+
 .btn--ghost {
   --btn-bg: transparent;
   --btn-border: var(--border-strong);

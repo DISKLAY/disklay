@@ -110,7 +110,7 @@
       '<p class="hero__lead">' + total + ' заданий в этой базе. Учите по темам и разбирайте ошибки.' +
       (AT.colloquium.examAvailable ? ' Проверяйте себя на время.' : '') + '</p>' +
       '<div class="hero__actions">' +
-      '<a href="#/train" class="btn btn--primary btn--lg">' + icon('play') + 'Тренироваться</a>' +
+      '<a href="#/train" class="btn btn--primary btn--lg' + (AT.colloquium.kind === 'credit' ? ' btn--credit' : '') + '">' + icon('play') + 'Тренироваться</a>' +
       '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + (AT.colloquium.examAvailable ? 'Пробный экзамен' : AT.colloquium.kind === 'credit' ? 'Пробный зачёт · скоро' : 'Экзамен · скоро') + '</a>' +
       '</div>' +
       '</div>' +

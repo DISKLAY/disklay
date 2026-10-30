@@ -230,3 +230,14 @@ test('новые PDF перенесены целиком с подсветкой
     assert.ok(AT.dataset.topics.every(topic => AT.dataset.topicQuestions(topic.id).length));
   }
 });
+
+test('кнопка тренировки на главной зачёта выделена отдельным цветом', () => {
+  for (const id of ['credit-1', 'credit-2']) {
+    const html = app({}, id).views.dashboard().html;
+    assert.match(html, /href="#\/train" class="btn btn--primary btn--lg btn--credit"/);
+    assert.match(html, /href="#\/exam" class="btn btn--ghost btn--lg"/);
+  }
+  for (const id of ['1', '2', '3', '4', 'stom-2', 'stom-3']) {
+    assert.doesNotMatch(app({}, id).views.dashboard().html, /btn--credit/);
+  }
+});
