@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs>
+    <g id="flower">
+      <g fill="#e996af"><ellipse cx="0" cy="-10" rx="5.5" ry="9"/><ellipse cx="0" cy="-10" rx="5.5" ry="9" transform="rotate(72)"/><ellipse cx="0" cy="-10" rx="5.5" ry="9" transform="rotate(144)"/><ellipse cx="0" cy="-10" rx="5.5" ry="9" transform="rotate(216)"/><ellipse cx="0" cy="-10" rx="5.5" ry="9" transform="rotate(288)"/></g>
+      <circle r="4" fill="#e6b455"/><circle r="1.5" fill="#b47a36"/>
+    </g>
+    <g id="sprig" fill="none" stroke="#5f9a68" stroke-width="1.5" stroke-linecap="round">
+      <path d="M0 20Q-1 0 8-19"/><path d="M3 7C-8 6-10 0-9-3 0-4 4 0 3 7ZM5-2c0-9 5-13 12-13 0 7-4 12-12 13Z" fill="#a5c89a"/>
+    </g>
+    <g id="petal"><path d="M0-8C7-9 10-3 5 3 3 6 0 8 0 8S-4 4-5 1C-8-5-5-9 0-8Z" fill="#edb5c4"/></g>
+  </defs>
+  <use href="#flower" transform="translate(44 45) rotate(15) scale(1.2)"/>
+  <use href="#sprig" transform="translate(165 40) rotate(-28)"/>
+  <use href="#petal" transform="translate(265 50) rotate(42)"/>
+  <use href="#flower" transform="translate(244 133) rotate(38) scale(.9)"/>
+  <use href="#sprig" transform="translate(68 151) rotate(30) scale(1.1)"/>
+  <use href="#petal" transform="translate(156 185) rotate(-25)"/>
+  <use href="#flower" transform="translate(65 264) rotate(-20) scale(.95)"/>
+  <use href="#sprig" transform="translate(225 258) rotate(30)"/>
+  <use href="#petal" transform="translate(292 270) rotate(22) scale(.8)"/>
+  <g fill="#dfa1b2"><circle cx="100" cy="83" r="2"/><circle cx="198" cy="99" r="1.8"/><circle cx="288" cy="200" r="2.2"/><circle cx="136" cy="251" r="1.8"/></g>
+</svg>

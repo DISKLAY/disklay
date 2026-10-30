@@ -146,10 +146,13 @@
       theme: 'auto',
       strict: true,
       hintCount: false,
+      shuffleAnswers: true,
     },
     key: {},          // правки/импорт: { "1": [1,2] }
     keyMeta: { updatedAt: null, source: '' },
     progress: {},     // { q1: {attempts, correct, wrong, streak, last, lastAt} }
+    favorites: {},    // личные закладки вопросов текущей базы
+    comments: {},     // личные комментарии к вопросам текущей базы
     sessions: [],     // история
     session: null,    // текущая/незавершённая сессия
     seen: {},         // служебное
@@ -190,13 +193,17 @@
     }
     const write = () => {
       try {
+        // Учитываем покупки из других вкладок, прежде чем сохранить локальный кошелёк.
+        if (window.AT && window.AT.game) window.AT.game.ensure();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        return true;
       } catch (e) {
         console.warn('Не удалось сохранить прогресс', e);
+        return false;
       }
     };
-    if (immediate) write();
-    else saveTimer = setTimeout(write, 200);
+    if (immediate) return write();
+    saveTimer = setTimeout(write, 200);
   }
 
   /* -------------------------------------------------------------- key logic */
@@ -532,6 +539,7 @@
       p.last = 'wrong';
     }
     state.progress[q.id] = p;
+    if (window.AT && window.AT.game) window.AT.game.syncAchievements();
     save();
   }
 
@@ -610,6 +618,29 @@
     },
   };
 
+  // Закладки и заметки привязаны к ID вопроса и не влияют на ответы или прогресс.
+  const annotations = {
+    isFavorite(qid) { return !!(state.favorites && state.favorites[qid]); },
+    toggleFavorite(qid) {
+      if (!byId.has(qid)) return false;
+      if (!state.favorites || typeof state.favorites !== 'object' || Array.isArray(state.favorites)) state.favorites = {};
+      if (state.favorites[qid]) delete state.favorites[qid];
+      else state.favorites[qid] = true;
+      return save(true);
+    },
+    comment(qid) {
+      const value = state.comments && state.comments[qid];
+      return typeof value === 'string' ? value : '';
+    },
+    setComment(qid, text) {
+      if (!byId.has(qid) || typeof text !== 'string') return false;
+      if (!state.comments || typeof state.comments !== 'object' || Array.isArray(state.comments)) state.comments = {};
+      if (text) state.comments[qid] = text.slice(0, 5000);
+      else delete state.comments[qid];
+      return save(true);
+    },
+  };
+
   /* --------------------------------------------------------------- sessions */
 
   function pickQuestions(opts) {
@@ -623,7 +654,9 @@
     pool = [...uniq.values()];
 
     const scope = opts.scope || 'smart';
-    if (scope === 'wrong') {
+    if (scope === 'favorites') {
+      pool = pool.filter((q) => annotations.isFavorite(q.id));
+    } else if (scope === 'wrong') {
       pool = pool.filter((q) => {
         const p = progressOf(q.id);
         return p.wrong > 0 && p.streak < 2;
@@ -651,17 +684,39 @@
     return pool.map((q) => q.id);
   }
 
+  // Внутренние номера вариантов всегда соответствуют исходной базе и ключу.
+  // Только отображаемый порядок записывается в сессию и не меняется при возврате к вопросу.
+  function optionOrder(session, q) {
+    const count = q.options.length;
+    const identity = Array.from({ length: count }, (_, i) => i + 1);
+    const saved = session && session.optionOrders && session.optionOrders[q.id];
+    if (!Array.isArray(saved) || saved.length !== count ||
+        saved.some(i => !Number.isInteger(i) || i < 1 || i > count) || new Set(saved).size !== count) return identity;
+    return saved.slice();
+  }
+
+  // Обобщающие варианты вроде «все перечисленное» оставляем в исходном порядке.
+  function optionsAreOrderDependent(q) {
+    return q.options.some(text => /(?:вс[её]|ничего|ни\s+один)[^.!?]{0,40}перечислен|вышеперечислен|нижеперечислен|предыдущ(?:ий|ие|их)\s+(?:вариант|ответ)|(?:вариант|ответ)[а-я]*\s*(?:№|номер)\s*\d/i.test(text));
+  }
+
   function startSession(config) {
     const mode = config.mode === 'exam' ? 'exam' : 'train';
     const ids = config.ids || pickQuestions(config);
     if (!ids.length) return null;
     const limitSeconds = mode === 'exam' && config.timerMinutes ? Math.round(config.timerMinutes * 60) : 0;
+    const optionOrders = {};
+    if (state.settings.shuffleAnswers) ids.forEach(id => {
+      const q = byId.get(id);
+      if (q && !optionsAreOrderDependent(q)) optionOrders[id] = utils.shuffle(Array.from({ length: q.options.length }, (_, i) => i + 1));
+    });
     const session = {
       id: 's' + Date.now(),
       mode,
       scope: config.scope || 'smart',
       topicIds: config.topicIds && config.topicIds.length ? config.topicIds : ['all'],
       ids,
+      optionOrders,
       index: 0,
       results: {},
       startedAt: Date.now(),
@@ -732,6 +787,7 @@
       if (!entry) {
         entry = session.results[q.id] = { selected: [], revealed: true, correct: null, self: false };
       }
+      entry.gamePreviouslyMastered = (progressOf(q.id).streak || 0) >= 2;
       entry.correct = res.correct;
       entry.revealed = true;
       entry.self = false;
@@ -739,6 +795,7 @@
       recordAttempt(q, res.correct, selected);
       graded += 1;
     });
+    if (window.AT.game) window.AT.game.awardExam(session, qs);
     session.graded = true;
     save(true);
     return graded;
@@ -764,9 +821,11 @@
       duration: Math.round((session.finishedAt - session.startedAt) / 1000),
       topicIds: session.topicIds,
       selfCheck: stats.self > 0,
+      assisted: !!(session.game && (session.game.hintsUsed || session.game.bonusUsed)),
     };
     state.sessions.unshift(record);
     state.sessions = state.sessions.slice(0, MAX_SESSIONS);
+    if (window.AT.game) window.AT.game.syncAchievements();
     save(true);
     return record;
   }
@@ -780,6 +839,8 @@
     state.progress = {};
     state.sessions = [];
     state.session = null;
+    delete state.game;
+    if (window.AT.game) window.AT.game.ensure();
     save(true);
   }
 
@@ -795,7 +856,9 @@
     recordAttempt,
     progressOf,
     analytics,
+    annotations,
     pickQuestions,
+    optionOrder,
     examPlan,
     buildExam,
     startSession,

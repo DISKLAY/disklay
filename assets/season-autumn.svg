@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs>
+    <g id="maple">
+      <path d="M0 24 3 13-8 15l2-6-11-6 9-3-4-9 9 3L0-16l4 10 8-4-3 9 9 3-10 6 2 6-9-2 1 12Z" fill="#cb6437"/>
+      <path d="M0 20V-9m0 15-8-6m8 10 8-9" fill="none" stroke="#823b29" stroke-width="1.15" stroke-linecap="round"/>
+    </g>
+    <g id="leaf">
+      <path d="M0 20C-14 11-14-5 0-18 14-5 14 11 0 20Z" fill="#d99637"/>
+      <path d="M0 17V-12m0 18-6-6m6 2 6-6" fill="none" stroke="#945423" stroke-width="1.15" stroke-linecap="round"/>
+    </g>
+    <g id="acorn">
+      <path d="M-8-2C-8 9-3 15 0 16 4 15 8 9 8-2Z" fill="#dba14b"/>
+      <path d="M-10-2c1-10 19-10 20 0-6 3-14 3-20 0Z" fill="#936043"/>
+      <path d="M0-10c0-3 2-5 5-5" fill="none" stroke="#936043" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <use href="#maple" transform="translate(44 43) rotate(-28) scale(1.15)"/>
+  <use href="#leaf" transform="translate(197 32) rotate(37) scale(.85)"/>
+  <use href="#acorn" transform="translate(279 92) rotate(20) scale(.8)"/>
+  <use href="#leaf" transform="translate(106 143) rotate(-48) scale(1.1)"/>
+  <use href="#maple" transform="translate(249 207) rotate(24) scale(.92)"/>
+  <use href="#acorn" transform="translate(35 238) rotate(-25)"/>
+  <use href="#maple" transform="translate(139 278) rotate(40) scale(.7)"/>
+  <g fill="#db9a4b"><circle cx="128" cy="56" r="2"/><circle cx="286" cy="29" r="2.5"/><circle cx="163" cy="196" r="2.5"/><circle cx="62" cy="181" r="1.8"/><circle cx="293" cy="278" r="2"/></g>
+</svg>

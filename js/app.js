@@ -46,6 +46,7 @@
     summary: 'summary',
     mistakes: 'mistakes',
     stats: 'stats',
+    rewards: 'rewards',
     key: 'key',
     settings: 'settings',
   };
@@ -93,10 +94,18 @@
 
   function updateNav(name) {
     if (!nav) return;
-    const active = name === 'run' || name === 'summary' ? 'train' : name;
+    const session = AT.getState().session;
+    const active = name === 'run' || name === 'summary' ? (session && session.mode === 'exam' ? 'exam' : 'train') : name;
     nav.querySelectorAll('[data-route]').forEach((link) => {
       const r = link.getAttribute('data-route');
       const isActive = r === active || (active === 'dashboard' && r === 'dashboard');
+      link.classList.toggle('is-active', isActive);
+      if (isActive) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+    const sidebar = document.getElementById('courseSidebar');
+    if (sidebar) sidebar.querySelectorAll('[data-sidebar-route]').forEach((link) => {
+      const isActive = link.getAttribute('data-sidebar-route') === active;
       link.classList.toggle('is-active', isActive);
       if (isActive) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
@@ -161,7 +170,20 @@
         ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
-    window.initModulePicker(moduleSelect, document.getElementById('modulePicker'), document.getElementById('courseSidebar'), document.getElementById('courseSidebarNav'));
+    const courseToggle = document.getElementById('courseToggle');
+    const courseToggleCurrent = document.getElementById('courseToggleCurrent');
+    const courseSidebarCurrent = document.getElementById('courseSidebarCurrent');
+    const syncCourseToggle = () => {
+      const option = moduleSelect.options[moduleSelect.selectedIndex];
+      if (!option || !courseToggle || !courseToggleCurrent) return;
+      courseToggleCurrent.textContent = option.textContent;
+      if (courseSidebarCurrent) courseSidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
+      courseToggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
+    };
+    moduleSelect.addEventListener('change', syncCourseToggle);
+    syncCourseToggle();
+    window.initModulePicker(moduleSelect, document.getElementById('courseSidebarNav'));
+    window.initCourseDrawer(document.getElementById('courseSidebar'), document.getElementById('courseToggle'), document.getElementById('courseClose'), document.getElementById('courseBackdrop'));
   }
 
   /* ---------------------------------------------------------------- запуск */
@@ -169,8 +191,11 @@
   if (AT.colloquium.kind === 'credit') {
     const examLink = nav.querySelector('[data-route="exam"]');
     if (examLink) examLink.textContent = 'Пробный зачёт';
+    const sidebarExamLink = document.querySelector('[data-sidebar-route="exam"]');
+    if (sidebarExamLink) sidebarExamLink.textContent = 'Пробный зачёт';
   }
   ui.applyTheme();
+  AT.game.applyAppearance();
   render();
 
   // подсказка при первом визите

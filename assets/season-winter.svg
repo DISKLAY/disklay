@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs>
+    <g id="snow" fill="none" stroke="#3989b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0-21V21M-18-10.5 18 10.5M-18 10.5 18-10.5"/>
+      <path d="m-5-16 5 4 5-4M-5 16l5-4 5 4M-16-5l6 .5-2-6M16 5l-6-.5 2 6M-16 5l6-.5-2 6M16-5l-6 .5 2-6"/>
+      <circle r="3" fill="#9ed6eb" stroke="none"/>
+    </g>
+    <g id="star" fill="#67b1d2"><path d="M0-12C1-4 4-1 12 0 4 1 1 4 0 12-1 4-4 1-12 0-4-1-1-4 0-12Z"/></g>
+  </defs>
+  <use href="#snow" transform="translate(47 45) rotate(12) scale(1.05)"/>
+  <use href="#star" transform="translate(147 26) scale(.7)"/>
+  <use href="#snow" transform="translate(244 48) rotate(20) scale(.75)"/>
+  <use href="#snow" transform="translate(132 132) rotate(-10) scale(1.1)"/>
+  <use href="#star" transform="translate(282 147) scale(.9)"/>
+  <use href="#snow" transform="translate(39 228) rotate(20) scale(.75)"/>
+  <use href="#snow" transform="translate(239 240) rotate(-9) scale(1.1)"/>
+  <use href="#star" transform="translate(135 281) scale(.7)"/>
+  <g fill="#70b8d7"><circle cx="83" cy="106" r="2"/><circle cx="211" cy="133" r="2.5"/><circle cx="87" cy="277" r="2.5"/><circle cx="182" cy="217" r="2"/><circle cx="285" cy="304" r="2"/></g>
+</svg>

@@ -180,7 +180,7 @@
           '<div class="history__row">' +
           '<span class="history__badge history__badge--' + s.mode + '">' + icon(s.mode === 'exam' ? 'exam' : 'train') + '</span>' +
           '<div class="history__main"><strong>' + (s.mode === 'exam' ? 'Экзамен' : 'Тренировка') + '</strong>' +
-          '<span>' + esc(utils.formatDate(s.date)) + ' · ' + esc(s.label || 'Все темы') + ' · ' + utils.formatDuration(s.duration) + '</span></div>' +
+          '<span>' + esc(utils.formatDate(s.date)) + ' · ' + esc(s.label || 'Все темы') + ' · ' + utils.formatDuration(s.duration) + (s.assisted ? ' · с усилениями' : '') + '</span></div>' +
           '<div class="history__bar">' + progressBar(s.accuracy, s.accuracy >= 70 ? 'ok' : s.accuracy >= 40 ? 'mid' : 'low') + '</div>' +
           '<div class="history__score"><strong>' + s.correct + '/' + s.total + '</strong><span>' + s.accuracy + '%</span></div>' +
           '</div>').join('') + '</div></section>';
@@ -195,7 +195,7 @@
         if (!el) return;
         confirmDialog({
           title: 'Сбросить прогресс?',
-          text: 'Обнулятся статистика, история тренировок и список ошибок. Ключ ответов останется.',
+          text: 'Обнулятся статистика, история, ошибки, валюта, рейтинг и усиления этой базы. Избранное, комментарии, общие достижения, оформления и ключ ответов останутся.',
           confirm: 'Сбросить',
           danger: true,
         }).then((ok) => {
@@ -528,7 +528,7 @@
         '<button class="segmented__btn' + (theme === t ? ' is-active' : '') + '" data-action="set-theme" data-theme="' + t + '">' +
         icon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'sparkles') +
         ({ auto: 'Как в системе', light: 'Светлая', dark: 'Тёмная' })[t] + '</button>').join('') +
-      '</div></section>';
+      '</div><p class="settings-appearance-link"><a href="#/rewards">Цветовые оформления в магазине →</a></p></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Проверка</h2>' +
       switchRow('strict', 'Строгая проверка',
@@ -536,12 +536,16 @@
         settings.strict) +
       switchRow('hintCount', 'Подсказывать число верных ответов',
         'В тренировке показывать, сколько правильных вариантов в задании.', settings.hintCount) +
+      switchRow('shuffleAnswers', 'Перемешивать варианты ответов',
+        'В тренировке и экзамене варианты меняют порядок. Для новых сессий этой базы; зависимые от порядка варианты не перемешиваются.', settings.shuffleAnswers) +
       '</section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
-      '<p class="muted small">Прогресс, история и ключ хранятся локально в этом браузере.</p>' +
+      '<p class="muted small">Прогресс, история, избранное, комментарии и ключ хранятся локально в этом браузере. Сброс относится к текущей базе; избранное, комментарии, общие достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
       '<button class="btn btn--ghost" data-action="export-progress">' + icon('download') + 'Скачать прогресс</button>' +
+      '<label class="btn btn--ghost btn--file">' + icon('upload') + 'Импортировать оформления<input type="file" accept=".json,application/json" data-action="appearance-file"></label>' +
+      '<p class="muted small">Из файла добавляются только оформления, без изменения прогресса и валюты. Полное восстановление прогресса пока недоступно.</p>' +
       '<button class="btn btn--ghost btn--danger" data-action="reset-all">' + icon('trash') + 'Сбросить прогресс</button>' +
       '</div></section>';
 
@@ -553,7 +557,8 @@
       '</section></div>';
 
     const mount = (root) => {
-      root.addEventListener('click', (e) => {
+      const view = root.querySelector('.view--narrow') || root;
+      view.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
         const action = btn.getAttribute('data-action');
@@ -563,7 +568,7 @@
         } else if (action === 'reset-all') {
           confirmDialog({
             title: 'Сбросить прогресс?',
-            text: 'История, статистика и ошибки будут удалены. Ключ ответов останется.',
+            text: 'История, статистика, валюта, рейтинг и усиления этой базы будут удалены. Избранное, комментарии, общие достижения, оформления и ключ ответов останутся.',
             confirm: 'Сбросить',
             danger: true,
           }).then((ok) => {
@@ -578,13 +583,43 @@
             colloquium: AT.colloquium.id,
             exportedAt: new Date().toISOString(),
             progress: state.progress,
+            favorites: state.favorites,
+            comments: state.comments,
             sessions: state.sessions,
             key: state.key,
+            game: state.game,
+            sharedRewards: AT.game.profile(),
           }, null, 2), 'application/json;charset=utf-8');
         }
       });
 
-      root.addEventListener('change', (e) => {
+      view.addEventListener('change', async (e) => {
+        const fileInput = e.target.closest('[data-action="appearance-file"]');
+        if (fileInput) {
+          const file = fileInput.files && fileInput.files[0];
+          fileInput.value = '';
+          if (!file) return;
+          if (file.size > 1024 * 1024) { toast('Файл слишком большой'); return; }
+          let data;
+          try { data = JSON.parse(await file.text()); }
+          catch (err) { toast('Не удалось прочитать JSON-файл'); return; }
+          const check = AT.game.inspectAppearanceImport(data);
+          if (!check.ok) { toast(check.message); return; }
+          const ok = await confirmDialog({
+            title: 'Добавить оформления?',
+            text: 'Из файла будут добавлены: ' + check.titles.join(', ') + '. Валюта, прогресс и текущая тема не изменятся. Полная коллекция откроет достижение.',
+            confirm: 'Добавить',
+          });
+          if (!ok) return;
+          let result;
+          try {
+            result = navigator.locks && navigator.locks.request
+              ? await navigator.locks.request('anatomy-cosmetic-purchase', () => AT.game.importAppearances(data))
+              : AT.game.importAppearances(data);
+          } catch (err) { result = { ok: false, message: 'Не удалось импортировать оформления' }; }
+          toast(result.message);
+          return;
+        }
         const input = e.target.closest('[data-setting]');
         if (!input) return;
         const key = input.getAttribute('data-setting');

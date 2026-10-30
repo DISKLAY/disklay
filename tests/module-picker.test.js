@@ -4,11 +4,11 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
-// Минимальная DOM-модель, чтобы проверить управление списком без зависимостей.
-function makePicker() {
-  const document = { activeElement: null, documentElement: { classList: { add() {} } }, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; } };
+// Минимальная DOM-модель для проверки выбора базы в панели без зависимостей.
+function makePicker(selected = '1') {
+  const document = {};
   class Element {
-    constructor(tag) { this.tagName = tag; this.children = []; this.dataset = {}; this.attrs = {}; this.listeners = {}; this.hidden = false; this.classList = { add() {} }; }
+    constructor(tag) { this.tagName = tag; this.children = []; this.dataset = {}; this.attrs = {}; this.listeners = {}; this.open = false; }
     setAttribute(name, value) { this.attrs[name] = value; }
     getAttribute(name) { return this.attrs[name]; }
     removeAttribute(name) { delete this.attrs[name]; }
@@ -16,22 +16,10 @@ function makePicker() {
     append(...children) { children.forEach(child => this.appendChild(child)); }
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
     dispatchEvent(event) { event.target ||= this; (this.listeners[event.type] || []).forEach(fn => fn(event)); }
-    focus() { document.activeElement = this; }
-    contains(child) { return child === this || this.children.some(c => c.contains(child)); }
-    closest(query) { return query === '[role="option"]' && this.attrs.role === 'option' ? this : this.parentElement?.closest(query); }
-    set innerHTML(value) {
-      this._html = value;
-      if (value.includes('module-picker__caption')) {
-        this.caption = new Element('span');
-        this.current = new Element('span');
-      }
-    }
-    querySelector(selector) { return selector === '.module-picker__caption' ? this.caption : this.current; }
+    set innerHTML(value) { this._html = value; }
   }
   document.createElement = (tag) => new Element(tag);
-  const container = new Element('div');
   const select = new Element('select');
-  select.title = 'Прогресс сохраняется отдельно';
   const groups = [
     { label: '1 семестр', choices: [['1', '1 · Остеология'], ['2', '2 · Миология'], ['credit-1', 'Зачёт · Остеология и миология']] },
     { label: '2 семестр', choices: [['3', '3 · Спланхнология'], ['4', '4 · Центральная нервная система'], ['credit-2', 'Зачёт · Спланхнология и ЦНС']] },
@@ -43,77 +31,42 @@ function makePicker() {
   });
   select.querySelectorAll = () => groups;
   select.options = groups.flatMap(group => group.children);
-  select.value = '1';
+  select.value = selected;
   Object.defineProperty(select, 'selectedIndex', { get() { return this.options.findIndex(option => option.value === this.value); } });
   class Event { constructor(type, options) { this.type = type; Object.assign(this, options); } }
   const context = vm.createContext({ window: {}, document, Event });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/module-picker.js'), 'utf8'), context);
-  const sidebar = new Element('aside');
-  sidebar.hidden = true;
   const sidebarNav = new Element('nav');
-  context.window.initModulePicker(select, container, sidebar, sidebarNav);
-  const [trigger, list] = container.children;
-  const items = list.children.flatMap(group => group.children.filter(child => child.getAttribute('role') === 'option'));
-  const key = (target, key) => target.dispatchEvent({ type: 'keydown', key, preventDefault() {} });
-  const click = (target, eventTarget = target) => target.dispatchEvent({ type: 'click', target: eventTarget });
-  return { document, select, trigger, list, items, key, click, sidebar, sidebarNav };
+  context.window.initModulePicker(select, sidebarNav);
+  const click = target => target.dispatchEvent({ type: 'click', target });
+  return { select, sidebarNav, click };
 }
 
-test('список показывает группы и выбранную базу, открывается и закрывается', () => {
-  const {document, select, trigger, list, items, click} = makePicker();
-  assert.equal(select.hidden, true);
-  assert.equal(trigger.current.textContent, '1 · Остеология');
-  assert.equal(items.length, 8);
-  assert.equal(items[0].getAttribute('aria-selected'), 'true');
-  assert.equal(list.hidden, true);
-  click(trigger);
-  assert.equal(list.hidden, false);
-  assert.equal(trigger.getAttribute('aria-expanded'), 'true');
-  assert.equal(document.activeElement, items[0]);
-  document.listeners.click({target: document.createElement('div')});
-  assert.equal(list.hidden, true);
-});
-
-test('клавиатура и выбор пункта работают через исходный select', () => {
-  const {document, select, trigger, list, items, click, key} = makePicker();
-  let changes = 0;
-  select.addEventListener('change', () => changes++);
-  key(trigger, 'ArrowDown');
-  key(list, 'ArrowDown');
-  assert.equal(document.activeElement, items[1]);
-  key(list, 'End');
-  assert.equal(document.activeElement, items[7]);
-  key(list, 'Escape');
-  assert.equal(document.activeElement, trigger);
-  assert.equal(list.hidden, true);
-  click(trigger);
-  click(list, items[7]);
-  assert.equal(select.value, 'stom-3');
-  assert.equal(changes, 1);
-  assert.equal(trigger.caption.textContent, 'Стоматологический факультет');
-  assert.equal(trigger.current.textContent, '3 · Ангионеврология');
-  assert.equal(items[7].getAttribute('aria-selected'), 'true');
-});
-
-
-test('боковая панель показывает семестры и использует то же переключение', () => {
-  const { sidebar, sidebarNav, select, trigger, click } = makePicker();
+test('выбор базы находится только в панели, актуальная группа раскрыта', () => {
+  const { sidebarNav } = makePicker('stom-2');
   const groups = sidebarNav.children;
-  assert.equal(sidebar.hidden, false);
   assert.deepEqual(groups.map(group => group.children[0].textContent), ['1 семестр', '2 семестр', 'Стоматологический факультет']);
-  assert.equal(groups[0].children[1].getAttribute('aria-current'), 'page');
+  assert.deepEqual(groups.map(group => group.open), [false, false, true]);
+  assert.equal(groups.flatMap(group => group.children.slice(1)).length, 8);
+  assert.equal(groups[2].children[1].getAttribute('aria-current'), 'true');
+  assert.equal(groups[2].children[1].children[2].textContent, 'Выбрана');
+});
+
+test('выбор базы переключает исходное значение и выделяет новую группу', () => {
+  const { sidebarNav, select, click } = makePicker();
+  const groups = sidebarNav.children;
   let changes = 0;
   select.addEventListener('change', () => changes++);
   const credit = groups[1].children[3];
   click(credit);
   assert.equal(select.value, 'credit-2');
   assert.equal(changes, 1);
-  assert.equal(credit.getAttribute('aria-current'), 'page');
+  assert.equal(credit.getAttribute('aria-current'), 'true');
   assert.equal(groups[0].children[1].getAttribute('aria-current'), undefined);
-  assert.equal(trigger.caption.textContent, '2 семестр');
-  assert.equal(trigger.current.textContent, 'Зачёт · Спланхнология и ЦНС');
+  assert.deepEqual(groups.map(group => group.open), [false, true, false]);
+  click(credit);
+  assert.equal(changes, 1);
 });
-
 
 test('в боковой панели зачёты обозначены значком, а номера коллоквиумов сохранены', () => {
   const { sidebarNav } = makePicker();
@@ -124,4 +77,15 @@ test('в боковой панели зачёты обозначены знач�
     assert.equal(group.children[3].children[1].children[0].textContent, 'Зачёт');
   }
   assert.equal(sidebarNav.children[1].children[1].children[0].textContent, '3');
+});
+
+test('в шапке нет второго выпадающего списка и мобильного дублирования ссылок', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  assert.match(html, /<select id="colloquiumSelect" hidden/);
+  assert.doesNotMatch(html, /id="modulePicker"/);
+  assert.match(html, /course-toggle__text"><span>Меню<\/span>/);
+  assert.match(html, /id="courseSidebarNav"/);
+  assert.match(css, /@media \(max-width: 760px\)\s*\{\s*\.nav\s*\{\s*display:\s*none/);
+  assert.doesNotMatch(css, /\.course-toggle span\s*\{\s*display:\s*none/);
 });
