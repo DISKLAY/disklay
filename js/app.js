@@ -46,6 +46,7 @@
     summary: 'summary',
     mistakes: 'mistakes',
     stats: 'stats',
+    rewards: 'rewards',
     key: 'key',
     settings: 'settings',
   };

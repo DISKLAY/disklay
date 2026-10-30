@@ -1668,3 +1668,60 @@ kbd {
   line-height: 1.5;
 }
 .key-source .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+
+/* Награды и внутренняя экономика */
+.rewards-hero { display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: center; padding: 32px 36px; border-radius: var(--r-xl); background: linear-gradient(125deg, #25234f, #293e78 58%, #126c71); color: #f7f9ff; box-shadow: var(--shadow-md); }
+.rewards-hero__eyebrow { font-size: .71rem; font-weight: 700; letter-spacing: .1em; color: #b9d0ff; }
+.rewards-hero h1 { margin: 10px 0; }
+.rewards-hero p { max-width: 46ch; color: #d4def2; font-size: .95rem; }
+.rewards-hero__metrics { display: flex; gap: 10px; }
+.rewards-hero__metrics div { min-width: 132px; display: flex; flex-direction: column; gap: 3px; padding: 15px; border: 1px solid rgba(255,255,255,.2); border-radius: var(--r-md); background: rgba(255,255,255,.08); }
+.rewards-hero__metrics span, .rewards-hero__metrics small { font-size: .72rem; color: #d6e0f6; }
+.rewards-hero__metrics strong { font-size: 1.8rem; line-height: 1.2; }
+.rewards-context { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; margin-top: 16px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); font-size: .84rem; }
+.rewards-context .icon { width: 18px; height: 18px; color: var(--primary); margin-top: 2px; }
+.achievement-grid, .shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.achievement { display: flex; gap: 12px; padding: 17px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.achievement.is-unlocked { border-color: var(--primary-border); background: var(--primary-soft); }
+.achievement__icon, .shop-card__icon { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--surface-3); color: var(--muted); }
+.achievement.is-unlocked .achievement__icon { background: var(--surface); color: var(--primary); }
+.achievement__content { display: flex; flex: 1; min-width: 0; flex-direction: column; }
+.achievement__content strong { font-size: .9rem; }
+.achievement__content p, .achievement__content small { color: var(--muted); font-size: .75rem; }
+.achievement__status { color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: .61rem; font-weight: 700; }
+.achievement.is-unlocked .achievement__status { color: var(--primary); }
+.achievement__progress { height: 4px; margin: 9px 0 3px; border-radius: var(--r-full); background: var(--border-strong); overflow: hidden; }
+.achievement__progress span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.rewards-footnote, .rewards-intro { color: var(--muted); font-size: .83rem; margin: 12px 0; }
+.shop-card { display: flex; flex-direction: column; gap: 9px; padding: 19px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.shop-card__top, .shop-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.shop-card__icon { background: var(--primary-soft); color: var(--primary); }
+.shop-card__tag { padding: 4px 8px; border-radius: var(--r-full); background: var(--surface-3); color: var(--text-2); font-size: .67rem; font-weight: 700; }
+.shop-card h3 { font-size: .98rem; }
+.shop-card p { flex: 1; color: var(--muted); font-size: .82rem; }
+.shop-card__footer { padding-top: 8px; border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted); }
+.rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.rules-grid > div { padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.rules-grid strong { font-size: .9rem; }
+.rules-grid p { margin-top: 5px; color: var(--muted); font-size: .82rem; }
+.game-overview { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 15px 18px; border: 1px solid var(--primary-border); border-radius: var(--r-lg); background: var(--primary-soft); transition: transform .18s var(--ease); }
+.game-overview:hover { transform: translateY(-2px); }
+.game-overview__icon { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 13px; background: var(--surface); color: var(--primary); }
+.game-overview__body { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.game-overview__body strong { font-size: .92rem; }
+.game-overview__body span { font-size: .8rem; color: var(--text-2); }
+.game-overview__arrow { color: var(--primary); }
+.boost-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding: 12px; border-radius: var(--r-md); background: var(--surface-2); }
+.boost-bar__title { font-weight: 700; font-size: .78rem; color: var(--text-2); }
+.boost-bar__note { width: 100%; color: var(--muted); font-size: .74rem; }
+.game-result { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; padding: 16px 18px; border: 1px solid var(--primary-border); border-radius: var(--r-md); background: var(--primary-soft); }
+.game-result div { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.game-result p, .game-result span { color: var(--text-2); font-size: .83rem; }
+@media (max-width: 1000px) { .achievement-grid, .shop-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 760px) { .rewards-hero { grid-template-columns: 1fr; padding: 26px 22px; gap: 20px; } .rewards-hero__metrics div { flex: 1; min-width: 0; } }
+@media (max-width: 520px) { .achievement-grid, .shop-grid, .rules-grid { grid-template-columns: 1fr; } }
+
+.exam-game-note { margin-top: 18px; padding: 13px 15px; border: 1px solid var(--primary-border); border-radius: var(--r-md); background: var(--primary-soft); }
+.exam-game-note strong { font-size: .86rem; }
+.exam-game-note p { margin-top: 4px; color: var(--text-2); font-size: .82rem; }
+.exam-game-note a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }

@@ -180,7 +180,7 @@
           '<div class="history__row">' +
           '<span class="history__badge history__badge--' + s.mode + '">' + icon(s.mode === 'exam' ? 'exam' : 'train') + '</span>' +
           '<div class="history__main"><strong>' + (s.mode === 'exam' ? 'Экзамен' : 'Тренировка') + '</strong>' +
-          '<span>' + esc(utils.formatDate(s.date)) + ' · ' + esc(s.label || 'Все темы') + ' · ' + utils.formatDuration(s.duration) + '</span></div>' +
+          '<span>' + esc(utils.formatDate(s.date)) + ' · ' + esc(s.label || 'Все темы') + ' · ' + utils.formatDuration(s.duration) + (s.assisted ? ' · с усилениями' : '') + '</span></div>' +
           '<div class="history__bar">' + progressBar(s.accuracy, s.accuracy >= 70 ? 'ok' : s.accuracy >= 40 ? 'mid' : 'low') + '</div>' +
           '<div class="history__score"><strong>' + s.correct + '/' + s.total + '</strong><span>' + s.accuracy + '%</span></div>' +
           '</div>').join('') + '</div></section>';
@@ -195,7 +195,7 @@
         if (!el) return;
         confirmDialog({
           title: 'Сбросить прогресс?',
-          text: 'Обнулятся статистика, история тренировок и список ошибок. Ключ ответов останется.',
+          text: 'Обнулятся статистика, история, ошибки, валюта, рейтинг, усиления и достижения этой базы. Ключ ответов останется.',
           confirm: 'Сбросить',
           danger: true,
         }).then((ok) => {
@@ -563,7 +563,7 @@
         } else if (action === 'reset-all') {
           confirmDialog({
             title: 'Сбросить прогресс?',
-            text: 'История, статистика и ошибки будут удалены. Ключ ответов останется.',
+            text: 'История, статистика, валюта, рейтинг и усиления этой базы будут удалены. Достижения этой базы сбросятся; ключ ответов останется.',
             confirm: 'Сбросить',
             danger: true,
           }).then((ok) => {
@@ -580,6 +580,7 @@
             progress: state.progress,
             sessions: state.sessions,
             key: state.key,
+            game: state.game,
           }, null, 2), 'application/json;charset=utf-8');
         }
       });

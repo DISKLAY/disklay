@@ -120,6 +120,12 @@
       '</div>' +
       '</section>';
 
+    if (AT.game) {
+      html += '<a class="game-overview" href="#/rewards"><span class="game-overview__icon">' + icon('sparkles') + '</span>' +
+        '<span class="game-overview__body"><strong>Награды и усиления</strong><span>Валюта этой базы: ' + AT.game.ensure().coins + ' · Общий рейтинг: ' + AT.game.totalRating() + '</span></span>' +
+        '<span class="game-overview__arrow">' + icon('chevronRight') + '</span></a>';
+    }
+
     const active = AT.currentSession();
     if (active) {
       const aq = AT.sessionQuestions(active);
@@ -171,7 +177,7 @@
           '<div class="session-row">' +
           '<span class="session-row__icon session-row__icon--' + (s.mode === 'exam' ? 'violet' : 'primary') + '">' + icon(s.mode === 'exam' ? 'exam' : 'train') + '</span>' +
           '<div class="session-row__main"><strong>' + (s.mode === 'exam' ? 'Экзамен' : 'Тренировка') + '</strong>' +
-          '<span>' + esc(utils.formatDate(s.date)) + ' · ' + (s.label ? esc(s.label) : 'Все темы') + '</span></div>' +
+          '<span>' + esc(utils.formatDate(s.date)) + ' · ' + (s.label ? esc(s.label) : 'Все темы') + (s.assisted ? ' · с усилениями' : '') + '</span></div>' +
           '<div class="session-row__score"><strong>' + s.correct + '/' + s.total + '</strong><span>' + s.accuracy + '%</span></div>' +
           '</div>').join('') +
         '</div></section>';
@@ -264,7 +270,7 @@
     const poolSize = new Set(plan.sections.flatMap((sec) => sec.questions.map((q) => q.id))).size;
 
     let html = '<div class="view">';
-    html += pageHead('Экзамен', examFormatText() + '. Вопросы без подсказок, проверка — после завершения.');
+    html += pageHead('Экзамен', examFormatText() + '. Число верных ответов не подсказывается, проверка — после завершения. Усиления можно купить заранее в разделе «Награды».');
 
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">План экзамена</div>' +
@@ -284,6 +290,7 @@
       ' — из каждого раздела случайно выбирается своё количество заданий, ' +
       'порядок вопросов совпадает с планом. На ответ — около ' + per + ' сек., таймер на ' + plan.minutes + ' мин.</p>' +
       '<p class="muted small">Вопросы о черепе в целом и размерах таза распределены по ближайшим разделам.</p>' +
+      (AT.game ? '<div class="exam-game-note"><strong>Игровые ставки</strong><p>Верный ответ приносит валюту и рейтинг. За каждую ошибку или пропуск: −5 валюты и −3 рейтинга. Баланс и рейтинг не опускаются ниже нуля. Подсказки и бонусы можно купить в <a href="#/rewards">магазине усилений</a>; их использование будет отмечено в результате.</p></div>' : '') +
       '</div>' +
 
       '<div class="panel__footer">' +
@@ -473,10 +480,21 @@
       '<div class="options">';
 
     q.options.forEach((opt, i) => {
+      if (!revealed && entry.hiddenOptions && entry.hiddenOptions.includes(i + 1)) return;
       html += optionHtml(q, i + 1, entry, revealed, revealed);
     });
 
     html += '</div>';
+    if (AT.game && (isExam || !revealed)) {
+      const g = AT.game.sessionGame(session);
+      const hints = AT.game.count('hint-' + session.mode);
+      const doubles = AT.game.count('double-' + session.mode);
+      const hintUsed = !!(entry.hiddenOptions && entry.hiddenOptions.length);
+      html += '<div class="boost-bar"><span class="boost-bar__title">Усиления</span>' +
+        '<button class="btn btn--ghost btn--sm" data-action="use-hint"' + (!answer || !hints || hintUsed ? ' disabled' : '') + '>' + icon('sparkles') + (hintUsed ? 'Подсказка использована' : 'Убрать неверный · ' + hints) + '</button>' +
+        '<button class="btn btn--ghost btn--sm" data-action="use-double"' + (!doubles || g.bonusRemaining ? ' disabled' : '') + '>' + icon('target') + (g.bonusRemaining ? '×2 · осталось ' + g.bonusRemaining : '×2 валюта · ' + doubles) + '</button>' +
+        '<span class="boost-bar__note">' + (!answer ? 'Для подсказки нужен ключ.' : 'Усиления покупаются заранее в разделе «Награды».') + '</span></div>';
+    }
 
     if (!isExam) {
       html += '<div class="question__actions">';
@@ -653,7 +671,7 @@
       function toggleOption(idx) {
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
-        if (!isExam && entry.revealed) return;
+        if ((!isExam && entry.revealed) || (entry.hiddenOptions && entry.hiddenOptions.includes(idx)) || idx < 1 || idx > q.options.length) return;
         const pos = entry.selected.indexOf(idx);
         if (pos === -1) entry.selected.push(idx);
         else entry.selected.splice(pos, 1);
@@ -672,7 +690,9 @@
           const res = AT.gradeQuestion(q, entry.selected);
           entry.correct = res.correct;
           entry.self = false;
+          const previouslyMastered = (AT.progressOf(q.id).streak || 0) >= 2;
           AT.recordAttempt(q, res.correct, entry.selected);
+          if (AT.game) AT.game.awardTraining(session, q, entry, previouslyMastered);
         } else {
           entry.correct = null;
         }
@@ -718,7 +738,12 @@
         else if (action === 'next') next();
         else if (action === 'prev') go(session.index - 1);
         else if (action === 'jump') go(parseInt(el.getAttribute('data-index'), 10));
-        else if (action === 'self-mark') {
+        else if (action === 'use-hint' || action === 'use-double') {
+          if (!AT.game) return;
+          const result = action === 'use-hint' ? AT.game.useHint(session, q, entry) : AT.game.activateDouble(session);
+          toast(result.message, result.ok ? undefined : 'warn');
+          renderInto(false);
+        } else if (action === 'self-mark') {
           if (entry.revealed && entry.correct === null) {
             entry.correct = el.getAttribute('data-value') === '1';
             entry.self = true;
@@ -811,6 +836,14 @@
       statCard('Точность', stats.answered ? stats.accuracy + '%' : '—', 'по оценённым вопросам', 'target') +
       statCard('Время', duration ? utils.formatDuration(duration) : '—', isExam && session.limitSeconds ? 'лимит ' + utils.formatDuration(session.limitSeconds) : 'без лимита', 'clock') +
       '</div>';
+
+    if (AT.game && session.game) {
+      const game = AT.game.sessionGame(session);
+      const sign = n => (n > 0 ? '+' : '') + n;
+      html += '<div class="game-result"><div><strong>Игровой результат</strong><span>Валюта: ' + sign(game.coinsChange) + ' · Рейтинг: ' + sign(game.ratingChange) + '</span></div>' +
+        (isExam ? '<p>Начислено за ответы: ' + game.coinsEarned + ' валюты и ' + game.ratingEarned + ' рейтинга; штраф за ошибки: −' + game.coinsPenalty + ' и −' + game.ratingPenalty + '. Баланс и рейтинг не опускаются ниже нуля.</p>' : '') +
+        (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ×2 валюта' : '') + '.</p>' : '<p>Без усилений.</p>') + '</div>';
+    }
 
     if (ungraded.length) {
       html += '<div class="banner banner--info"><span class="banner__icon">' + icon('info') + '</span>' +

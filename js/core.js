@@ -532,6 +532,7 @@
       p.last = 'wrong';
     }
     state.progress[q.id] = p;
+    if (window.AT && window.AT.game) window.AT.game.syncAchievements();
     save();
   }
 
@@ -732,6 +733,7 @@
       if (!entry) {
         entry = session.results[q.id] = { selected: [], revealed: true, correct: null, self: false };
       }
+      entry.gamePreviouslyMastered = (progressOf(q.id).streak || 0) >= 2;
       entry.correct = res.correct;
       entry.revealed = true;
       entry.self = false;
@@ -739,6 +741,7 @@
       recordAttempt(q, res.correct, selected);
       graded += 1;
     });
+    if (window.AT.game) window.AT.game.awardExam(session, qs);
     session.graded = true;
     save(true);
     return graded;
@@ -764,9 +767,11 @@
       duration: Math.round((session.finishedAt - session.startedAt) / 1000),
       topicIds: session.topicIds,
       selfCheck: stats.self > 0,
+      assisted: !!(session.game && (session.game.hintsUsed || session.game.bonusUsed)),
     };
     state.sessions.unshift(record);
     state.sessions = state.sessions.slice(0, MAX_SESSIONS);
+    if (window.AT.game) window.AT.game.syncAchievements();
     save(true);
     return record;
   }
@@ -780,6 +785,8 @@
     state.progress = {};
     state.sessions = [];
     state.session = null;
+    delete state.game;
+    if (window.AT.game) window.AT.game.ensure();
     save(true);
   }
 
