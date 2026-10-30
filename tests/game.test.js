@@ -188,12 +188,12 @@ test('достижения рейтинга используют общую су
   assert.equal(AT.game.achievements().find(a => a.id === 'rating-500').unlocked, true);
 });
 
-test('абсолютное освоение требует всю выбранную базу', () => {
+test('абсолютное освоение требует всю любую базу', () => {
   const AT = app({}, 'stom-2');
   const qs = AT.dataset.questions;
   for (const q of qs.slice(0, -1)) AT.getState().progress[q.id] = { attempts: 2, correct: 2, streak: 2 };
   let badge = AT.game.achievements().find(a => a.id === 'absolute-mastery');
-  assert.equal(badge.goal, qs.length); assert.equal(badge.unlocked, false);
+  assert.equal(badge.goal, 1); assert.equal(badge.current, 0); assert.equal(badge.unlocked, false);
   AT.getState().progress[qs.at(-1).id] = { attempts: 2, correct: 2, streak: 2 };
   badge = AT.game.achievements().find(a => a.id === 'absolute-mastery');
   assert.equal(badge.unlocked, true);
@@ -208,7 +208,7 @@ test('абсолютный экзамен требует 20 из 20 без ус�
     AT.gradeSession(session); AT.finishSession();
     assert.equal(AT.game.achievements().find(a => a.id === 'absolute-exam').unlocked, !assisted);
   }
-  assert.equal(app({}, 'credit-1').game.achievements().some(a => a.id === 'absolute-exam'), false);
+  assert.equal(app({}, 'credit-1').game.achievements().some(a => a.id === 'absolute-exam'), true);
 });
 
 test('обновлённые цены и ассортимент доступны в правилах и магазине', () => {
@@ -323,4 +323,168 @@ test('удвоенный рейтинг открывает достижения 
   game.awardTraining(session, q, entry, false);
   assert.equal(game.totalRating(), 500);
   assert.equal(game.achievements().find(a => a.id === 'rating-500').unlocked, true);
+});
+
+test('достижения суммируются по всем базам и одинаково видны в каждой', () => {
+  const storage = {}; let AT = app(storage, '1');
+  for (const q of AT.dataset.questions.slice(0, 5)) AT.getState().progress[q.id] = {attempts:1, streak:1};
+  AT.save(true);
+  AT = app(storage, '2');
+  for (const q of AT.dataset.questions.slice(0, 5)) AT.getState().progress[q.id] = {attempts:1, streak:1};
+  AT.save(true);
+  let badge = AT.game.achievements().find(a => a.id === 'explore-10');
+  assert.equal(badge.current, 10); assert.equal(badge.unlocked, true);
+  AT = app(storage, 'stom-3');
+  badge = AT.game.achievements().find(a => a.id === 'explore-10');
+  assert.equal(badge.current, 10); assert.equal(badge.unlocked, true);
+});
+
+test('старые достижения разных баз объединяются и остаются после сброса базы', () => {
+  const storage = {
+    'anatomy-colloquium-v1': JSON.stringify({game:{achievements:{'explore-50':123}}}),
+    'anatomy-colloquium-v1-2': JSON.stringify({game:{achievements:{'master-50':456}}}),
+  };
+  let AT = app(storage, '1');
+  assert.equal(AT.game.achievements().find(a => a.id === 'explore-50').unlocked, true);
+  assert.equal(AT.game.achievements().find(a => a.id === 'master-50').unlocked, true);
+  AT.resetProgress();
+  AT = app(storage, '2'); AT.resetProgress();
+  AT = app(storage, 'credit-2');
+  assert.equal(AT.game.achievements().find(a => a.id === 'explore-50').unlocked, true);
+  assert.equal(AT.game.achievements().find(a => a.id === 'master-50').unlocked, true);
+  assert.equal(AT.game.profile().achievements['master-50'], 456);
+});
+
+test('качок учитывает миологию и мышечные разделы зачёта, но не другие темы', () => {
+  const storage = {}; let AT = app(storage, '2');
+  for (const q of AT.dataset.questions) AT.getState().progress[q.id] = {attempts:2, streak:2};
+  AT.save(true);
+  AT = app(storage, 'credit-1');
+  const muscles = AT.dataset.questions.filter(q => ['trunk-muscles', 'head-neck', 'upper-muscles', 'lower-muscles'].includes(q.topic));
+  const other = AT.dataset.questions.find(q => q.topic === 'skull');
+  AT.getState().progress[other.id] = {attempts:2, streak:2};
+  for (const q of muscles.slice(0, 11)) AT.getState().progress[q.id] = {attempts:2, streak:2};
+  let badge = AT.game.achievements().find(a => a.id === 'muscles-200');
+  assert.equal(badge.title, 'Качок'); assert.equal(badge.current, 199); assert.equal(badge.unlocked, false);
+  AT.getState().progress[muscles[11].id] = {attempts:2, streak:2}; AT.save(true);
+  badge = AT.game.achievements().find(a => a.id === 'muscles-200');
+  assert.equal(badge.current, 200); assert.equal(badge.unlocked, true);
+  AT = app(storage, '3');
+  assert.equal(AT.game.achievements().find(a => a.id === 'muscles-200').unlocked, true);
+});
+
+test('направления считают только освоенные вопросы соответствующих тем', () => {
+  const AT = app({}, 'credit-2');
+  const organ = AT.dataset.questions.find(q => q.topic === 'digestive');
+  const nerve = AT.dataset.questions.find(q => q.topic === 'brainstem');
+  const unmastered = AT.dataset.questions.find(q => q.topic === 'pathways');
+  AT.getState().progress[organ.id] = {attempts:2, streak:2};
+  AT.getState().progress[nerve.id] = {attempts:2, streak:2};
+  AT.getState().progress[unmastered.id] = {attempts:1};
+  const badges = AT.game.achievements();
+  assert.equal(badges.find(a => a.id === 'organs-200').current, 1);
+  assert.equal(badges.find(a => a.id === 'nervous-200').current, 1);
+  assert.equal(badges.find(a => a.id === 'muscles-200').current, 0);
+});
+
+test('оформление покупается валютой текущей базы, доступно везде и переживает сброс', () => {
+  const storage = {}; let AT = app(storage, '1'), game = AT.game;
+  game.ensure().coins = 500;
+  assert.equal(game.buyAppearance('ruby').ok, false);
+  assert.equal(game.buyAppearance('ocean').ok, true);
+  assert.equal(game.ensure().coins, 0);
+  assert.equal(game.profile().appearance, 'ocean');
+  assert.equal(game.buyAppearance('ocean').ok, false);
+  assert.equal(game.selectAppearance('__proto__').ok, false);
+  assert.equal(game.selectAppearance('amber').ok, false);
+  AT = app(storage, '2'); game = AT.game;
+  assert.equal(game.ensure().coins, 0);
+  assert.equal(game.profile().appearances.ocean, true);
+  assert.equal(game.profile().appearance, 'ocean');
+  assert.equal(game.selectAppearance('default').ok, true);
+  assert.equal(game.selectAppearance('ocean').ok, true);
+  AT.resetProgress();
+  AT = app(storage, '1'); AT.resetProgress();
+  AT = app(storage, 'stom-2');
+  assert.equal(AT.game.profile().appearance, 'ocean');
+  assert.equal(AT.game.profile().appearances.ocean, true);
+});
+
+test('ошибка сохранения общего профиля возвращает стоимость покупки', () => {
+  const data = {};
+  const storage = new Proxy(data, {set(target, key, value) {
+    if (key === 'anatomy-colloquium-rewards-shared-v1') throw new Error('storage full');
+    target[key] = value; return true;
+  }});
+  let AT = app(storage); AT.game.ensure().coins = 600; AT.save(true);
+  assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  assert.equal(AT.game.ensure().coins, 600);
+  assert.equal(AT.game.profile().appearances.ocean, undefined);
+  AT = app(storage);
+  assert.equal(AT.game.ensure().coins, 600);
+});
+
+test('все тематические достижения достижимы и остаются общими', () => {
+  const storage = {};
+  for (const id of ['1','2','3','4','credit-1','credit-2','stom-2','stom-3']) {
+    const AT = app(storage, id);
+    for (const q of AT.dataset.questions) AT.getState().progress[q.id] = {attempts:2, streak:2};
+    AT.save(true);
+  }
+  const AT = app(storage, '1');
+  for (const id of ['muscles-200','bones-150','joints-100','organs-200','nervous-200','absolute-mastery']) {
+    assert.equal(AT.game.achievements().find(a => a.id === id).unlocked, true, id);
+  }
+  const other = app(storage, 'stom-3');
+  for (const id of ['muscles-200','bones-150','joints-100','organs-200','nervous-200','absolute-mastery']) {
+    assert.equal(other.game.achievements().find(a => a.id === id).unlocked, true, id);
+  }
+});
+
+test('ошибка сохранения кошелька не выдаёт оформление и не списывает валюту', () => {
+  const data = {}; let block = false;
+  const storage = new Proxy(data, {set(target, key, value) {
+    if (block && key === 'anatomy-colloquium-v1') throw new Error('storage full');
+    target[key] = value; return true;
+  }});
+  const AT = app(storage); AT.game.ensure().coins = 500; AT.save(true);
+  block = true;
+  assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  assert.equal(AT.game.ensure().coins, 500);
+  assert.equal(AT.game.profile().appearances.ocean, undefined);
+  block = false;
+  assert.equal(app(storage).game.ensure().coins, 500);
+});
+
+test('результат идеального экзамена виден в базе без экзамена', () => {
+  const storage = {}; let AT = app(storage), qs = AT.dataset.questions.slice(0,20);
+  const session = AT.startSession({mode:'exam', ids:qs.map(q => q.id)});
+  qs.forEach(q => { session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers}; });
+  AT.gradeSession(session); AT.finishSession();
+  AT = app(storage, 'credit-1');
+  assert.equal(AT.game.achievements().find(a => a.id === 'absolute-exam').unlocked, true);
+});
+
+test('покупка восстанавливается по квитанции при прерывании между сохранениями', () => {
+  const storage = {
+    'anatomy-colloquium-v1': JSON.stringify({game:{coins:0, appearanceReceipts:{ocean:true}}}),
+  };
+  let AT = app(storage, '2');
+  assert.equal(AT.game.profile().appearances.ocean, true);
+  assert.equal(AT.game.selectAppearance('ocean').ok, true);
+  AT = app(storage, '1'); AT.resetProgress();
+  AT = app(storage, '3');
+  assert.equal(AT.game.profile().appearances.ocean, true);
+  assert.equal(AT.game.profile().appearance, 'ocean');
+});
+
+test('верные ответы и завершённые прохождения суммируются между базами', () => {
+  const storage = {
+    'anatomy-colloquium-v1': JSON.stringify({game:{verified:20}, sessions:Array.from({length:5}, () => ({}))}),
+    'anatomy-colloquium-v1-2': JSON.stringify({game:{verified:5}, sessions:Array.from({length:5}, () => ({}))}),
+  };
+  const AT = app(storage, 'stom-2');
+  assert.equal(AT.game.achievements().find(a => a.id === 'verified-25').unlocked, true);
+  assert.equal(AT.game.achievements().find(a => a.id === 'sessions-10').unlocked, true);
+  assert.equal(AT.game.totalRating(), 0);
 });

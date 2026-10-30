@@ -195,6 +195,7 @@
     if (sidebarExamLink) sidebarExamLink.textContent = 'Пробный зачёт';
   }
   ui.applyTheme();
+  AT.game.applyAppearance();
   render();
 
   // подсказка при первом визите

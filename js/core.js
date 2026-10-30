@@ -191,12 +191,14 @@
     const write = () => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        return true;
       } catch (e) {
         console.warn('Не удалось сохранить прогресс', e);
+        return false;
       }
     };
-    if (immediate) write();
-    else saveTimer = setTimeout(write, 200);
+    if (immediate) return write();
+    saveTimer = setTimeout(write, 200);
   }
 
   /* -------------------------------------------------------------- key logic */

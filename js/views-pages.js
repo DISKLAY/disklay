@@ -195,7 +195,7 @@
         if (!el) return;
         confirmDialog({
           title: 'Сбросить прогресс?',
-          text: 'Обнулятся статистика, история, ошибки, валюта, рейтинг, усиления и достижения этой базы. Ключ ответов останется.',
+          text: 'Обнулятся статистика, история, ошибки, валюта, рейтинг и усиления этой базы. Общие достижения, оформления и ключ ответов останутся.',
           confirm: 'Сбросить',
           danger: true,
         }).then((ok) => {
@@ -528,7 +528,7 @@
         '<button class="segmented__btn' + (theme === t ? ' is-active' : '') + '" data-action="set-theme" data-theme="' + t + '">' +
         icon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'sparkles') +
         ({ auto: 'Как в системе', light: 'Светлая', dark: 'Тёмная' })[t] + '</button>').join('') +
-      '</div></section>';
+      '</div><p class="settings-appearance-link"><a href="#/rewards">Цветовые оформления в магазине →</a></p></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Проверка</h2>' +
       switchRow('strict', 'Строгая проверка',
@@ -539,7 +539,7 @@
       '</section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
-      '<p class="muted small">Прогресс, история и ключ хранятся локально в этом браузере.</p>' +
+      '<p class="muted small">Прогресс, история и ключ хранятся локально в этом браузере. Сброс относится к текущей базе; общие достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
       '<button class="btn btn--ghost" data-action="export-progress">' + icon('download') + 'Скачать прогресс</button>' +
       '<button class="btn btn--ghost btn--danger" data-action="reset-all">' + icon('trash') + 'Сбросить прогресс</button>' +
@@ -563,7 +563,7 @@
         } else if (action === 'reset-all') {
           confirmDialog({
             title: 'Сбросить прогресс?',
-            text: 'История, статистика, валюта, рейтинг и усиления этой базы будут удалены. Достижения этой базы сбросятся; ключ ответов останется.',
+            text: 'История, статистика, валюта, рейтинг и усиления этой базы будут удалены. Общие достижения, оформления и ключ ответов останутся.',
             confirm: 'Сбросить',
             danger: true,
           }).then((ok) => {
@@ -581,6 +581,7 @@
             sessions: state.sessions,
             key: state.key,
             game: state.game,
+            sharedRewards: AT.game.profile(),
           }, null, 2), 'application/json;charset=utf-8');
         }
       });

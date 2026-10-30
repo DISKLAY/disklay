@@ -1,4 +1,4 @@
-/* Локальная игровая система: кошелёк и достижения в состоянии текущей базы. */
+/* Кошелёк хранится отдельно по базам; достижения и оформления общие на устройстве. */
 (function () {
   'use strict';
   const AT = window.AT;
@@ -20,15 +20,20 @@
     { id: 'sessions-10', title: 'Постоянство', description: 'Завершить 10 прохождений', metric: 'sessions', goal: 10 },
     { id: 'verified-25', title: 'Проверено ключом', description: 'Дать 25 верных ответов по ключу после обновления', metric: 'verified', goal: 25 },
     { id: 'verified-100', title: 'Знаток', description: 'Дать 100 верных ответов по ключу после обновления', metric: 'verified', goal: 100 },
-    { id: 'master-100', title: 'Железная память', description: 'Освоить 100 вопросов этой базы', metric: 'mastered', goal: 100 },
+    { id: 'master-100', title: 'Железная память', description: 'Освоить 100 вопросов в любых базах', metric: 'mastered', goal: 100 },
     { id: 'verified-500', title: 'Настойчивость', description: 'Дать 500 верных ответов по ключу', metric: 'verified', goal: 500 },
     { id: 'verified-2000', title: 'Выдающаяся подготовка', description: 'Дать 2 000 верных ответов по ключу', metric: 'verified', goal: 2000 },
     { id: 'rating-500', title: 'Первые вершины', description: 'Набрать 500 общего рейтинга', metric: 'rating', goal: 500 },
     { id: 'rating-2000', title: 'Высокий результат', description: 'Набрать 2 000 общего рейтинга', metric: 'rating', goal: 2000 },
     { id: 'rating-10000', title: 'Эксперт курса', description: 'Набрать 10 000 общего рейтинга', metric: 'rating', goal: 10000 },
+    { id: 'muscles-200', title: 'Качок', description: 'Освоить 200 вопросов по мышцам', metric: 'muscles', goal: 200, discipline: true },
+    { id: 'bones-150', title: 'Знаток скелета', description: 'Освоить 150 вопросов по костям', metric: 'bones', goal: 150, discipline: true },
+    { id: 'joints-100', title: 'Мастер соединений', description: 'Освоить 100 вопросов по соединениям костей', metric: 'joints', goal: 100, discipline: true },
+    { id: 'organs-200', title: 'Знаток внутренних органов', description: 'Освоить 200 вопросов по спланхнологии', metric: 'organs', goal: 200, discipline: true },
+    { id: 'nervous-200', title: 'Нейроанатом', description: 'Освоить 200 вопросов по нервной системе', metric: 'nervous', goal: 200, discipline: true },
     { id: 'absolute-rating', title: 'Легенда курса', description: 'Набрать 50 000 общего рейтинга', metric: 'rating', goal: 50000, absolute: true },
-    { id: 'absolute-mastery', title: 'Вся база покорена', description: 'Освоить каждый вопрос выбранной базы (включая самооценку)', metric: 'mastered', goal: 'all', absolute: true },
-    { id: 'absolute-exam', title: 'Идеальный экзамен', description: 'Ответить верно на все 20 вопросов пробного экзамена без усилений', metric: 'perfectExam', goal: 1, absolute: true, examOnly: true },
+    { id: 'absolute-mastery', title: 'Вся база покорена', description: 'Освоить каждый вопрос любой одной базы (включая самооценку)', metric: 'completeBank', goal: 1, absolute: true },
+    { id: 'absolute-exam', title: 'Идеальный экзамен', description: 'Ответить верно на все 20 вопросов пробного экзамена без усилений', metric: 'perfectExam', goal: 1, absolute: true },
   ];
 
   function number(value) { return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0; }
@@ -53,42 +58,140 @@
     if (!Array.isArray(g.bonusEffects)) g.bonusEffects = g.bonusUsed ? [g.bonusEffect] : [];
     return g;
   }
-  function metrics() {
-    const state = AT.getState();
-    const progress = Object.values(state.progress || {});
-    return {
-      explored: progress.filter(p => p && p.attempts > 0).length,
-      mastered: progress.filter(p => p && p.streak >= 2).length,
-      sessions: (state.sessions || []).length,
-      verified: ensure().verified,
-      rating: totalRating(),
-      perfectExam: (state.sessions || []).some(s => s.mode === 'exam' && s.total === 20 && s.correct === 20 && s.assisted === false) ? 1 : 0,
-    };
+  // Вопросы из разных банков учитываются раздельно, даже если формулировки совпадают.
+  const DISCIPLINES = {
+    '1': { bones: ['osteology', 'trunk-bones', 'upper-bones', 'lower-bones', 'skull-brain', 'skull-face', 'skull-topo'], joints: ['arthro-basic', 'arthro-trunk', 'arthro-upper', 'pelvis', 'arthro-lower'] },
+    '2': { muscles: 'all' },
+    '3': { organs: 'all' },
+    '4': { nervous: 'all' },
+    'credit-1': { bones: ['general', 'axial', 'limb-bones', 'skull-bones', 'skull'], joints: ['joints-trunk', 'joints-limbs'], muscles: ['trunk-muscles', 'head-neck', 'upper-muscles', 'lower-muscles'] },
+    'credit-2': { organs: ['upper-digestive', 'digestive', 'peritoneum', 'airways', 'lungs', 'urinary', 'male', 'female'], nervous: ['spinal-cord', 'brainstem', 'cerebellum', 'diencephalon', 'cerebrum', 'pathways'] },
+    'stom-2': { organs: 'all' },
+    'stom-3': { nervous: ['spinal-cord', 'spinal-nerves', 'brain', 'cerebrum', 'pathways', 'autonomic'] },
+  };
+  const APPEARANCES = {
+    default: { title: 'Классика', description: 'Стандартный цвет приложения.', price: 0, color: '#4f46e5' },
+    ocean: { title: 'Океан', description: 'Прохладные сине-бирюзовые акценты.', price: 500, color: '#087d8c' },
+    ruby: { title: 'Гранат', description: 'Тёплые рубиновые акценты.', price: 800, color: '#bc3658' },
+    amber: { title: 'Янтарь', description: 'Золотистые акценты.', price: 1200, color: '#9a5a06' },
+  };
+  const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
+  let shared = { achievements: {}, appearances: {}, appearance: 'default' };
+  function readShared() {
+    try {
+      const value = JSON.parse(localStorage.getItem(SHARED_KEY) || '{}');
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        if (value.achievements && typeof value.achievements === 'object') Object.assign(shared.achievements, value.achievements);
+        if (value.appearances && typeof value.appearances === 'object') Object.assign(shared.appearances, value.appearances);
+        if (typeof value.appearance === 'string') shared.appearance = value.appearance;
+      }
+    } catch (e) { /* При недоступном хранилище работаем с данными в памяти. */ }
+    if (!Object.prototype.hasOwnProperty.call(APPEARANCES, shared.appearance) || (shared.appearance !== 'default' && !shared.appearances[shared.appearance])) shared.appearance = 'default';
+    return shared;
   }
-  function definitions() {
-    return ACHIEVEMENTS.filter(a => !a.examOnly || AT.colloquium.examAvailable).map(a => ({ ...a, goal: a.goal === 'all' ? AT.dataset.total : a.goal }));
+  function saveShared() {
+    try { localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); return true; }
+    catch (e) { return false; }
+  }
+  function bankState(id) {
+    if (id === AT.colloquium.id) return AT.getState();
+    try {
+      const key = id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id;
+      return JSON.parse(localStorage.getItem(key) || '{}') || {};
+    } catch (e) { return {}; }
+  }
+  function snapshots() { return BANKS.map(id => ({ id, state: bankState(id) })); }
+  function metrics(states) {
+    const counts = { explored: 0, mastered: 0, sessions: 0, verified: 0, rating: 0, perfectExam: 0, completeBank: 0, muscles: 0, bones: 0, joints: 0, organs: 0, nervous: 0 };
+    const modules = window.COLLOQUIUM_MODULES || { [AT.colloquium.id]: { questions: AT.dataset.questions } };
+    states.forEach(({ id, state }) => {
+      const game = state.game || {}, questions = modules[id] && modules[id].questions || [];
+      const progress = state.progress || {};
+      const categories = DISCIPLINES[id] || {};
+      let bankMastered = 0;
+      questions.forEach(q => {
+        const p = progress[q.id];
+        if (!p) return;
+        if (p.attempts > 0) counts.explored++;
+        if (!(p.streak >= 2)) return;
+        counts.mastered++; bankMastered++;
+        Object.entries(categories).forEach(([metric, topics]) => {
+          if (topics === 'all' || topics.includes(q.topic)) counts[metric]++;
+        });
+      });
+      if (questions.length && bankMastered === questions.length) counts.completeBank = 1;
+      const sessions = Array.isArray(state.sessions) ? state.sessions : [];
+      counts.sessions += sessions.length;
+      if (sessions.some(s => s && s.mode === 'exam' && s.total === 20 && s.correct === 20 && s.assisted === false)) counts.perfectExam = 1;
+      counts.verified += number(game.verified);
+      counts.rating += number(game.rating);
+    });
+    return counts;
   }
   function syncAchievements() {
-    const game = ensure();
-    const counts = metrics();
-    definitions().forEach(a => {
-      if (!game.achievements[a.id] && counts[a.metric] >= a.goal) game.achievements[a.id] = Date.now();
+    readShared();
+    let changed = false;
+    const states = snapshots();
+    // Переносим ранее открытые достижения из всех сохранений без повторной выдачи.
+    states.forEach(({ state }) => {
+      const old = (state.game || {}).achievements || {};
+      Object.keys(old).forEach(key => {
+        if (old[key] && !shared.achievements[key]) { shared.achievements[key] = old[key]; changed = true; }
+      });
+      // Квитанция вместе со списанием позволяет восстановить покупку после прерывания.
+      const receipts = (state.game || {}).appearanceReceipts || {};
+      Object.keys(APPEARANCES).forEach(key => {
+        if (key !== 'default' && receipts[key] === true && !shared.appearances[key]) {
+          shared.appearances[key] = true; changed = true;
+        }
+      });
     });
+    const counts = metrics(states);
+    ACHIEVEMENTS.forEach(a => {
+      if (!shared.achievements[a.id] && counts[a.metric] >= a.goal) {
+        shared.achievements[a.id] = Date.now(); changed = true;
+      }
+    });
+    if (changed) saveShared();
+    return counts;
   }
   function achievements() {
-    syncAchievements();
-    const counts = metrics();
-    return definitions().map(a => ({ ...a, current: ensure().achievements[a.id] ? a.goal : Math.min(counts[a.metric], a.goal), unlocked: !!ensure().achievements[a.id] }));
+    const counts = syncAchievements();
+    return ACHIEVEMENTS.map(a => ({ ...a, current: shared.achievements[a.id] ? a.goal : Math.min(counts[a.metric], a.goal), unlocked: !!shared.achievements[a.id] }));
   }
-  function totalRating() {
-    return BANKS.reduce((total, id) => {
-      if (id === AT.colloquium.id) return total + ensure().rating;
-      try {
-        const key = id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id;
-        const data = JSON.parse(localStorage.getItem(key) || '{}');
-        return total + number(data.game && data.game.rating);
-      } catch (e) { return total; }
-    }, 0);
+  function totalRating() { return BANKS.reduce((total, id) => total + number((bankState(id).game || {}).rating), 0); }
+  function profile() { readShared(); return JSON.parse(JSON.stringify(shared)); }
+  function applyAppearance() {
+    readShared();
+    if (typeof document !== 'undefined') document.documentElement.setAttribute('data-accent', shared.appearance);
+  }
+  function selectAppearance(id) {
+    readShared();
+    if (!Object.prototype.hasOwnProperty.call(APPEARANCES, id) || (id !== 'default' && !shared.appearances[id])) return { ok: false, message: 'Сначала купите оформление' };
+    const previous = shared.appearance;
+    shared.appearance = id;
+    if (!saveShared()) { shared.appearance = previous; return { ok: false, message: 'Не удалось сохранить оформление' }; }
+    applyAppearance();
+    return { ok: true, message: 'Оформление изменено' };
+  }
+  function buyAppearance(id) {
+    readShared();
+    if (!Object.prototype.hasOwnProperty.call(APPEARANCES, id) || id === 'default') return { ok: false, message: 'Неизвестное оформление' };
+    if (shared.appearances[id]) return { ok: false, message: 'Оформление уже куплено' };
+    const game = ensure(), price = APPEARANCES[id].price;
+    if (game.coins < price) return { ok: false, message: 'Недостаточно валюты в этой базе' };
+    const previous = shared.appearance;
+    if (!game.appearanceReceipts || typeof game.appearanceReceipts !== 'object') game.appearanceReceipts = {};
+    game.coins -= price;
+    game.appearanceReceipts[id] = true;
+    if (!AT.save(true)) { game.coins += price; delete game.appearanceReceipts[id]; return { ok: false, message: 'Не удалось сохранить покупку' }; }
+    shared.appearances[id] = true; shared.appearance = id;
+    if (!saveShared()) {
+      delete shared.appearances[id]; delete game.appearanceReceipts[id]; shared.appearance = previous; game.coins += price; AT.save(true);
+      return { ok: false, message: 'Не удалось сохранить покупку' };
+    }
+    applyAppearance();
+    return { ok: true, message: 'Оформление куплено и применено во всех базах' };
   }
   function count(id) { return number(ensure().inventory[id]); }
   function buy(id) {
@@ -178,7 +281,7 @@
     g.examScored = true;
     syncAchievements();
   }
-  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, count, buy, useHint, activateDouble, awardTraining, awardExam };
+  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, buyAppearance, count, buy, useHint, activateDouble, awardTraining, awardExam };
   // Старый прогресс признаём только достижениями. Очки задним числом не начисляем.
   syncAchievements();
   AT.save(true);
