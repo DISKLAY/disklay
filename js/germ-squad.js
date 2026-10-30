@@ -16,8 +16,16 @@
     let encounter = null;
     let timer = null;
     let disposed = false;
+    let overlay = null;
+    let frame = null;
     function clearTimer() { if (timer) clearTimeout(timer); timer = null; }
-    function leave() { clearTimer(); encounter = null; }
+    function removeOverlay() {
+      if (frame !== null && window.cancelAnimationFrame) window.cancelAnimationFrame(frame);
+      frame = null;
+      if (overlay) overlay.remove();
+      overlay = null;
+    }
+    function leave() { clearTimer(); removeOverlay(); encounter = null; }
     function valid() {
       return !disposed && host.isConnected && AT.currentSession() === session && encounter &&
         questions[session.index] && questions[session.index].id === encounter.qid &&
@@ -29,25 +37,78 @@
       if (!card) return;
       const panel = document.createElement('div');
       panel.className = 'germ-squad';
-      panel.innerHTML = '<div class="germ-squad__head"><strong>Бригада микробов!</strong><span>Лопните каждого, пока они не нашалили</span></div>' +
-        '<div class="germ-squad__crew">' + germImages.map((image, i) => encounter.alive[i]
-          ? '<button type="button" class="germ-squad__germ germ-squad__germ--' + i + '" data-action="pop-germ" data-germ="' + i + '" aria-label="Лопнуть ' + (i === 1 ? 'бактерию' : 'вирус') + '">' + image + '</button>'
-          : '<span class="germ-squad__popped" aria-hidden="true">✦</span>').join('') + '</div>' +
+      panel.innerHTML = '<div class="germ-squad__head"><strong>Бригада микробов!</strong><span>Они выползают с краёв экрана. Лопните каждого!</span></div>' +
         '<p class="germ-squad__status" role="status">' + (encounter.phase === 'mischief' ? 'Микробы выбирают неверный вариант…' : encounter.phase === 'saved' ? 'Все микробы лопнули! Вопрос спасён.' : 'В живых: ' + encounter.alive.filter(Boolean).length + ' из 3') + '</p>';
       const hint = card.querySelector('.question__hint');
       if (hint) hint.insertAdjacentElement('afterend', panel);
       if (encounter.phase === 'mischief') {
         const target = host.querySelector('[data-action="toggle-option"][data-index="' + encounter.wrong + '"]');
-        if (target) {
-          target.classList.add('option--germ-target');
-          const attacker = panel.querySelector('.germ-squad__germ:not([disabled])');
-          if (attacker && attacker.animate && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
-            const from = attacker.getBoundingClientRect(), to = target.getBoundingClientRect();
-            attacker.classList.add('is-attacking');
-            attacker.animate([{transform: 'translate(0, 0)'}, {transform: 'translate(' + (to.left + 20 - from.left) + 'px, ' + (to.top + 5 - from.top) + 'px)'}], {duration: MOVE_TIME - 200, easing: 'ease-in-out', fill: 'forwards'});
-          }
-        }
+        if (target) target.classList.add('option--germ-target');
       }
+    }
+
+    // Отдельный слой не пересоздаётся при выборе ответа: полёт и клики не сбрасываются.
+    function createOverlay() {
+      overlay = document.createElement('div');
+      overlay.className = 'germ-squad-flight';
+      overlay.setAttribute('aria-label', 'Микробы, которых можно лопнуть');
+      overlay.innerHTML = germImages.map((image, i) =>
+        '<button type="button" class="germ-squad__germ germ-squad__germ--' + i + '" data-action="pop-germ" data-germ="' + i + '" aria-label="Лопнуть ' + (i === 1 ? 'бактерию' : 'вирус') + '">' + image + '</button>'
+      ).join('');
+      overlay.addEventListener('click', pop);
+      document.body.appendChild(overlay);
+      if (window.requestAnimationFrame) frame = window.requestAnimationFrame(moveGerms);
+    }
+    function clamp(value, low, high) { return Math.max(low, Math.min(high, value)); }
+    function moveGerms(time) {
+      frame = null;
+      if (!valid() || !overlay) return;
+      const card = host.querySelector('.question');
+      if (!card) return;
+      const bounds = card.getBoundingClientRect();
+      const width = window.innerWidth, height = window.innerHeight;
+      // Цель остаётся на экране при прокрутке и на узких телефонах.
+      const centerX = clamp(bounds.left + bounds.width / 2, 60, width - 60);
+      const centerY = clamp(bounds.top + Math.min(bounds.height * .38, 360), 100, height - 95);
+      const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (encounter.startedAt === null) encounter.startedAt = time;
+      const elapsed = Math.max(0, time - encounter.startedAt);
+      const progress = reduced ? 1 : Math.min(1, elapsed / 8500);
+      const delta = encounter.lastFrameAt === null ? 16 : clamp(time - encounter.lastFrameAt, 0, 100);
+      encounter.lastFrameAt = time;
+      const eased = 1 - Math.pow(1 - progress, 1.4);
+      const attackTarget = encounter.phase === 'mischief' && host.querySelector('[data-action="toggle-option"][data-index="' + encounter.wrong + '"]');
+      const attackBounds = attackTarget && attackTarget.getBoundingClientRect();
+      const destinations = [
+        [clamp(centerX - Math.min(110, width * .25), 28, width - 28), clamp(centerY - 45, 78, height - 65)],
+        [clamp(centerX + Math.min(110, width * .25), 28, width - 28), clamp(centerY + 30, 78, height - 65)],
+        [centerX, clamp(centerY + 95, 78, height - 65)],
+      ];
+      const origins = [[-40, height * .36], [width + 40, height * .66], [width * .55, -40]];
+      overlay.querySelectorAll('.germ-squad__germ').forEach((button) => {
+        const index = Number(button.getAttribute('data-germ'));
+        if (!encounter.alive[index]) return;
+        let [destX, destY] = destinations[index];
+        if (attackBounds && index === encounter.alive.findIndex(Boolean)) {
+          destX = clamp(attackBounds.left + attackBounds.width * .5, 28, width - 28);
+          destY = clamp(attackBounds.top + attackBounds.height * .5, 78, height - 65);
+        }
+        const origin = origins[index], motion = encounter.motion[index];
+        const sway = reduced ? 0 : Math.min(1, elapsed / 1800) * (1 - progress * .6);
+        let x = origin[0] + (destX - origin[0]) * eased + Math.sin(elapsed / motion.xPeriod + motion.phase) * 26 * sway;
+        let y = origin[1] + (destY - origin[1]) * eased + Math.cos(elapsed / motion.yPeriod + motion.phase * 1.3) * 22 * sway;
+        // В финале один из оставшихся микробов плавно подползает к неверному ответу.
+        const previous = encounter.positions[index];
+        if (previous && attackBounds && index === encounter.alive.findIndex(Boolean) && !reduced) {
+          const alpha = 1 - Math.exp(-delta / 480);
+          x = previous[0] + (x - previous[0]) * alpha;
+          y = previous[1] + (y - previous[1]) * alpha;
+        }
+        encounter.positions[index] = [x, y];
+        const rotation = reduced ? 0 : Math.sin(elapsed / 240 + motion.phase) * 22;
+        button.style.transform = 'translate3d(' + (x - 26) + 'px,' + (y - 26) + 'px,0) rotate(' + rotation + 'deg)';
+      });
+      frame = window.requestAnimationFrame(moveGerms);
     }
     function blocked() {
       return document.hidden || !!document.querySelector('.modal, #courseSidebar:not([hidden])') ||
@@ -106,17 +167,21 @@
       session.germSeen[q.id] = true;
       AT.save(true);
       if (Math.random() >= APPEARANCE_CHANCE) return;
-      encounter = { qid: q.id, alive: [true, true, true], phase: 'approach', wrong: null };
+      encounter = {
+        qid: q.id, alive: [true, true, true], phase: 'approach', wrong: null,
+        startedAt: null, lastFrameAt: null, positions: [],
+        motion: germImages.map(() => ({phase: Math.random() * Math.PI * 2, xPeriod: 340 + Math.random() * 160, yPeriod: 260 + Math.random() * 180})),
+      };
       refresh();
+      createOverlay();
       timer = setTimeout(beginMischief, REACTION_TIME);
     }
     function pop(event) {
       const button = event.target.closest('[data-action="pop-germ"]');
-      if (!button || !host.contains(button) || !valid()) return;
+      if (!button || !overlay || !overlay.contains(button) || !valid()) return;
       const index = Number(button.getAttribute('data-germ'));
       if (!Number.isInteger(index) || !encounter.alive[index]) return;
       encounter.alive[index] = false;
-      if (button.getAnimations) button.getAnimations().forEach(animation => animation.cancel());
       button.classList.add('is-popping');
       button.disabled = true;
       button.setAttribute('aria-label', 'Микроб лопнул');
@@ -125,12 +190,15 @@
       if (status) status.textContent = remaining ? 'В живых: ' + remaining + ' из 3' : 'Все микробы лопнули! Вопрос спасён.';
       if (!remaining) {
         clearTimer(); encounter.phase = 'saved';
+        if (frame !== null && window.cancelAnimationFrame) window.cancelAnimationFrame(frame);
+        frame = null;
+        // Даём анимации лопания закончиться, после чего убираем слой.
+        timer = setTimeout(removeOverlay, 400);
         const target = host.querySelector('.option--germ-target');
         if (target) target.classList.remove('option--germ-target');
       }
     }
-    host.addEventListener('click', pop);
-    function dispose() { disposed = true; leave(); host.removeEventListener('click', pop); }
+    function dispose() { disposed = true; leave(); }
     return { enter, leave, refresh, dispose };
   }
   AT.germSquad = { mount, APPEARANCE_CHANCE };

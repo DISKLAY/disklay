@@ -5,7 +5,9 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
-  let now = 0, nextId = 1, advances = 0;
+  let now = 0, nextId = 1, advances = 0, nextFrameId = 1;
+  const frames = new Map();
+  const sprites = Array.from({length:3}, (_, i) => ({style:{}, getAttribute:()=>String(i)}));
   const timers = new Map();
   const setTimeoutFake = (fn, delay) => { const id = nextId++; timers.set(id, {fn, at: now + delay}); return id; };
   const tick = ms => {
@@ -19,23 +21,29 @@ function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
   };
   const qs = Array.from({length:total}, (_, i) => ({id:'q' + (i+1), options:['A','B','C']}));
   const session = {mode, index:0, results:{q1:{selected:[1], revealed:false}}};
-  let panel = null;
+  let panel = null, overlay = null;
   const target = { classes: new Set(), classList:{add(v){target.classes.add(v)}, remove(v){target.classes.delete(v)}} };
-  const card = { querySelector: () => ({ insertAdjacentElement(_, el) { panel = el; } }) };
+  const card = { getBoundingClientRect:()=>({left:40, top:130, width:300, height:600}), querySelector: () => ({ insertAdjacentElement(_, el) { panel = el; } }) };
   const host = {isConnected:true, listeners:{}, addEventListener(k, fn){this.listeners[k]=fn}, removeEventListener(k){delete this.listeners[k]}, contains:()=>true,
     querySelector(s){if (s === '.question') return card; if (s === '.germ-squad') return panel; if (s === '.option--germ-target') return target; if (s.startsWith('[data-action="toggle-option"]')) return target; if (s === '.germ-squad__status') return {textContent:''}; return null;}};
-  const doc = {hidden:false, activeElement:null, blocked:false, querySelector(){return this.blocked ? {} : null}, createElement(){return {innerHTML:'', querySelector:()=>null, remove(){panel=null}}}};
+  const doc = {hidden:false, activeElement:null, blocked:false, querySelector(){return this.blocked ? {} : null},
+    body:{appendChild(el){overlay = el}},
+    createElement(){return {innerHTML:'', listeners:{}, setAttribute(){}, addEventListener(k, fn){this.listeners[k]=fn}, contains:()=>true,
+      querySelector:()=>null, querySelectorAll:()=>sprites, remove(){if (overlay === this) overlay=null; else panel=null}}}};
   let saves = 0;
   const AT = {getState:()=>({settings:{germSquad:enabled}}), currentSession:()=>session, save:()=>{saves++}, keyApi:{forQuestion:()=>key ? {answers:key} : null}, ui:{toast:()=>{}}};
-  const ctx = vm.createContext({window:{AT}, document:doc, setTimeout:setTimeoutFake, clearTimeout:id=>timers.delete(id), Math});
+  const win = {AT, innerWidth:390, innerHeight:844, matchMedia:()=>({matches:false}),
+    requestAnimationFrame(fn){const id = nextFrameId++; frames.set(id, fn); return id}, cancelAnimationFrame(id){frames.delete(id)}};
+  const ctx = vm.createContext({window:win, document:doc, setTimeout:setTimeoutFake, clearTimeout:id=>timers.delete(id), Math});
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/germ-squad.js'), 'utf8'), ctx);
   const squad = AT.germSquad.mount({host, session, questions:qs, onAdvance:()=>{advances++;session.index++}});
   function pop(i) {
     const button = {disabled:false, classList:{add(){}}, getAttribute:()=>String(i), setAttribute(){}, closest(){return this}};
-    host.listeners.click({target:button});
+    overlay.listeners.click({target:button});
     return button;
   }
-  return {AT, squad, session, qs, tick, pop, doc, target, timers, getPanel:()=>panel, getAdvances:()=>advances, getSaves:()=>saves};
+  function frame(time) { const [id, callback] = frames.entries().next().value; frames.delete(id); callback(time); }
+  return {AT, squad, session, qs, tick, pop, doc, target, timers, frames, sprites, frame, getOverlay:()=>overlay, getPanel:()=>panel, getAdvances:()=>advances, getSaves:()=>saves};
 }
 
 test('тестовая вероятность 100%, три клика останавливают проделку и повторно не запускают её на вопросе', () => {
@@ -69,4 +77,16 @@ test('закрытие диалога или возвращение на вкл�
   h.doc.blocked = false; h.tick(1500); assert.equal(h.target.classes.has('option--germ-target'), true);
   h.doc.blocked = true; h.tick(3000); assert.equal(h.getAdvances(), 0);
   h.doc.blocked = false; h.tick(1500); assert.equal(h.getAdvances(), 1);
+});
+
+
+test('микробы появляются за тремя краями экрана и движутся к вопросу, не теряясь при перерисовке', () => {
+  const h = harness(); h.squad.enter(); const layer = h.getOverlay();
+  const coords = sprite => sprite.style.transform.match(/translate3d\(([-.\d]+)px,([-.\d]+)px/).slice(1).map(Number);
+  h.frame(0); const start = h.sprites.map(coords);
+  assert.ok(start[0][0] < -26); assert.ok(start[1][0] > 390); assert.ok(start[2][1] < -26);
+  h.frame(4000); const middle = h.sprites.map(coords);
+  assert.ok(middle[0][0] > start[0][0]); assert.ok(middle[1][0] < start[1][0]); assert.ok(middle[2][1] > start[2][1]);
+  h.squad.refresh(); assert.equal(h.getOverlay(), layer);
+  h.squad.leave(); assert.equal(h.getOverlay(), null); assert.equal(h.frames.size, 0);
 });
