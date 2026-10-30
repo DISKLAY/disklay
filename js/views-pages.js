@@ -542,6 +542,8 @@
       '<p class="muted small">Прогресс, история и ключ хранятся локально в этом браузере. Сброс относится к текущей базе; общие достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
       '<button class="btn btn--ghost" data-action="export-progress">' + icon('download') + 'Скачать прогресс</button>' +
+      '<label class="btn btn--ghost btn--file">' + icon('upload') + 'Импортировать оформления<input type="file" accept=".json,application/json" data-action="appearance-file"></label>' +
+      '<p class="muted small">Из файла добавляются только оформления, без изменения прогресса и валюты. Полное восстановление прогресса пока недоступно.</p>' +
       '<button class="btn btn--ghost btn--danger" data-action="reset-all">' + icon('trash') + 'Сбросить прогресс</button>' +
       '</div></section>';
 
@@ -553,7 +555,8 @@
       '</section></div>';
 
     const mount = (root) => {
-      root.addEventListener('click', (e) => {
+      const view = root.querySelector('.view--narrow') || root;
+      view.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
         const action = btn.getAttribute('data-action');
@@ -586,7 +589,33 @@
         }
       });
 
-      root.addEventListener('change', (e) => {
+      view.addEventListener('change', async (e) => {
+        const fileInput = e.target.closest('[data-action="appearance-file"]');
+        if (fileInput) {
+          const file = fileInput.files && fileInput.files[0];
+          fileInput.value = '';
+          if (!file) return;
+          if (file.size > 1024 * 1024) { toast('Файл слишком большой'); return; }
+          let data;
+          try { data = JSON.parse(await file.text()); }
+          catch (err) { toast('Не удалось прочитать JSON-файл'); return; }
+          const check = AT.game.inspectAppearanceImport(data);
+          if (!check.ok) { toast(check.message); return; }
+          const ok = await confirmDialog({
+            title: 'Добавить оформления?',
+            text: 'Из файла будут добавлены: ' + check.titles.join(', ') + '. Валюта, прогресс и текущая тема не изменятся. Полная коллекция откроет достижение.',
+            confirm: 'Добавить',
+          });
+          if (!ok) return;
+          let result;
+          try {
+            result = navigator.locks && navigator.locks.request
+              ? await navigator.locks.request('anatomy-cosmetic-purchase', () => AT.game.importAppearances(data))
+              : AT.game.importAppearances(data);
+          } catch (err) { result = { ok: false, message: 'Не удалось импортировать оформления' }; }
+          toast(result.message);
+          return;
+        }
         const input = e.target.closest('[data-setting]');
         if (!input) return;
         const key = input.getAttribute('data-setting');

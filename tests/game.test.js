@@ -684,3 +684,29 @@ test('особые оформления используют локальные 
   }
   assert.match(app().views.rewards().html, /Полная коллекция/);
 });
+
+test('импорт оформлений добавляет коллекцию, сохраняя прогресс, валюту и выбранную тему', () => {
+  const storage = {};
+  let AT = app(storage, '1');
+  AT.getState().progress.q1 = { attempts: 2, correct: 2, streak: 2 };
+  AT.getState().key['1'] = [2];
+  AT.game.ensure().coins = 321; AT.game.ensure().rating = 45; AT.save(true);
+  const file = { sharedRewards: { appearances: Object.fromEntries(Object.keys(AT.game.appearances).filter(id => id !== 'default').map(id => [id, true])) }, game: { coins: 1000000 }, progress: {} };
+  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 8);
+  assert.equal(AT.game.importAppearances(file).ok, true);
+  assert.equal(AT.game.ensure().coins, 321); assert.equal(AT.game.ensure().rating, 45);
+  assert.equal(AT.getState().progress.q1.streak, 2); assert.deepEqual([...AT.getState().key['1']], [2]);
+  assert.equal(AT.game.profile().appearance, 'default');
+  assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
+  AT = app(storage, '2'); assert.equal(AT.game.profile().appearances.anime, true); assert.equal(AT.game.profile().appearances.meme, true);
+  assert.equal(AT.game.selectAppearance('anime').ok, true);
+});
+
+test('неверный или несовместимый файл оформления не меняет коллекцию', () => {
+  const AT = app();
+  for (const file of [null, {}, { sharedRewards: { appearances: [] } }, { sharedRewards: { appearances: { anime: true, future: true } } }, { sharedRewards: { appearances: { anime: 'true' } } }]) {
+    assert.equal(AT.game.importAppearances(file).ok, false);
+    assert.equal(!!AT.game.profile().appearances.anime, false);
+  }
+  assert.match(AT.views.settings().html, /Импортировать оформления/);
+});

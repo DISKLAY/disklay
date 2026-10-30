@@ -203,6 +203,25 @@
     applyAppearance();
     return { ok: true, message: 'Оформление изменено' };
   }
+  // Из файла экспорта переносим только известные оформления, не затрагивая кошельки.
+  function inspectAppearanceImport(file) {
+    const owned = file && typeof file === 'object' && !Array.isArray(file) && file.sharedRewards && file.sharedRewards.appearances;
+    if (!owned || typeof owned !== 'object' || Array.isArray(owned)) return { ok: false, message: 'В файле нет списка оформлений' };
+    const ids = Object.keys(owned).filter(id => owned[id] === true && id !== 'default');
+    if (!ids.length || ids.some(id => !Object.prototype.hasOwnProperty.call(APPEARANCES, id))) return { ok: false, message: 'Файл не содержит известных оформлений или создан для другой версии приложения' };
+    if (Object.keys(owned).some(id => typeof owned[id] !== 'boolean')) return { ok: false, message: 'Неверный список оформлений' };
+    return { ok: true, ids, titles: ids.map(id => APPEARANCES[id].title) };
+  }
+  function importAppearances(file) {
+    const checked = inspectAppearanceImport(file);
+    if (!checked.ok) return checked;
+    readShared();
+    const previous = JSON.parse(JSON.stringify(shared));
+    checked.ids.forEach(id => { shared.appearances[id] = true; });
+    if (!saveShared()) { shared = previous; return { ok: false, message: 'Не удалось сохранить оформления' }; }
+    syncAchievements();
+    return { ok: true, message: 'Оформления добавлены. Выберите их в разделе «Награды».' };
+  }
   function walletBalances() {
     readShared();
     const modules = window.COLLOQUIUM_MODULES || {};
@@ -339,7 +358,7 @@
     g.examScored = true;
     syncAchievements();
   }
-  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, walletBalances, buyAppearance, count, buy, useHint, activateDouble, awardTraining, awardExam };
+  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, walletBalances, buyAppearance, count, buy, useHint, activateDouble, awardTraining, awardExam };
   // Старый прогресс признаём только достижениями. Очки задним числом не начисляем.
   syncAchievements();
   AT.save(true);
