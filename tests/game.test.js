@@ -778,3 +778,53 @@ test('вопросы с обобщающими вариантами не мен�
     assert.deepEqual(Array.from(AT.optionOrder(session, q)), Array.from(q.options, (_,i)=>i+1));
   }
 });
+
+test('избранное и комментарии сохраняются отдельно по базам и не меняют прежние данные', () => {
+  const storage = {'anatomy-colloquium-v1': JSON.stringify({progress:{q1:{attempts:3,correct:2,wrong:1,streak:1}}, key:{'1':[1]}, settings:{shuffleAnswers:false},game:{coins:75}})};
+  let AT = app(storage, '1'); const q = AT.dataset.questions[0];
+  assert.equal(AT.annotations.toggleFavorite(q.id), true);
+  assert.equal(AT.annotations.setComment(q.id, 'Тест <script>\nстрока 2'), true);
+  assert.equal(AT.annotations.isFavorite(q.id), true);
+  const session = AT.startSession({mode:'train',ids:[q.id]});
+  const html = AT.views.questionCard(session, q, {selected:[],revealed:false});
+  assert.match(html, /aria-pressed="true"/);
+  assert.match(html, /Тест &lt;script&gt;\nстрока 2/);
+  assert.doesNotMatch(html, /Тест <script>/);
+  AT = app(storage, '1');
+  assert.equal(AT.annotations.comment(q.id), 'Тест <script>\nстрока 2');
+  assert.equal(AT.annotations.isFavorite(q.id), true);
+  assert.equal(AT.progressOf(q.id).attempts, 3);
+  assert.equal(AT.game.ensure().coins, 75);
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(q).answers), [1]);
+  assert.equal(AT.getState().settings.shuffleAnswers, false);
+  const other = app(storage, '2');
+  assert.equal(other.annotations.isFavorite(q.id), false);
+  assert.equal(other.annotations.comment(q.id), '');
+  AT.resetProgress();
+  assert.equal(AT.annotations.isFavorite(q.id), true);
+  assert.equal(AT.annotations.comment(q.id), 'Тест <script>\nстрока 2');
+  AT.annotations.toggleFavorite(q.id);
+  AT.annotations.setComment(q.id, '');
+  AT = app(storage, '1');
+  assert.equal(AT.annotations.isFavorite(q.id), false);
+  assert.equal(AT.annotations.comment(q.id), '');
+});
+
+test('режим избранного выбирает только отмеченные вопросы выбранных тем и учитывает лимит', () => {
+  for (const id of ['1','2','3','4','credit-1','credit-2','stom-2','stom-3']) {
+    const AT = app({}, id);
+    const first = AT.dataset.questions[0];
+    const second = AT.dataset.questions.find(q => q.topic !== first.topic);
+    assert.ok(second, id);
+    AT.annotations.toggleFavorite(first.id);
+    AT.annotations.toggleFavorite(second.id);
+    assert.deepEqual(Array.from(AT.pickQuestions({scope:'favorites', topicIds:[first.topic], limit:0})), [first.id]);
+    assert.equal(AT.pickQuestions({scope:'favorites', topicIds:['all'], limit:1}).length, 1);
+    assert.deepEqual(new Set(AT.pickQuestions({scope:'favorites', topicIds:['all']})), new Set([first.id, second.id]));
+    AT.annotations.toggleFavorite(first.id);
+    assert.equal(AT.pickQuestions({scope:'favorites', topicIds:[first.topic]}).length, 0);
+    assert.equal(AT.annotations.toggleFavorite('unknown'), false);
+    assert.equal(AT.annotations.setComment('unknown', 'no'), false);
+    assert.match(AT.views.trainSetup().html, /data-scope="favorites"/);
+  }
+});

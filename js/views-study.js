@@ -58,6 +58,7 @@
     const items = [
       { id: 'smart', title: 'Умная очередь', text: 'Сначала ошибки и новые вопросы', icon: 'sparkles' },
       { id: 'learning', title: 'Не освоено', text: 'Всё, что ещё не закреплено', icon: 'target' },
+      { id: 'favorites', title: 'Избранные', text: 'Отмеченные вопросы выбранных тем', icon: 'star' },
       { id: 'wrong', title: 'Только ошибки', text: 'Вопросы с неверными ответами', icon: 'mistakes' },
       { id: 'unseen', title: 'Новые', text: 'Те, что вы ещё не открывали', icon: 'book' },
       { id: 'all', title: 'Все подряд', text: 'Перемешать весь выбранный банк', icon: 'refresh' },
@@ -259,7 +260,7 @@
 
       '<div class="panel__block"><div class="panel__label">Сколько вопросов</div>' +
       limitPicker(s.limit, [10, 20, 30, 50, 0]) +
-      '<p class="muted small">' + (available ? 'Доступно по текущему фильтру: ' + available : 'По этому фильтру пока нет вопросов — попробуйте другой режим') + '</p></div>' +
+      '<p class="muted small">' + (available ? 'Доступно по текущему фильтру: ' + available : s.scope === 'favorites' ? 'Нет избранных вопросов в выбранных темах. Отметьте вопрос звёздочкой во время тренировки или в разборе.' : 'По этому фильтру пока нет вопросов — попробуйте другой режим') + '</p></div>' +
 
       '<div class="panel__footer">' +
       '<button class="btn btn--primary btn--lg" data-action="start-train"' + (available ? '' : ' disabled') + '>' +
@@ -358,7 +359,7 @@
       topicIds: s.topics,
       scope,
       limit: s.limit || 0,
-      shuffle: scope === 'all',
+      shuffle: scope === 'all' || scope === 'favorites',
     });
     if (!ids.length) {
       toast('По этому фильтру нет вопросов', 'warn');
@@ -369,7 +370,7 @@
       ids,
       scope,
       topicIds: s.topics,
-      label: sessionLabel(s.topics),
+      label: (scope === 'favorites' ? 'Избранное · ' : '') + sessionLabel(s.topics),
     });
     AT.go('#/run');
   }
@@ -483,6 +484,41 @@
       '</div></div>';
   }
 
+  function favoriteButton(q) {
+    const selected = AT.annotations.isFavorite(q.id);
+    return '<button type="button" class="favorite-button' + (selected ? ' is-active' : '') + '" data-action="toggle-favorite" data-qid="' + esc(q.id) + '" aria-pressed="' + selected + '">' +
+      icon('star') + '<span>' + (selected ? 'В избранном' : 'В избранное') + '</span></button>';
+  }
+
+  function commentField(q) {
+    const id = 'question-comment-' + q.id;
+    return '<div class="question-comment"><label for="' + esc(id) + '">Личный комментарий</label>' +
+      '<textarea class="textarea question-comment__input" id="' + esc(id) + '" data-comment-qid="' + esc(q.id) + '" maxlength="5000" rows="2" placeholder="Заметка к вопросу…">' + esc(AT.annotations.comment(q.id)) + '</textarea>' +
+      '<span class="question-comment__status" aria-live="polite">Сохраняется только на этом устройстве</span></div>';
+  }
+
+  // Не перерисовываем вопрос при вводе: курсор и текст остаются на месте.
+  function mountAnnotations(host) {
+    host.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action="toggle-favorite"]');
+      if (!button || !host.contains(button)) return;
+      const qid = button.getAttribute('data-qid');
+      const saved = AT.annotations.toggleFavorite(qid);
+      const selected = AT.annotations.isFavorite(qid);
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+      button.querySelector('span').textContent = selected ? 'В избранном' : 'В избранное';
+      if (!saved) toast('Не удалось сохранить избранное на устройстве', 'warn');
+    });
+    host.addEventListener('input', (e) => {
+      const field = e.target.closest('[data-comment-qid]');
+      if (!field || !host.contains(field)) return;
+      const saved = AT.annotations.setComment(field.getAttribute('data-comment-qid'), field.value);
+      field.parentElement.querySelector('.question-comment__status').textContent = saved
+        ? 'Сохраняется только на этом устройстве' : 'Не удалось сохранить комментарий на устройстве';
+    });
+  }
+
   function questionCard(session, q, entry) {
     const isExam = session.mode === 'exam';
     const answer = AT.keyApi.forQuestion(q);
@@ -497,7 +533,7 @@
       (q.sourcePage ? '<span class="badge">PDF: стр. ' + esc(q.sourcePage) + ', № ' + esc(q.sourceNumber) + '</span>' : '') +
       '<span class="badge badge--soft">' + esc(section || topic.title) + '</span>' +
       (hint ? '<span class="badge badge--accent">верных: ' + answer.answers.length + '</span>' : '') +
-      '</div>' +
+      favoriteButton(q) + '</div>' +
       '<h2 class="question__text">' + esc(q.text) + '</h2>' +
       '<p class="question__hint">' + (isExam ? 'Можно вернуться к вопросу позже' : 'Выберите все правильные варианты') + '</p>' +
       '<div class="options">';
@@ -534,7 +570,7 @@
       html += '</div>';
     }
 
-    html += '</article>';
+    html += commentField(q) + '</article>';
 
     if (!isExam && revealed) html += feedbackHtml(session, q, entry);
     return html;
@@ -621,6 +657,7 @@
       host.id = 'runnerHost';
       host.innerHTML = render();
       root.appendChild(host);
+      mountAnnotations(host);
 
       let finished = false;
 
@@ -665,6 +702,8 @@
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         const tag = (e.target.tagName || '').toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        // Enter и пробел на кнопках и ссылках должны активировать элемент, а не проверку ответа.
+        if ((tag === 'button' || tag === 'a' || tag === 'summary') && (e.key === 'Enter' || e.key === ' ')) return;
         const q = qs[session.index];
         const entry = entryOf(session, q.id);
 
@@ -915,7 +954,7 @@
         '</summary>' +
         '<div class="review__body">' +
         '<div class="review__meta"><span class="badge badge--soft">' + esc((session.sectionOf && session.sectionOf[q.id]) || topic.title) + '</span>' +
-        '<span class="badge">№ ' + esc(q.num) + '</span></div>' +
+        '<span class="badge">№ ' + esc(q.num) + '</span>' + favoriteButton(q) + '</div>' +
         '<div class="review__cols">' +
         '<div><span class="feedback__label">Правильный ответ</span>' +
         (answer
@@ -934,7 +973,7 @@
             '<button class="btn btn--sm btn--danger-ghost" data-action="mark-self" data-qid="' + q.id + '" data-value="0">' + icon('x') + 'Ошибся</button>' +
             '</div>'
           : '') +
-        '</div></details>';
+        commentField(q) + '</div></details>';
     });
 
     html += '</div></section></div>';
@@ -949,7 +988,10 @@
   }
 
   function mountSummary(root) {
-    root.addEventListener('click', (e) => {
+    const host = root.querySelector('.view--summary');
+    if (!host) return;
+    mountAnnotations(host);
+    host.addEventListener('click', (e) => {
       const el = e.target.closest('[data-action]');
       if (!el) return;
       const action = el.getAttribute('data-action');

@@ -1100,7 +1100,7 @@ kbd {
 .review--bad .review__num { background: var(--rose-soft); color: var(--rose); }
 
 .review__body { padding: 4px 16px 16px; border-top: 1px solid var(--border); }
-.review__meta { display: flex; gap: 6px; margin: 12px 0; }
+.review__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 .review__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .review__answers { list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: .86rem; }
 .review__answers li { padding: 6px 10px; border-radius: var(--r-sm); background: var(--surface-2); }
@@ -1753,7 +1753,7 @@ kbd {
 [data-accent="anime"] .hero:not(.hero--credit) { color: #fff; background: linear-gradient(125deg, #1a211e, #3d302a 58%, #684527); border-color: #8a6d4a; }
 .hero__titan-media { display: none; }
 [data-accent="anime"] .hero:not(.hero--credit)::after { display: none; }
-[data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media { display: block; position: absolute; inset: 0 140px 0 auto; width: min(57%, 610px); z-index: 0; overflow: hidden; background: linear-gradient(to right, rgba(29,32,27,.94), transparent 58%), var(--special-art); background-size: cover, cover; background-position: center, center 21%; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); }
+[data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media { display: block; position: absolute; inset: 0 140px 0 auto; width: min(57%, 610px); z-index: 0; overflow: hidden; background: linear-gradient(to right, rgba(29,32,27,.94), transparent 58%), var(--special-art); background-size: cover, cover; background-position: center, center 10%; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); }
 [data-accent="anime"] .hero:not(.hero--credit) .hero__body, [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { position: relative; z-index: 2; }
 [data-accent="anime"] .hero:not(.hero--credit) .eyebrow, [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note, [data-accent="anime"] .hero:not(.hero--credit) .ring__label span { color: #e8dbcf; }
 [data-accent="anime"] .hero:not(.hero--credit) .hero__module { color: #f8d3b4; }
@@ -1773,7 +1773,7 @@ kbd {
 @media (max-width: 760px) {
   [data-accent="anime"] .hero:not(.hero--credit) .hero__titan-media {
     position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; mask-image: none;
-    background: linear-gradient(180deg, rgba(25,26,24,.78), rgba(34,27,24,.72)), var(--special-art) center 22% / cover no-repeat;
+    background: linear-gradient(180deg, rgba(25,26,24,.78), rgba(34,27,24,.72)), var(--special-art) center 24px / cover no-repeat;
   }
   .hero__titan-intro { display: none; }
 }
@@ -1801,3 +1801,13 @@ kbd {
   --muted: color-mix(in srgb, var(--primary) 20%, #505969);
 }
 [data-theme="dark"][data-accent]:not([data-accent="default"]) { --muted: color-mix(in srgb, var(--primary) 22%, #a3aab7); }
+
+/* Личные отметки и заметки к вопросам. */
+.favorite-button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); color: var(--muted); cursor: pointer; font-size: .79rem; font-weight: 650; }
+.favorite-button:hover { border-color: var(--primary-border); color: var(--primary-strong); }
+.favorite-button.is-active { color: var(--primary-strong); border-color: var(--primary-border); background: var(--primary-soft); }
+.favorite-button.is-active .icon { fill: currentColor; }
+.question-comment { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+.question-comment label { color: var(--text); font-size: .82rem; font-weight: 650; }
+.question-comment__input { font-family: inherit; width: 100%; min-height: 70px; resize: vertical; }
+.question-comment__status { color: var(--muted); font-size: .75rem; }

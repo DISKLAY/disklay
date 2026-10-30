@@ -151,6 +151,8 @@
     key: {},          // правки/импорт: { "1": [1,2] }
     keyMeta: { updatedAt: null, source: '' },
     progress: {},     // { q1: {attempts, correct, wrong, streak, last, lastAt} }
+    favorites: {},    // личные закладки вопросов текущей базы
+    comments: {},     // личные комментарии к вопросам текущей базы
     sessions: [],     // история
     session: null,    // текущая/незавершённая сессия
     seen: {},         // служебное
@@ -616,6 +618,29 @@
     },
   };
 
+  // Закладки и заметки привязаны к ID вопроса и не влияют на ответы или прогресс.
+  const annotations = {
+    isFavorite(qid) { return !!(state.favorites && state.favorites[qid]); },
+    toggleFavorite(qid) {
+      if (!byId.has(qid)) return false;
+      if (!state.favorites || typeof state.favorites !== 'object' || Array.isArray(state.favorites)) state.favorites = {};
+      if (state.favorites[qid]) delete state.favorites[qid];
+      else state.favorites[qid] = true;
+      return save(true);
+    },
+    comment(qid) {
+      const value = state.comments && state.comments[qid];
+      return typeof value === 'string' ? value : '';
+    },
+    setComment(qid, text) {
+      if (!byId.has(qid) || typeof text !== 'string') return false;
+      if (!state.comments || typeof state.comments !== 'object' || Array.isArray(state.comments)) state.comments = {};
+      if (text) state.comments[qid] = text.slice(0, 5000);
+      else delete state.comments[qid];
+      return save(true);
+    },
+  };
+
   /* --------------------------------------------------------------- sessions */
 
   function pickQuestions(opts) {
@@ -629,7 +654,9 @@
     pool = [...uniq.values()];
 
     const scope = opts.scope || 'smart';
-    if (scope === 'wrong') {
+    if (scope === 'favorites') {
+      pool = pool.filter((q) => annotations.isFavorite(q.id));
+    } else if (scope === 'wrong') {
       pool = pool.filter((q) => {
         const p = progressOf(q.id);
         return p.wrong > 0 && p.streak < 2;
@@ -829,6 +856,7 @@
     recordAttempt,
     progressOf,
     analytics,
+    annotations,
     pickQuestions,
     optionOrder,
     examPlan,

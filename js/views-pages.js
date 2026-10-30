@@ -195,7 +195,7 @@
         if (!el) return;
         confirmDialog({
           title: 'Сбросить прогресс?',
-          text: 'Обнулятся статистика, история, ошибки, валюта, рейтинг и усиления этой базы. Общие достижения, оформления и ключ ответов останутся.',
+          text: 'Обнулятся статистика, история, ошибки, валюта, рейтинг и усиления этой базы. Избранное, комментарии, общие достижения, оформления и ключ ответов останутся.',
           confirm: 'Сбросить',
           danger: true,
         }).then((ok) => {
@@ -541,7 +541,7 @@
       '</section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
-      '<p class="muted small">Прогресс, история и ключ хранятся локально в этом браузере. Сброс относится к текущей базе; общие достижения и оформления сохраняются.</p>' +
+      '<p class="muted small">Прогресс, история, избранное, комментарии и ключ хранятся локально в этом браузере. Сброс относится к текущей базе; избранное, комментарии, общие достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
       '<button class="btn btn--ghost" data-action="export-progress">' + icon('download') + 'Скачать прогресс</button>' +
       '<label class="btn btn--ghost btn--file">' + icon('upload') + 'Импортировать оформления<input type="file" accept=".json,application/json" data-action="appearance-file"></label>' +
@@ -568,7 +568,7 @@
         } else if (action === 'reset-all') {
           confirmDialog({
             title: 'Сбросить прогресс?',
-            text: 'История, статистика, валюта, рейтинг и усиления этой базы будут удалены. Общие достижения, оформления и ключ ответов останутся.',
+            text: 'История, статистика, валюта, рейтинг и усиления этой базы будут удалены. Избранное, комментарии, общие достижения, оформления и ключ ответов останутся.',
             confirm: 'Сбросить',
             danger: true,
           }).then((ok) => {
@@ -583,6 +583,8 @@
             colloquium: AT.colloquium.id,
             exportedAt: new Date().toISOString(),
             progress: state.progress,
+            favorites: state.favorites,
+            comments: state.comments,
             sessions: state.sessions,
             key: state.key,
             game: state.game,
