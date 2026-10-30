@@ -492,7 +492,7 @@
       const hintUsed = !!(entry.hiddenOptions && entry.hiddenOptions.length);
       html += '<div class="boost-bar"><span class="boost-bar__title">Усиления</span>' +
         '<button class="btn btn--ghost btn--sm" data-action="use-hint"' + (!answer || !hints || hintUsed ? ' disabled' : '') + '>' + icon('sparkles') + (hintUsed ? 'Подсказка использована' : 'Убрать неверный · ' + hints) + '</button>' +
-        '<button class="btn btn--ghost btn--sm" data-action="use-double"' + (!doubles || g.bonusRemaining ? ' disabled' : '') + '>' + icon('target') + (g.bonusRemaining ? '×2 · осталось ' + g.bonusRemaining : '×2 валюта · ' + doubles) + '</button>' +
+        '<button class="btn btn--ghost btn--sm" data-action="use-double"' + (!doubles || g.bonusRemaining ? ' disabled' : '') + '>' + icon('target') + (g.bonusRemaining ? '×2 ' + (g.bonusEffect === 'currency' ? 'валюта' : 'рейтинг') + ' · осталось ' + g.bonusRemaining : '×2 рейтинг · ' + doubles) + '</button>' +
         '<span class="boost-bar__note">' + (!answer ? 'Для подсказки нужен ключ.' : 'Усиления покупаются заранее в разделе «Награды».') + '</span></div>';
     }
 
@@ -842,7 +842,7 @@
       const sign = n => (n > 0 ? '+' : '') + n;
       html += '<div class="game-result"><div><strong>Игровой результат</strong><span>Валюта: ' + sign(game.coinsChange) + ' · Рейтинг: ' + sign(game.ratingChange) + '</span></div>' +
         (isExam ? '<p>Начислено за ответы: ' + game.coinsEarned + ' валюты и ' + game.ratingEarned + ' рейтинга; штраф за ошибки: −' + game.coinsPenalty + ' и −' + game.ratingPenalty + '. Баланс и рейтинг не опускаются ниже нуля.</p>' : '') +
-        (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ×2 валюта' : '') + '.</p>' : '<p>Без усилений.</p>') + '</div>';
+        (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ' + game.bonusEffects.map(effect => effect === 'currency' ? '×2 валюта' : '×2 рейтинг').join(', ') : '') + '.</p>' : '<p>Без усилений.</p>') + '</div>';
     }
 
     if (ungraded.length) {

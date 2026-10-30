@@ -4,10 +4,10 @@
   const AT = window.AT;
   const BANKS = window.COLLOQUIUM_IDS || [AT.colloquium.id];
   const PRODUCTS = {
-    'hint-train': { title: 'Убрать неверный вариант', mode: 'train', kind: 'hint', price: 80, description: 'Убирает один неверный вариант в тренировке.' },
-    'hint-exam': { title: 'Подсказка на экзамене', mode: 'exam', kind: 'hint', price: 240, description: 'Убирает один неверный вариант в пробном экзамене.' },
-    'double-train': { title: 'Двойная награда', mode: 'train', kind: 'double', price: 160, description: 'Удваивает валюту за следующие 20 верных ответов в этой тренировке.' },
-    'double-exam': { title: 'Двойная награда на экзамене', mode: 'exam', kind: 'double', price: 400, description: 'Удваивает валюту за первые 20 верных ответов при проверке экзамена.' },
+    'hint-train': { title: 'Убрать неверный вариант', mode: 'train', kind: 'hint', price: 160, description: 'Убирает один неверный вариант в тренировке.' },
+    'hint-exam': { title: 'Подсказка на экзамене', mode: 'exam', kind: 'hint', price: 480, description: 'Убирает один неверный вариант в пробном экзамене.' },
+    'double-train': { title: 'Двойной рейтинг', mode: 'train', kind: 'double', price: 320, description: 'Удваивает рейтинг за следующие 20 верных ответов в этой тренировке.' },
+    'double-exam': { title: 'Двойной рейтинг на экзамене', mode: 'exam', kind: 'double', price: 800, description: 'Удваивает рейтинг за первые 20 верных ответов при проверке экзамена.' },
   };
   const ACHIEVEMENTS = [
     { id: 'explore-1', title: 'Первый шаг', description: 'Открыть и оценить 1 вопрос', metric: 'explored', goal: 1 },
@@ -48,6 +48,9 @@
     const g = session.game;
     for (const field of ['coinsEarned', 'ratingEarned', 'coinsPenalty', 'ratingPenalty', 'hintsUsed', 'bonusRemaining']) g[field] = number(g[field]);
     for (const field of ['coinsChange', 'ratingChange']) g[field] = Number.isFinite(g[field]) ? Math.trunc(g[field]) : 0;
+    // Старое уже активированное усиление остаётся валютным до конца действия.
+    if (g.bonusUsed && !g.bonusEffect) g.bonusEffect = 'currency';
+    if (!Array.isArray(g.bonusEffects)) g.bonusEffects = g.bonusUsed ? [g.bonusEffect] : [];
     return g;
   }
   function metrics() {
@@ -122,15 +125,21 @@
     ensure().inventory[product] = count(product) - 1;
     g.bonusRemaining = 20;
     g.bonusUsed = true;
+    g.bonusEffect = 'rating';
+    if (!g.bonusEffects.includes('rating')) g.bonusEffects.push('rating');
     AT.save(true);
-    return { ok: true, message: 'Двойная валюта за 20 верных ответов' };
+    return { ok: true, message: 'Двойной рейтинг за 20 верных ответов' };
   }
   function awardTraining(session, q, entry, previouslyMastered) {
     if (!session || session.mode !== 'train' || session.finished || !q || !entry || entry.gameRewarded || entry.correct !== true || entry.self || !AT.keyApi.has(q)) return;
     const game = ensure(), g = sessionGame(session);
     let coins = previouslyMastered ? 2 : 10;
-    const rating = previouslyMastered ? 1 : 5;
-    if (g.bonusRemaining) { coins *= 2; g.bonusRemaining--; }
+    let rating = previouslyMastered ? 1 : 5;
+    if (g.bonusRemaining) {
+      if (g.bonusEffect === 'currency') coins *= 2;
+      else rating *= 2;
+      g.bonusRemaining--;
+    }
     game.coins += coins; game.rating += rating; game.verified++;
     g.coinsEarned += coins; g.ratingEarned += rating;
     g.coinsChange += coins; g.ratingChange += rating;
@@ -148,8 +157,13 @@
       if (!entry || !entry.graded || entry.self) return;
       if (entry.correct === true) {
         let coins = entry.gamePreviouslyMastered ? 5 : 25;
-        rating += entry.gamePreviouslyMastered ? 3 : 15;
-        if (g.bonusRemaining) { coins *= 2; g.bonusRemaining--; }
+        let points = entry.gamePreviouslyMastered ? 3 : 15;
+        if (g.bonusRemaining) {
+          if (g.bonusEffect === 'currency') coins *= 2;
+          else points *= 2;
+          g.bonusRemaining--;
+        }
+        rating += points;
         earned += coins; game.verified++;
       } else if (entry.correct === false) wrong++;
     });

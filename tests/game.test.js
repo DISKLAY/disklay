@@ -73,9 +73,9 @@ test('кошельки изолированы, рейтинг суммирует
 test('покупка и использование подсказки атомарны и не удаляют верный вариант', () => {
   const AT = app(), q = AT.dataset.questions[0], game = AT.game;
   assert.equal(game.buy('hint-train').ok, false);
-  game.ensure().coins = 100;
+  game.ensure().coins = 200;
   assert.equal(game.buy('hint-train').ok, true);
-  assert.equal(game.ensure().coins, 20);
+  assert.equal(game.ensure().coins, 40);
   const session = AT.startSession({mode:'train', ids:[q.id]});
   const entry = session.results[q.id] = {selected:[], correct:null, revealed:false};
   assert.equal(game.useHint(session, q, entry).ok, true);
@@ -106,7 +106,7 @@ test('экзамен даёт больше очков, ошибки штрафу
 
 test('экзаменационные усиления дороже, бонус действует на двадцать верных ответов и помечается', () => {
   const AT = app(), game = AT.game;
-  game.ensure().coins = 500;
+  game.ensure().coins = 1000;
   assert.ok(game.products['hint-exam'].price > game.products['hint-train'].price);
   assert.ok(game.products['double-exam'].price > game.products['double-train'].price);
   assert.equal(game.buy('double-exam').ok, true);
@@ -116,8 +116,8 @@ test('экзаменационные усиления дороже, бонус �
   assert.equal(game.activateDouble(session).ok, false);
   qs.forEach(q => { session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers}; });
   AT.gradeSession(session);
-  assert.equal(session.game.coinsEarned, 20*50+25);
-  assert.equal(session.game.ratingEarned, 21*15);
+  assert.equal(session.game.coinsEarned, 21*25);
+  assert.equal(session.game.ratingEarned, 20*30+15);
   assert.equal(AT.finishSession().assisted, true);
   assert.match(AT.views.summary().html, /Использованы усиления/);
   assert.match(AT.views.stats().html, /с усилениями/);
@@ -161,19 +161,19 @@ test('подсказка без ключа или для уже выбранны
 
 test('покупки, активные усиления и начисления переживают перезагрузку без повторной награды', () => {
   const storage = {}; let AT = app(storage);
-  AT.game.ensure().coins = 100;
+  AT.game.ensure().coins = 200;
   assert.equal(AT.game.buy('hint-train').ok, true);
   const q = AT.dataset.questions[0];
   const {session, entry} = attempt(AT, q);
-  assert.equal(AT.game.ensure().coins, 30);
+  assert.equal(AT.game.ensure().coins, 50);
   AT = app(storage);
-  assert.equal(AT.game.ensure().coins, 30);
+  assert.equal(AT.game.ensure().coins, 50);
   assert.equal(AT.game.count('hint-train'), 1);
   assert.equal(AT.game.ensure().rating, 5);
   const loaded = AT.currentSession(), question = AT.dataset.byId.get(q.id);
   assert.equal(loaded.id, session.id);
   AT.game.awardTraining(loaded, question, loaded.results[q.id], false);
-  assert.equal(AT.game.ensure().coins, 30);
+  assert.equal(AT.game.ensure().coins, 50);
   assert.equal(loaded.results[q.id].gameRewarded, entry.gameRewarded);
 });
 
@@ -213,14 +213,14 @@ test('абсолютный экзамен требует 20 из 20 без ус�
 
 test('обновлённые цены и ассортимент доступны в правилах и магазине', () => {
   const AT = app();
-  assert.equal(AT.game.products['hint-train'].price, 80);
-  assert.equal(AT.game.products['hint-exam'].price, 240);
-  assert.equal(AT.game.products['double-train'].price, 160);
-  assert.equal(AT.game.products['double-exam'].price, 400);
+  assert.equal(AT.game.products['hint-train'].price, 160);
+  assert.equal(AT.game.products['hint-exam'].price, 480);
+  assert.equal(AT.game.products['double-train'].price, 320);
+  assert.equal(AT.game.products['double-exam'].price, 800);
   const html = AT.views.rewards().html;
   assert.match(html, /Абсолютные достижения/);
   assert.match(html, /50 000 общего рейтинга/);
-  assert.match(html, /400 валюты/);
+  assert.match(html, /800 валюты/);
 });
 
 test('подорожание не удаляет ранее купленные усиления и не списывает валюту', () => {
@@ -229,4 +229,98 @@ test('подорожание не удаляет ранее купленные �
   assert.equal(AT.game.ensure().coins, 37);
   assert.equal(AT.game.count('hint-train'), 2);
   assert.equal(AT.game.count('double-exam'), 1);
+});
+
+test('удвоение в тренировке увеличивает рейтинг, но не валюту', () => {
+  const AT = app(), game = AT.game;
+  game.ensure().coins = 320;
+  assert.equal(game.buy('double-train').ok, true);
+  const qs = AT.dataset.questions.slice(0, 21);
+  const session = AT.startSession({mode:'train', ids:qs.map(q => q.id)});
+  assert.equal(game.activateDouble(session).ok, true);
+  qs.forEach(q => {
+    const entry = session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
+    const mastered = AT.progressOf(q.id).streak >= 2;
+    AT.recordAttempt(q, true, entry.selected);
+    game.awardTraining(session, q, entry, mastered);
+  });
+  assert.equal(session.game.coinsEarned, 210);
+  assert.equal(session.game.ratingEarned, 20 * 10 + 5);
+  assert.equal(game.ensure().coins, 210);
+  assert.equal(game.ensure().rating, 205);
+  AT.finishSession();
+  assert.match(AT.views.summary().html, /×2 рейтинг/);
+});
+
+test('старое активированное удвоение валюты сохраняется после обновления и помечается', () => {
+  const storage = {}; let AT = app(storage), q = AT.dataset.questions[0];
+  const session = AT.startSession({mode:'train', ids:[q.id]});
+  session.game = {bonusUsed: true, bonusRemaining: 2};
+  AT.save(true);
+  AT = app(storage); q = AT.dataset.questions[0];
+  const loaded = AT.currentSession();
+  const entry = loaded.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
+  AT.recordAttempt(q, true, entry.selected);
+  AT.game.awardTraining(loaded, q, entry, false);
+  assert.equal(AT.game.ensure().coins, 20);
+  assert.equal(AT.game.ensure().rating, 5);
+  assert.equal(loaded.game.bonusRemaining, 1);
+  AT.finishSession();
+  assert.match(AT.views.summary().html, /×2 валюта/);
+});
+
+test('неиспользованные старые покупки превращаются в усиления рейтинга', () => {
+  const storage = { 'anatomy-colloquium-v1': JSON.stringify({game:{coins:0, rating:0, inventory:{'double-train':1}}}) };
+  const AT = app(storage), q = AT.dataset.questions[0];
+  const session = AT.startSession({mode:'train', ids:[q.id]});
+  assert.equal(AT.game.activateDouble(session).ok, true);
+  const entry = session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
+  AT.recordAttempt(q, true, entry.selected);
+  AT.game.awardTraining(session, q, entry, false);
+  assert.equal(AT.game.ensure().coins, 10);
+  assert.equal(AT.game.ensure().rating, 10);
+});
+
+test('удвоенный рейтинг на экзамене не меняет валюту и штраф за ошибку', () => {
+  const AT = app(), game = AT.game;
+  game.ensure().inventory['double-exam'] = 1;
+  const qs = AT.dataset.questions.slice(0, 20);
+  const session = AT.startSession({mode:'exam', ids:qs.map(q => q.id)});
+  assert.equal(game.activateDouble(session).ok, true);
+  qs.slice(0, 19).forEach(q => { session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers}; });
+  AT.gradeSession(session);
+  assert.equal(session.game.coinsEarned, 19 * 25);
+  assert.equal(session.game.ratingEarned, 19 * 30);
+  assert.equal(session.game.coinsPenalty, 5);
+  assert.equal(session.game.ratingPenalty, 3);
+  assert.equal(game.ensure().coins, 19 * 25 - 5);
+  assert.equal(game.ensure().rating, 19 * 30 - 3);
+  AT.finishSession();
+  assert.match(AT.views.summary().html, /×2 рейтинг/);
+});
+
+test('старый активный бонус в незавершённом экзамене по-прежнему удваивает валюту', () => {
+  const storage = {}; let AT = app(storage), q = AT.dataset.questions[0];
+  const session = AT.startSession({mode:'exam', ids:[q.id]});
+  session.game = {bonusUsed: true, bonusRemaining: 1};
+  session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers};
+  AT.save(true);
+  AT = app(storage);
+  const loaded = AT.currentSession();
+  AT.gradeSession(loaded); AT.finishSession();
+  assert.equal(AT.game.ensure().coins, 50);
+  assert.equal(AT.game.ensure().rating, 15);
+  assert.match(AT.views.summary().html, /×2 валюта/);
+});
+
+test('удвоенный рейтинг открывает достижения по общему рейтингу', () => {
+  const AT = app(), game = AT.game, q = AT.dataset.questions[0];
+  game.ensure().rating = 490; game.ensure().inventory['double-train'] = 1;
+  const session = AT.startSession({mode:'train', ids:[q.id]});
+  assert.equal(game.activateDouble(session).ok, true);
+  const entry = session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
+  AT.recordAttempt(q, true, entry.selected);
+  game.awardTraining(session, q, entry, false);
+  assert.equal(game.totalRating(), 500);
+  assert.equal(game.achievements().find(a => a.id === 'rating-500').unlocked, true);
 });
