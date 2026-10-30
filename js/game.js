@@ -31,6 +31,7 @@
     { id: 'joints-100', title: 'Мастер соединений', description: 'Освоить 100 вопросов по соединениям костей', metric: 'joints', goal: 100, discipline: true },
     { id: 'organs-200', title: 'Знаток внутренних органов', description: 'Освоить 200 вопросов по спланхнологии', metric: 'organs', goal: 200, discipline: true },
     { id: 'nervous-200', title: 'Нейроанатом', description: 'Освоить 200 вопросов по нервной системе', metric: 'nervous', goal: 200, discipline: true },
+    { id: 'absolute-collector', title: 'Полная коллекция', description: 'Купить все платные оформления', metric: 'stylesOwned', goal: 'all-appearances', absolute: true },
     { id: 'absolute-rating', title: 'Легенда курса', description: 'Набрать 50 000 общего рейтинга', metric: 'rating', goal: 50000, absolute: true },
     { id: 'absolute-mastery', title: 'Вся база покорена', description: 'Освоить каждый вопрос любой одной базы (включая самооценку)', metric: 'completeBank', goal: 1, absolute: true },
     { id: 'absolute-exam', title: 'Идеальный экзамен', description: 'Ответить верно на все 20 вопросов пробного экзамена без усилений', metric: 'perfectExam', goal: 1, absolute: true },
@@ -83,6 +84,8 @@
     autumn: { title: 'Осень', description: 'Тёплые краски, листья и жёлуди.', price: 1500, color: '#a64929' },
     winter: { title: 'Зима', description: 'Морозные оттенки и снежинки.', price: 1500, color: '#316f9e' },
     spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
+    anime: { title: 'Аниме · Ночная смена', description: 'Неон, звёзды и аниме-студентка на ночной смене.', price: 5000, color: '#7841cc', premium: true },
+    meme: { title: 'Мем · Всё под контролем', description: 'Безумный комикс и кот-доктор, который точно всё знает.', price: 6000, color: '#b82b62', premium: true },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
   let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, appearance: 'default' };
@@ -147,8 +150,10 @@
       counts.verified += number(game.verified);
       counts.rating += number(game.rating);
     });
+    counts.stylesOwned = Object.keys(APPEARANCES).filter(id => APPEARANCES[id].price > 0 && !!shared.appearances[id]).length;
     return counts;
   }
+  function achievementGoal(a) { return a.goal === 'all-appearances' ? Object.keys(APPEARANCES).filter(id => APPEARANCES[id].price > 0).length : a.goal; }
   function syncAchievements() {
     readShared();
     let changed = false;
@@ -169,7 +174,7 @@
     });
     const counts = metrics(states);
     ACHIEVEMENTS.forEach(a => {
-      if (!shared.achievements[a.id] && counts[a.metric] >= a.goal) {
+      if (!shared.achievements[a.id] && counts[a.metric] >= achievementGoal(a)) {
         shared.achievements[a.id] = Date.now(); changed = true;
       }
     });
@@ -178,7 +183,10 @@
   }
   function achievements() {
     const counts = syncAchievements();
-    return ACHIEVEMENTS.map(a => ({ ...a, current: shared.achievements[a.id] ? a.goal : Math.min(counts[a.metric], a.goal), unlocked: !!shared.achievements[a.id] }));
+    return ACHIEVEMENTS.map(a => {
+      const goal = achievementGoal(a);
+      return { ...a, goal, current: shared.achievements[a.id] ? goal : Math.min(counts[a.metric], goal), unlocked: !!shared.achievements[a.id] };
+    });
   }
   function totalRating() { return BANKS.reduce((total, id) => total + number((bankState(id).game || {}).rating), 0); }
   function profile() { readShared(); return JSON.parse(JSON.stringify(shared)); }
@@ -239,6 +247,7 @@
     ensure();
     // Если сохранение кошелька прервано, журнал применится при следующем открытии базы.
     AT.save(true);
+    syncAchievements();
     applyAppearance();
     return { ok: true, message: 'Оформление куплено и применено во всех базах' };
   }

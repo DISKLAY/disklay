@@ -626,3 +626,61 @@ test('общая покупка восстанавливает списание 
   AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 100);
   assert.equal(AT.game.profile().appearances.ocean, true);
 });
+
+test('аниме и мем — самые дорогие оформления и покупаются через общую оплату', () => {
+  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 2500; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 9000; AT.save(true);
+  const styles = AT.game.appearances;
+  const regularPrices = Object.entries(styles).filter(([id]) => !['anime','meme'].includes(id)).map(([, style]) => style.price);
+  assert.ok(styles.anime.price > Math.max(...regularPrices));
+  assert.ok(styles.meme.price > Math.max(...regularPrices));
+  assert.equal(styles.anime.price, 5000); assert.equal(styles.meme.price, 6000);
+  assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
+  assert.equal(AT.game.ensure().coins, 6500);
+  assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 0);
+  assert.equal(AT.game.buyAppearance('meme', {'2':6000}).ok, true);
+  assert.equal(AT.game.ensure().coins, 500);
+  AT = app(storage, '3');
+  assert.equal(AT.game.profile().appearances.anime, true);
+  assert.equal(AT.game.profile().appearances.meme, true);
+  assert.equal(AT.game.profile().appearance, 'meme');
+  assert.equal(AT.game.selectAppearance('anime').ok, true);
+});
+
+test('абсолютное достижение выдаётся только за все платные оформления и общее для баз', () => {
+  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true, anime:true};
+  const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:purchases, achievements:{}})};
+  let AT = app(storage, '1');
+  let badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
+  assert.equal(badge.absolute, true); assert.equal(badge.goal, 8); assert.equal(badge.current, 7); assert.equal(badge.unlocked, false);
+  AT.game.ensure().coins = 3000; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 3000; AT.save(true);
+  assert.equal(AT.game.buyAppearance('meme', {'1':3000, '2':3000}).ok, true);
+  badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
+  assert.equal(badge.current, 8); assert.equal(badge.unlocked, true);
+  assert.ok(AT.game.profile().achievements['absolute-collector']);
+  AT.resetProgress(); AT = app(storage, 'credit-1');
+  assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
+});
+
+test('предыдущая коллекция не считается полной без новых оформлений, неизвестные покупки не засчитываются', () => {
+  const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:{ocean:true,ruby:true,amber:true,autumn:true,winter:true,spring:true,default:true,unknown:true}})};
+  const AT = app(storage, '1');
+  const badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
+  assert.equal(badge.current, 6); assert.equal(badge.goal, 8); assert.equal(badge.unlocked, false);
+  AT.game.ensure().coins = 6000;
+  assert.equal(AT.game.buyAppearance('meme', {'1':5999}).ok, false);
+  assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, false);
+});
+
+test('особые оформления используют локальные иллюстрации и доступны в обеих темах', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const id of ['anime', 'meme']) {
+    const image = fs.readFileSync(path.join(__dirname, '..', 'assets', 'appearance-' + id + '.svg'), 'utf8');
+    assert.match(image, /<svg\b/); assert.ok(image.length > 4000);
+    assert.doesNotMatch(image, /<(?:script|animate|foreignObject)\b|https?:\/\/(?!www\.w3\.org)/i);
+    assert.match(css, new RegExp('data-theme="dark"\\]\\[data-accent="' + id + '"'));
+    assert.match(css, new RegExp('appearance-preview--' + id));
+  }
+  assert.match(app().views.rewards().html, /Полная коллекция/);
+});

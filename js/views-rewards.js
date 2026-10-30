@@ -137,20 +137,24 @@
       '<div><span>Общий рейтинг</span><strong>' + game.totalRating() + '</strong><small>сумма всех баз</small></div></div></section>' +
       '<div class="rewards-context">' + icon('info') + '<span>Валюта и усиления принадлежат выбранной базе. Достижения, оформление и личный рейтинг общие для всех баз на этом устройстве. Самооценка без ключа не начисляет очки.</span></div>';
 
+    function appearanceCard([id, style]) {
+      const owned = id === 'default' || !!profile.appearances[id];
+      const active = profile.appearance === id;
+      const action = owned ? 'select-appearance' : 'buy-appearance';
+      const label = active ? 'Выбрано' : owned ? 'Применить' : style.price + ' валюты';
+      const disabled = active || (!owned && totalCoins < style.price);
+      return '<article class="appearance-card' + (style.premium ? ' appearance-card--premium' : '') + (active ? ' is-active' : '') + '">' +
+        '<div class="appearance-preview appearance-preview--' + esc(id) + '" aria-hidden="true" style="--preview-color:' + esc(style.color) + '"><span></span><span></span><span></span></div>' +
+        '<div class="appearance-card__body"><h3>' + esc(style.title) + '</h3><p>' + esc(style.description) + '</p>' +
+        '<div class="appearance-card__footer"><span>' + (active ? 'Используется' : owned ? 'Куплено' : style.premium ? 'Особое · навсегда' : 'Навсегда') + '</span>' +
+        '<button class="btn ' + (owned ? 'btn--ghost' : 'btn--primary') + ' btn--sm" data-action="' + action + '" data-appearance="' + esc(id) + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button></div></div></article>';
+    }
+    const styles = Object.entries(game.appearances);
     html += '<section class="section"><div class="section__head"><div><span class="overline">ВАШ СТИЛЬ</span><h2 id="appearanceTitle" tabindex="-1">Оформление</h2></div><span class="section__hint">Во всех базах: ' + totalCoins + '</span></div>' +
       '<p class="rewards-intro">Оплатите оформление валютой из одной или нескольких баз. Перед покупкой можно выбрать суммы; оформление будет доступно везде и работает со светлой и тёмной темой.</p><div class="appearance-grid">' +
-      Object.entries(game.appearances).map(([id, style]) => {
-        const owned = id === 'default' || !!profile.appearances[id];
-        const active = profile.appearance === id;
-        const action = owned ? 'select-appearance' : 'buy-appearance';
-        const label = active ? 'Выбрано' : owned ? 'Применить' : style.price + ' валюты';
-        const disabled = active || (!owned && totalCoins < style.price);
-        return '<article class="appearance-card' + (active ? ' is-active' : '') + '">' +
-          '<div class="appearance-preview appearance-preview--' + esc(id) + '" aria-hidden="true" style="--preview-color:' + esc(style.color) + '"><span></span><span></span><span></span></div>' +
-          '<div class="appearance-card__body"><h3>' + esc(style.title) + '</h3><p>' + esc(style.description) + '</p>' +
-          '<div class="appearance-card__footer"><span>' + (active ? 'Используется' : owned ? 'Куплено' : 'Навсегда') + '</span>' +
-          '<button class="btn ' + (owned ? 'btn--ghost' : 'btn--primary') + ' btn--sm" data-action="' + action + '" data-appearance="' + esc(id) + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button></div></div></article>';
-      }).join('') + '</div></section>';
+      styles.filter(([, style]) => !style.premium).map(appearanceCard).join('') + '</div>' +
+      '<h3 class="appearance-special-heading">Особые оформления</h3><p class="rewards-intro">Яркие иллюстрации и уникальная атмосфера для тех, кто любит выделяться.</p>' +
+      '<div class="appearance-premium-grid">' + styles.filter(([, style]) => style.premium).map(appearanceCard).join('') + '</div></section>';
 
     function achievementCard(a) {
       return '<article class="achievement' + (a.unlocked ? ' is-unlocked' : '') + (a.absolute ? ' achievement--absolute' : '') + '"><div class="achievement__icon">' + icon(a.unlocked ? 'check' : 'target') + '</div>' +
@@ -161,7 +165,7 @@
       '<div class="achievement-grid">' + achievements.filter(a => !a.absolute && !a.discipline).map(achievementCard).join('') + '</div>' +
       '<h3 class="achievement-absolute-heading">По направлениям</h3><p class="rewards-intro">Осваивайте вопросы по отдельным разделам анатомии.</p>' +
       '<div class="achievement-grid">' + achievements.filter(a => a.discipline).map(achievementCard).join('') + '</div>' +
-      '<h3 class="achievement-absolute-heading">Абсолютные достижения</h3><p class="rewards-intro">Особые цели за освоение, экзамен и общий рейтинг.</p>' +
+      '<h3 class="achievement-absolute-heading">Абсолютные достижения</h3><p class="rewards-intro">Особые цели за освоение, экзамен, рейтинг и коллекцию оформлений.</p>' +
       '<div class="achievement-grid">' + achievements.filter(a => a.absolute).map(achievementCard).join('') + '</div>' +
       '<p class="rewards-footnote">Все достижения общие. Вопросы учитываются отдельно в каждой базе, даже если совпадают. Прежний прогресс, включая самооценку, засчитывается без начисления валюты и рейтинга.</p></section>';
 
