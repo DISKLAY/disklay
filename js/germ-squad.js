@@ -2,8 +2,8 @@
 (function () {
   'use strict';
   const AT = window.AT;
-  // Тестовый режим по просьбе пользователя; после проверки заменить на 0.005.
-  const APPEARANCE_CHANCE = 1;
+  // Вероятность для каждого подходящего вопроса в сессии — 0,5%.
+  const APPEARANCE_CHANCE = 0.005;
   const REACTION_TIME = 12000;
   const MOVE_TIME = 1800;
 

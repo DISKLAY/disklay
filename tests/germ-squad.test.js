@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
+function harness({mode = 'train', key = [1], enabled = true, total = 2, random = () => 0} = {}) {
   let now = 0, nextId = 1, advances = 0, nextFrameId = 1;
   const choices = [], rewards = [], listeners = {};
   const frames = new Map();
@@ -35,7 +35,8 @@ function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
   const AT = {getState:()=>({settings:{germSquad:enabled}}), currentSession:()=>session, save:()=>{saves++}, keyApi:{forQuestion:()=>key ? {answers:key} : null}, game:{awardMicrobe:(_, q, i)=>{rewards.push([q.id,i]); return {ok:true,coins:50}}}, ui:{toast:()=>{}}};
   const win = {AT, innerWidth:390, innerHeight:844, matchMedia:()=>({matches:false}), addEventListener(k,fn){listeners[k]=fn}, removeEventListener(k){delete listeners[k]},
     requestAnimationFrame(fn){const id = nextFrameId++; frames.set(id, fn); return id}, cancelAnimationFrame(id){frames.delete(id)}};
-  const ctx = vm.createContext({window:win, document:doc, setTimeout:setTimeoutFake, clearTimeout:id=>timers.delete(id), Math});
+  const fakeMath = Object.create(Math); fakeMath.random = random;
+  const ctx = vm.createContext({window:win, document:doc, setTimeout:setTimeoutFake, clearTimeout:id=>timers.delete(id), Math:fakeMath});
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/germ-squad.js'), 'utf8'), ctx);
   const squad = AT.germSquad.mount({host, session, questions:qs, onChooseWrong:index=>{choices.push(index); session.results.q1.selected.push(index); return true;}});
   function pop(i) {
@@ -47,14 +48,33 @@ function harness({mode = 'train', key = [1], enabled = true, total = 2} = {}) {
   return {AT, squad, session, qs, tick, pop, doc, target, timers, frames, sprites, frame, listeners, choices, rewards, getOverlay:()=>overlay, getPanel:()=>panel, getAdvances:()=>advances, getSaves:()=>saves};
 }
 
-test('тестовая вероятность 100%, три клика останавливают проделку и повторно не запускают её на вопросе', () => {
-  const h = harness(); assert.equal(h.AT.germSquad.APPEARANCE_CHANCE, 1);
+test('при появлении три клика останавливают проделку и повторно не запускают её на вопросе', () => {
+  const h = harness(); assert.equal(h.AT.germSquad.APPEARANCE_CHANCE, 0.005);
   h.squad.enter(); assert.equal(h.getPanel(), null); assert.match(h.getOverlay().innerHTML, /data-action="pop-germ"/);
   assert.equal(h.getSaves(), 1);
   for (let i = 0; i < 3; i++) assert.equal(h.pop(i).disabled, true);
   assert.equal(h.rewards.length, 3);
   h.tick(30000); assert.equal(h.getAdvances(), 0); assert.deepEqual(h.session.results.q1.selected, [1]);
   h.squad.leave(); h.squad.enter(); assert.equal(h.timers.size, 0);
+});
+
+test('вероятность 0,5%: значение ниже границы вызывает появление, на границе и выше — нет', () => {
+  for (const [roll, appears] of [[0, true], [0.004999, true], [0.005, false], [0.999999, false]]) {
+    const h = harness({random: () => roll});
+    h.squad.enter();
+    assert.equal(!!h.getOverlay(), appears, 'случайное значение ' + roll);
+    assert.equal(h.session.germSeen.q1, true);
+  }
+});
+
+test('повторный вход не перебрасывает вероятность, для следующего вопроса выполняется новый бросок', () => {
+  let rolls = 0;
+  const h = harness({random: () => { rolls++; return 0.5; }});
+  h.squad.enter(); h.squad.leave(); h.squad.enter();
+  assert.equal(rolls, 1); assert.equal(h.getOverlay(), null);
+  h.session.index = 1; h.session.results.q2 = {selected:[], revealed:false};
+  h.squad.enter();
+  assert.equal(rolls, 2); assert.equal(h.getOverlay(), null);
 });
 
 test('микробы выбирают только невыбранные неправильные варианты без проверки и перелистывания', () => {
