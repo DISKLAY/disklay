@@ -190,6 +190,8 @@
     }
     const write = () => {
       try {
+        // Учитываем покупки из других вкладок, прежде чем сохранить локальный кошелёк.
+        if (window.AT && window.AT.game) window.AT.game.ensure();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         return true;
       } catch (e) {

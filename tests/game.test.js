@@ -390,11 +390,11 @@ test('направления считают только освоенные во
 test('оформление покупается валютой текущей базы, доступно везде и переживает сброс', () => {
   const storage = {}; let AT = app(storage, '1'), game = AT.game;
   game.ensure().coins = 500;
-  assert.equal(game.buyAppearance('ruby').ok, false);
-  assert.equal(game.buyAppearance('ocean').ok, true);
+  assert.equal(game.buyAppearance('ruby', {'1': 500}).ok, false);
+  assert.equal(game.buyAppearance('ocean', {'1': 500}).ok, true);
   assert.equal(game.ensure().coins, 0);
   assert.equal(game.profile().appearance, 'ocean');
-  assert.equal(game.buyAppearance('ocean').ok, false);
+  assert.equal(game.buyAppearance('ocean', {'1': 500}).ok, false);
   assert.equal(game.selectAppearance('__proto__').ok, false);
   assert.equal(game.selectAppearance('amber').ok, false);
   AT = app(storage, '2'); game = AT.game;
@@ -417,7 +417,7 @@ test('ошибка сохранения общего профиля возвра
     target[key] = value; return true;
   }});
   let AT = app(storage); AT.game.ensure().coins = 600; AT.save(true);
-  assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  assert.equal(AT.game.buyAppearance('ocean', {'1': 500}).ok, false);
   assert.equal(AT.game.ensure().coins, 600);
   assert.equal(AT.game.profile().appearances.ocean, undefined);
   AT = app(storage);
@@ -449,7 +449,7 @@ test('ошибка сохранения кошелька не выдаёт оф�
   }});
   const AT = app(storage); AT.game.ensure().coins = 500; AT.save(true);
   block = true;
-  assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  assert.equal(AT.game.buyAppearance('ocean', {'1': 500}).ok, false);
   assert.equal(AT.game.ensure().coins, 500);
   assert.equal(AT.game.profile().appearances.ocean, undefined);
   block = false;
@@ -495,7 +495,7 @@ test('сезонные оформления покупаются, сохраня
     let AT = app(storage, '1');
     assert.equal(AT.game.appearances[id].price, 1500);
     AT.game.ensure().coins = 1500;
-    assert.equal(AT.game.buyAppearance(id).ok, true);
+    assert.equal(AT.game.buyAppearance(id, {'1': 1500}).ok, true);
     assert.equal(AT.game.ensure().coins, 0);
     assert.equal(AT.game.profile().appearance, id);
     AT = app(storage, 'stom-2');
@@ -517,4 +517,112 @@ test('сезонные рисунки локальны, статичны и до
     assert.match(css, new RegExp('data-theme="dark"\\]\\[data-accent="' + id + '"'));
     assert.match(css, new RegExp('appearance-preview--' + id));
   }
+});
+
+test('оформление оплачивается выбранными суммами из нескольких баз без переноса валюты', () => {
+  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 100; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 250; AT.save(true);
+  AT = app(storage, '3'); AT.game.ensure().coins = 300; AT.save(true);
+  let wallets = AT.game.walletBalances();
+  assert.equal(wallets[0].id, '3'); assert.equal(wallets[0].balance, 300);
+  assert.equal(wallets.find(w => w.id === '1').balance, 100);
+  assert.equal(AT.game.buyAppearance('ocean', {'1':100, '2':200, '3':200}).ok, true);
+  assert.equal(AT.game.ensure().coins, 100);
+  wallets = AT.game.walletBalances();
+  assert.equal(wallets.find(w => w.id === '1').balance, 0);
+  assert.equal(wallets.find(w => w.id === '2').balance, 50);
+  assert.equal(wallets.find(w => w.id === '3').balance, 100);
+  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 50);
+  AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 0);
+  assert.equal(AT.game.profile().appearances.ocean, true);
+  AT = app(storage, '3'); assert.equal(AT.game.ensure().coins, 100);
+});
+
+test('неверное распределение не списывает валюту и не покупает оформление', () => {
+  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 400; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 200; AT.save(true);
+  for (const allocation of [undefined, {'1':400}, {'1':401,'2':99}, {'1':-1,'2':501}, {'1':300.5,'2':199.5}, {'1':400, '2':101}, {'1':400, unknown:100}]) {
+    assert.equal(AT.game.buyAppearance('ocean', allocation).ok, false);
+    assert.equal(AT.game.ensure().coins, 200);
+    assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 400);
+    assert.equal(AT.game.profile().appearances.ocean, undefined);
+  }
+});
+
+test('при ошибке записи общего журнала все выбранные кошельки сохраняют баланс', () => {
+  const data = {}; let fail = false;
+  const storage = new Proxy(data, {set(target, key, value) {
+    if (fail && key === 'anatomy-colloquium-rewards-shared-v1') throw new Error('storage full');
+    target[key] = value; return true;
+  }});
+  let AT = app(storage, '1'); AT.game.ensure().coins = 300; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 300; AT.save(true);
+  fail = true;
+  assert.equal(AT.game.buyAppearance('ocean', {'1':200, '2':300}).ok, false);
+  assert.equal(AT.game.ensure().coins, 300);
+  assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 300);
+  assert.equal(AT.game.profile().appearances.ocean, undefined);
+  fail = false; AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 300);
+});
+
+test('журнал применяется к каждому кошельку ровно один раз даже после перезагрузки', () => {
+  const storage = {
+    'anatomy-colloquium-v1': JSON.stringify({game:{coins:120}}),
+    'anatomy-colloquium-v1-2': JSON.stringify({game:{coins:125}}),
+    'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:{ocean:true}, appearance:'ocean', cosmeticSpent:{'1':70,'2':100}}),
+  };
+  let AT = app(storage, '1');
+  assert.equal(AT.game.ensure().coins, 50);
+  assert.equal(AT.game.walletBalances().find(w => w.id === '2').balance, 25);
+  AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 50);
+  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 25);
+  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 25);
+});
+
+test('открытая вкладка не перезаписывает списание из другой базы', () => {
+  const storage = {}; const oldTab = app(storage, '1');
+  oldTab.game.ensure().coins = 400; oldTab.save(true);
+  const buyer = app(storage, '2'); buyer.game.ensure().coins = 200; buyer.save(true);
+  assert.equal(buyer.game.buyAppearance('ocean', {'1':300,'2':200}).ok, true);
+  oldTab.save(true);
+  assert.equal(oldTab.game.ensure().coins, 100);
+  assert.equal(app(storage, '1').game.ensure().coins, 100);
+});
+
+test('сброс базы не переносит старые списания на новые заработанные очки', () => {
+  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 500; AT.save(true);
+  assert.equal(AT.game.buyAppearance('ocean', {'1':500}).ok, true);
+  AT.resetProgress();
+  AT.game.ensure().coins += 50; AT.save(true);
+  AT = app(storage, '1');
+  assert.equal(AT.game.ensure().coins, 50);
+  assert.equal(AT.game.profile().appearances.ocean, true);
+});
+
+test('покупка доступна при достаточном общем балансе, усиления всё ещё раздельны', () => {
+  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 400; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 150; AT.save(true);
+  const html = AT.views.rewards().html;
+  assert.match(html, /Во всех базах: 550/);
+  assert.match(html, /data-action="buy-appearance" data-appearance="ocean">/);
+  assert.equal(AT.game.buy('hint-train').ok, false);
+  assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 400);
+});
+
+test('общая покупка восстанавливает списание если сохранение текущего кошелька прервалось', () => {
+  const data = {}; let arm = false, failBank = false;
+  const storage = new Proxy(data, {set(target, key, value) {
+    if (arm && key === 'anatomy-colloquium-rewards-shared-v1') failBank = true;
+    if (failBank && key === 'anatomy-colloquium-v1-2') { failBank = false; throw new Error('storage full'); }
+    target[key] = value; return true;
+  }});
+  let AT = app(storage, '1'); AT.game.ensure().coins = 300; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 300; AT.save(true);
+  arm = true;
+  assert.equal(AT.game.buyAppearance('ocean', {'1':200,'2':300}).ok, true);
+  arm = false;
+  assert.equal(AT.game.ensure().coins, 0);
+  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 0);
+  AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 100);
+  assert.equal(AT.game.profile().appearances.ocean, true);
 });

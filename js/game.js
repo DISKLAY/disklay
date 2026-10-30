@@ -42,6 +42,12 @@
     if (!state.game || typeof state.game !== 'object') state.game = {};
     const game = state.game;
     game.coins = number(game.coins);
+    // Общий журнал списаний применяется ровно один раз к каждому кошельку.
+    readShared();
+    const spent = number(shared.cosmeticSpent[AT.colloquium.id]);
+    const applied = number(game.cosmeticSpentApplied);
+    if (spent > applied) game.coins = Math.max(0, game.coins - (spent - applied));
+    game.cosmeticSpentApplied = Math.max(applied, spent);
     game.rating = number(game.rating);
     game.verified = number(game.verified);
     if (!game.inventory || typeof game.inventory !== 'object') game.inventory = {};
@@ -79,13 +85,14 @@
     spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
-  let shared = { achievements: {}, appearances: {}, appearance: 'default' };
+  let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, appearance: 'default' };
   function readShared() {
     try {
       const value = JSON.parse(localStorage.getItem(SHARED_KEY) || '{}');
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         if (value.achievements && typeof value.achievements === 'object') Object.assign(shared.achievements, value.achievements);
         if (value.appearances && typeof value.appearances === 'object') Object.assign(shared.appearances, value.appearances);
+        if (value.cosmeticSpent && typeof value.cosmeticSpent === 'object') Object.assign(shared.cosmeticSpent, value.cosmeticSpent);
         if (typeof value.appearance === 'string') shared.appearance = value.appearance;
       }
     } catch (e) { /* При недоступном хранилище работаем с данными в памяти. */ }
@@ -93,8 +100,19 @@
     return shared;
   }
   function saveShared() {
-    try { localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); return true; }
-    catch (e) { return false; }
+    try {
+      // Не теряем покупки и достижения, добавленные другой открытой вкладкой.
+      const latest = JSON.parse(localStorage.getItem(SHARED_KEY) || '{}') || {};
+      for (const field of ['achievements', 'appearances']) {
+        if (latest[field] && typeof latest[field] === 'object') {
+          Object.keys(latest[field]).forEach(key => { if (latest[field][key] && !shared[field][key]) shared[field][key] = latest[field][key]; });
+        }
+      }
+      if (latest.cosmeticSpent && typeof latest.cosmeticSpent === 'object') {
+        BANKS.forEach(id => { shared.cosmeticSpent[id] = Math.max(number(shared.cosmeticSpent[id]), number(latest.cosmeticSpent[id])); });
+      }
+      localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); return true;
+    } catch (e) { return false; }
   }
   function bankState(id) {
     if (id === AT.colloquium.id) return AT.getState();
@@ -177,22 +195,50 @@
     applyAppearance();
     return { ok: true, message: 'Оформление изменено' };
   }
-  function buyAppearance(id) {
+  function walletBalances() {
+    readShared();
+    const modules = window.COLLOQUIUM_MODULES || {};
+    // Сначала текущая база, затем остальные в привычном порядке.
+    return [AT.colloquium.id, ...BANKS.filter(id => id !== AT.colloquium.id)].map(id => {
+      const module = modules[id] || {}, state = bankState(id), game = state.game || {};
+      const spent = number(shared.cosmeticSpent[id]);
+      const pending = Math.max(0, spent - number(game.cosmeticSpentApplied));
+      const label = module.kind === 'credit' ? 'Зачёт · ' + module.semester + ' семестр'
+        : 'Коллоквиум ' + (module.number || id);
+      return { id, label: label + (module.name ? ' · ' + module.name : '') + (module.faculty ? ' · стоматология' : ''),
+        balance: Math.max(0, number(game.coins) - pending), current: id === AT.colloquium.id };
+    });
+  }
+  function buyAppearance(id, allocation) {
     readShared();
     if (!Object.prototype.hasOwnProperty.call(APPEARANCES, id) || id === 'default') return { ok: false, message: 'Неизвестное оформление' };
     if (shared.appearances[id]) return { ok: false, message: 'Оформление уже куплено' };
-    const game = ensure(), price = APPEARANCES[id].price;
-    if (game.coins < price) return { ok: false, message: 'Недостаточно валюты в этой базе' };
-    const previous = shared.appearance;
-    if (!game.appearanceReceipts || typeof game.appearanceReceipts !== 'object') game.appearanceReceipts = {};
-    game.coins -= price;
-    game.appearanceReceipts[id] = true;
-    if (!AT.save(true)) { game.coins += price; delete game.appearanceReceipts[id]; return { ok: false, message: 'Не удалось сохранить покупку' }; }
-    shared.appearances[id] = true; shared.appearance = id;
-    if (!saveShared()) {
-      delete shared.appearances[id]; delete game.appearanceReceipts[id]; shared.appearance = previous; game.coins += price; AT.save(true);
-      return { ok: false, message: 'Не удалось сохранить покупку' };
+    if (!allocation || typeof allocation !== 'object' || Array.isArray(allocation)) return { ok: false, message: 'Выберите суммы для оплаты' };
+    const wallets = walletBalances();
+    const allowed = new Set(wallets.map(w => w.id));
+    let total = 0;
+    for (const [bankId, amount] of Object.entries(allocation)) {
+      const wallet = wallets.find(w => w.id === bankId);
+      if (!allowed.has(bankId) || !Number.isSafeInteger(amount) || amount < 0 || amount > wallet.balance) {
+        return { ok: false, message: 'Суммы изменились или превышают баланс базы. Проверьте распределение.' };
+      }
+      total += amount;
     }
+    if (!Number.isSafeInteger(total) || total !== APPEARANCES[id].price) return { ok: false, message: 'Распределите точную стоимость оформления' };
+    // До общей записи сохраняем текущий кошелёк. Никакое списание пока не произведено.
+    ensure();
+    if (!AT.save(true)) return { ok: false, message: 'Не удалось сохранить покупку' };
+    const previous = JSON.parse(JSON.stringify(shared));
+    Object.entries(allocation).forEach(([bankId, amount]) => {
+      if (amount) shared.cosmeticSpent[bankId] = number(shared.cosmeticSpent[bankId]) + amount;
+    });
+    shared.appearances[id] = true;
+    shared.appearance = id;
+    // Приобретение и все списания фиксируются одной записью, до изменения кошельков.
+    if (!saveShared()) { shared = previous; return { ok: false, message: 'Не удалось сохранить покупку' }; }
+    ensure();
+    // Если сохранение кошелька прервано, журнал применится при следующем открытии базы.
+    AT.save(true);
     applyAppearance();
     return { ok: true, message: 'Оформление куплено и применено во всех базах' };
   }
@@ -284,7 +330,7 @@
     g.examScored = true;
     syncAchievements();
   }
-  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, buyAppearance, count, buy, useHint, activateDouble, awardTraining, awardExam };
+  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, walletBalances, buyAppearance, count, buy, useHint, activateDouble, awardTraining, awardExam };
   // Старый прогресс признаём только достижениями. Очки задним числом не начисляем.
   syncAchievements();
   AT.save(true);
