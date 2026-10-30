@@ -1718,12 +1718,12 @@ kbd {
 .exam-game-note p { margin-top: 4px; color: var(--text-2); font-size: .82rem; }
 .exam-game-note a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
 
-.achievement--absolute { border-color: #b89442; background: linear-gradient(135deg, var(--surface), var(--surface-2)); }
-.achievement--absolute .achievement__icon { color: #a47216; background: #fff3d3; }
-.achievement--absolute .achievement__status { color: #93620e; }
-[data-theme="dark"] .achievement--absolute { border-color: #7a6539; }
-[data-theme="dark"] .achievement--absolute .achievement__icon { color: #ffd47a; background: #3e321b; }
-[data-theme="dark"] .achievement--absolute .achievement__status { color: #ffd47a; }
+.achievement.achievement--absolute { border-color: #b89442; background: linear-gradient(135deg, var(--surface), var(--surface-2)); }
+.achievement.achievement--absolute .achievement__icon { color: #a47216; background: #fff3d3; }
+.achievement.achievement--absolute .achievement__status { color: #93620e; }
+[data-theme="dark"] .achievement.achievement--absolute { border-color: #7a6539; }
+[data-theme="dark"] .achievement.achievement--absolute .achievement__icon { color: #ffd47a; background: #3e321b; }
+[data-theme="dark"] .achievement.achievement--absolute .achievement__status { color: #ffd47a; }
 @media (max-width: 520px) { .course-toggle { width: 36px; min-height: 36px; padding: 7px; } .course-toggle span { display: none; } }
 
 @keyframes course-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
