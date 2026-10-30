@@ -85,7 +85,6 @@
     winter: { title: 'Зима', description: 'Морозные оттенки и снежинки.', price: 1500, color: '#316f9e' },
     spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
     anime: { title: 'Аниме · Атака титанов', description: 'Атмосфера Attack on Titan: титаны, тёмный город и огонь.', price: 5000, color: '#745337', premium: true },
-    meme: { title: 'Мем · Мемопад', description: '67, Chill Guy, Ждун, брейнрот, тролль и мемные коты.', price: 6000, color: '#b82b62', premium: true },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
   let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, appearance: 'default' };
@@ -207,7 +206,7 @@
   function inspectAppearanceImport(file) {
     const owned = file && typeof file === 'object' && !Array.isArray(file) && file.sharedRewards && file.sharedRewards.appearances;
     if (!owned || typeof owned !== 'object' || Array.isArray(owned)) return { ok: false, message: 'В файле нет списка оформлений' };
-    const ids = Object.keys(owned).filter(id => owned[id] === true && id !== 'default');
+    const ids = Object.keys(owned).filter(id => owned[id] === true && id !== 'default' && id !== 'meme'); // Старые файлы могут содержать временно скрытое оформление.
     if (!ids.length || ids.some(id => !Object.prototype.hasOwnProperty.call(APPEARANCES, id))) return { ok: false, message: 'Файл не содержит известных оформлений или создан для другой версии приложения' };
     if (Object.keys(owned).some(id => typeof owned[id] !== 'boolean')) return { ok: false, message: 'Неверный список оформлений' };
     return { ok: true, ids, titles: ids.map(id => APPEARANCES[id].title) };

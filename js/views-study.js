@@ -90,6 +90,7 @@
 
   /* ---------------------------------------------------------------- главная */
 
+  let titanIntroPlayed = false;
   views.dashboard = function () {
     const overall = analytics.overall();
     const keyed = keyApi.count();
@@ -189,7 +190,21 @@
 
     html += '</div>';
 
-    return { title: 'Главная', html };
+    const mount = (root) => {
+      if (titanIntroPlayed || AT.colloquium.kind === 'credit' || !AT.game || AT.game.profile().appearance !== 'anime') return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const hero = root.querySelector('.hero:not(.hero--credit)');
+      if (!hero) return;
+      titanIntroPlayed = true;
+      const clip = document.createElement('img');
+      clip.className = 'hero__titan-intro'; clip.alt = ''; clip.setAttribute('aria-hidden', 'true');
+      clip.addEventListener('animationend', () => clip.remove(), { once: true });
+      clip.addEventListener('error', () => clip.remove(), { once: true });
+      clip.addEventListener('load', () => { if (clip.isConnected) clip.classList.add('is-playing'); }, { once: true });
+      hero.appendChild(clip);
+      clip.src = 'assets/titan-intro.gif';
+    };
+    return { title: 'Главная', html, mount };
   };
 
   function statCard(label, value, sub, iconName) {

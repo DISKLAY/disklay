@@ -1742,53 +1742,39 @@ kbd {
   .checkout-actions { flex-direction: column-reverse; align-items: stretch; }
 }
 
-/* Особые оформления: локальные статичные изображения, не перекрывающие управление. */
-[data-accent="anime"] { --primary: #75512c; --primary-strong: #503618; --primary-soft: #f8f0df; --primary-border: #dcc395; --special-art: url('../assets/attack-on-titan-key-visual.jpg'); }
-[data-accent="meme"] { --primary: #a51f51; --primary-strong: #7d173f; --primary-soft: #ffedf3; --primary-border: #f3b8ce; --special-art: url('../assets/meme-grid.webp'); }
-[data-theme="dark"][data-accent="anime"] { --primary: #e7bf7c; --primary-strong: #f2d6a2; --primary-soft: #382b1d; --primary-border: #775c3a; }
-[data-theme="dark"][data-accent="meme"] { --primary: #ffa6c9; --primary-strong: #ffc6dc; --primary-soft: #3f1c2e; --primary-border: #80415d; }
-[data-accent="anime"] body, [data-accent="meme"] body { isolation: isolate; }
-[data-accent="anime"] body { background-image: radial-gradient(900px 520px at 8% -12%, rgba(179, 122, 57, .18), transparent 60%), radial-gradient(760px 460px at 96% 4%, rgba(91, 102, 69, .14), transparent 62%); }
-[data-accent="meme"] body { background-image: radial-gradient(900px 520px at 8% -12%, rgba(244, 78, 135, .18), transparent 60%), radial-gradient(760px 460px at 96% 4%, rgba(248, 180, 54, .16), transparent 62%); }
-[data-accent="anime"] body::before, [data-accent="meme"] body::before {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: var(--special-art) no-repeat right top / auto min(100vh, 720px); opacity: .09;
-}
-[data-theme="dark"][data-accent="anime"] body::before, [data-theme="dark"][data-accent="meme"] body::before { opacity: .16; }
-[data-accent="anime"] .topbar { border-bottom-color: #b49157; }
-[data-accent="meme"] .topbar { border-bottom: 2px solid #e76b9a; }
-[data-accent="anime"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #6b4b30, #946035); box-shadow: 0 10px 24px -12px rgba(125, 84, 46, .9); }
-[data-accent="meme"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #c82a66, #a53140); box-shadow: 3px 4px 0 #f0bc46; }
-[data-accent="meme"] .btn--primary:not(.btn--credit):hover { box-shadow: 4px 5px 0 #f0bc46; }
-
-[data-accent="anime"] .hero:not(.hero--credit), [data-accent="meme"] .hero:not(.hero--credit) { color: #fff; border-color: #715384; }
-[data-accent="anime"] .hero:not(.hero--credit) { background: linear-gradient(125deg, #1a211e, #3d302a 58%, #684527); border-color: #8a6d4a; }
-[data-accent="meme"] .hero:not(.hero--credit) { background: linear-gradient(125deg, #371236, #692145 58%, #913e3d); border-color: #d76880; }
-[data-accent="anime"] .hero:not(.hero--credit)::after { inset: 0 140px 0 auto; width: min(57%, 610px); background: var(--special-art) no-repeat center 21% / cover; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); opacity: .85; }
-[data-accent="meme"] .hero:not(.hero--credit)::after { inset: 0 150px 0 auto; width: min(60%, 620px); background: url('../assets/meme-strip.webp') no-repeat center / contain; mask-image: none; opacity: .88; }
-[data-accent="anime"] .hero:not(.hero--credit) .hero__body, [data-accent="meme"] .hero:not(.hero--credit) .hero__body { position: relative; z-index: 1; }
-[data-accent="anime"] .hero:not(.hero--credit) .eyebrow, [data-accent="meme"] .hero:not(.hero--credit) .eyebrow,
-[data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note, [data-accent="meme"] .hero:not(.hero--credit) .hero__ring-note,
-[data-accent="anime"] .hero:not(.hero--credit) .ring__label span, [data-accent="meme"] .hero:not(.hero--credit) .ring__label span { color: #e4d8ec; }
-[data-accent="anime"] .hero:not(.hero--credit) .hero__module, [data-accent="meme"] .hero:not(.hero--credit) .hero__module { color: #ffd0eb; }
-[data-accent="anime"] .hero:not(.hero--credit) .hero__lead, [data-accent="meme"] .hero:not(.hero--credit) .hero__lead { color: #f0eaf4; }
-[data-accent="anime"] .hero:not(.hero--credit) .eyebrow__dot, [data-accent="meme"] .hero:not(.hero--credit) .eyebrow__dot { background: #75e8e3; }
-[data-accent="anime"] .hero:not(.hero--credit) .ring__track, [data-accent="meme"] .hero:not(.hero--credit) .ring__track { stroke: rgba(255,255,255,.2); }
-[data-accent="anime"] .hero:not(.hero--credit) .ring__value, [data-accent="meme"] .hero:not(.hero--credit) .ring__value { stroke: #ffc6e7; }
-[data-accent="anime"] .hero:not(.hero--credit) .btn--ghost, [data-accent="meme"] .hero:not(.hero--credit) .btn--ghost { --btn-fg: #fff; --btn-border: rgba(255,255,255,.55); }
-[data-accent="anime"] .hero:not(.hero--credit) .btn--ghost:hover, [data-accent="meme"] .hero:not(.hero--credit) .btn--ghost:hover { --btn-bg: rgba(255,255,255,.12); }
-[data-accent="anime"] .hero:not(.hero--credit) :focus-visible, [data-accent="meme"] .hero:not(.hero--credit) :focus-visible { outline-color: #fff; }
-.appearance-preview--anime, .appearance-preview--meme { position: relative; overflow: hidden; background: #251a46; }
-.appearance-preview--anime::after, .appearance-preview--meme::after { content: ""; position: absolute; inset: 0; background-position: right center; background-repeat: no-repeat; background-size: cover; }
-.appearance-preview--anime::after { background-image: url('../assets/attack-on-titan-key-visual.jpg'); background-position: center 22%; }
-.appearance-preview--meme::after { background-image: url('../assets/meme-strip.webp'); background-size: contain; background-position: center; }
-.appearance-preview--anime span, .appearance-preview--meme span { display: none; }
+/* Атака титанов: постер внутри блока, выбранный закат — на весь экран. */
+[data-accent="anime"] { --primary: #6f3c8f; --primary-strong: #53296d; --primary-soft: #f3eaf8; --primary-border: #d9badd; --special-art: url('../assets/attack-on-titan-key-visual.jpg'); }
+[data-theme="dark"][data-accent="anime"] { --primary: #e2b6ef; --primary-strong: #f0d2f8; --primary-soft: #2e1e38; --primary-border: #684875; }
+[data-accent="anime"] body { isolation: isolate; background-image: none; }
+[data-accent="anime"] body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(rgba(250,247,251,.69), rgba(250,247,251,.69)), url('../assets/titan-sunset.webp') center / cover no-repeat; }
+[data-theme="dark"][data-accent="anime"] body::before { background-image: linear-gradient(rgba(11,9,20,.72), rgba(11,9,20,.72)), url('../assets/titan-sunset.webp'); }
+[data-accent="anime"] .topbar { border-bottom-color: #b491af; }
+[data-accent="anime"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #70407f, #94544e); box-shadow: 0 10px 24px -12px rgba(86, 51, 94, .8); }
+[data-accent="anime"] .hero:not(.hero--credit) { color: #fff; background: linear-gradient(125deg, #1a211e, #3d302a 58%, #684527); border-color: #8a6d4a; }
+[data-accent="anime"] .hero:not(.hero--credit)::after { inset: 0 140px 0 auto; width: min(57%, 610px); z-index: 0; background: linear-gradient(to right, rgba(29,32,27,.94), transparent 58%), var(--special-art); background-size: cover, cover; background-position: center, center 21%; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); opacity: .85; }
+[data-accent="anime"] .hero:not(.hero--credit) .hero__body, [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { position: relative; z-index: 2; }
+[data-accent="anime"] .hero:not(.hero--credit) .eyebrow, [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note, [data-accent="anime"] .hero:not(.hero--credit) .ring__label span { color: #e8dbcf; }
+[data-accent="anime"] .hero:not(.hero--credit) .hero__module { color: #f8d3b4; }
+[data-accent="anime"] .hero:not(.hero--credit) .hero__lead { color: #f1eae4; }
+[data-accent="anime"] .hero:not(.hero--credit) .eyebrow__dot { background: #e9ba83; box-shadow: 0 0 0 4px rgba(233,186,131,.2); }
+[data-accent="anime"] .hero:not(.hero--credit) .ring__track { stroke: rgba(255,255,255,.2); }
+[data-accent="anime"] .hero:not(.hero--credit) .ring__value { stroke: #f3c595; }
+[data-accent="anime"] .hero:not(.hero--credit) .btn--ghost { --btn-fg: #fff; --btn-border: rgba(255,255,255,.55); }
+[data-accent="anime"] .hero:not(.hero--credit) .btn--ghost:hover { --btn-bg: rgba(255,255,255,.12); }
+[data-accent="anime"] .hero:not(.hero--credit) :focus-visible { outline-color: #fff; }
+.hero__titan-intro { position: absolute; inset: 0 140px 0 auto; width: min(57%, 610px); height: 100%; z-index: 1; object-fit: cover; object-position: center; pointer-events: none; opacity: 0; mask-image: linear-gradient(to right, transparent, #000 25%, #000 80%, transparent); }
+.hero__titan-intro.is-playing { animation: titan-intro 3.5s ease-out forwards; }
+@keyframes titan-intro { 0% { opacity: .85; filter: brightness(.85); } 75% { opacity: .85; filter: brightness(.85); } 100% { opacity: 0; filter: brightness(1.15); } }
+.appearance-preview--anime { position: relative; overflow: hidden; background: #242024; }
+.appearance-preview--anime::after { content: ""; position: absolute; inset: 0; background: url('../assets/attack-on-titan-key-visual.jpg') center 8% / cover no-repeat; }
+.appearance-preview--anime span { display: none; }
 @media (max-width: 760px) {
-  [data-accent="anime"] .hero:not(.hero--credit)::after { inset: auto 0 0 auto; width: 58%; height: 210px; background: var(--special-art) no-repeat center 20% / cover; mask-image: radial-gradient(ellipse 110% 100% at 80% 70%, #000 30%, transparent 85%); }
-  [data-accent="meme"] .hero:not(.hero--credit)::after { inset: auto 0 0 auto; width: 58%; height: 210px; background: url('../assets/meme-grid.webp') no-repeat center / contain; mask-image: none; opacity: .9; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__aside, [data-accent="meme"] .hero:not(.hero--credit) .hero__aside { width: 46%; flex-direction: column; justify-content: center; gap: 8px; }
-  [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note, [data-accent="meme"] .hero:not(.hero--credit) .hero__ring-note { max-width: 16ch; text-align: center; }
+  [data-accent="anime"] .hero:not(.hero--credit)::after, .hero__titan-intro { inset: auto 0 0 auto; width: 58%; height: 210px; mask-image: radial-gradient(ellipse 110% 100% at 80% 70%, #000 30%, transparent 85%); }
+  [data-accent="anime"] .hero:not(.hero--credit)::after { background: var(--special-art) no-repeat center 20% / cover; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__aside { width: 46%; flex-direction: column; justify-content: center; gap: 8px; }
+  [data-accent="anime"] .hero:not(.hero--credit) .hero__ring-note { max-width: 16ch; text-align: center; }
 }
+@media (prefers-reduced-motion: reduce) { .hero__titan-intro { display: none; animation: none; } }
 
 .appearance-special-heading { margin-top: 26px; }
 .appearance-premium-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -1797,22 +1783,18 @@ kbd {
 .appearance-card--premium p { min-height: 0; }
 @media (max-width: 520px) { .appearance-premium-grid { grid-template-columns: 1fr; } .appearance-card--premium .appearance-preview { height: 136px; } }
 
-/* Коллаж расположен отдельной строкой: мемы видны целиком и не закрывают текст. */
-[data-accent="meme"] .hero:not(.hero--credit)::after {
-  position: relative; inset: auto; grid-column: 1 / -1; width: 100%; height: 160px;
-  background: url('../assets/meme-strip.webp') no-repeat center / contain; mask-image: none; opacity: 1;
+
+/* Декоративные цвета следуют выбранному оформлению; цвета верных и неверных ответов остаются смысловыми. */
+[data-accent]:not([data-accent="default"]) { --violet: var(--primary); --violet-soft: var(--primary-soft); --teal: var(--primary); --teal-soft: var(--primary-soft); }
+[data-accent]:not([data-accent="default"]):not([data-accent="anime"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
+[data-accent]:not([data-accent="default"]) .progress:not(.progress--ok):not(.progress--mid):not(.progress--low) span { background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 65%, white)); }
+[data-accent]:not([data-accent="default"]) .rewards-hero { background: linear-gradient(125deg, color-mix(in srgb, var(--primary) 24%, #161927), color-mix(in srgb, var(--primary) 38%, #211a2a)); }
+/* Нейтральные поверхности и подписи тоже учитывают выбранную палитру. */
+[data-accent]:not([data-accent="default"]) {
+  --surface-2: color-mix(in srgb, var(--primary) 4%, var(--surface));
+  --surface-3: color-mix(in srgb, var(--primary) 9%, var(--surface));
+  --border: color-mix(in srgb, var(--primary) 15%, var(--surface));
+  --border-strong: color-mix(in srgb, var(--primary) 25%, var(--surface));
+  --muted: color-mix(in srgb, var(--primary) 20%, #505969);
 }
-[data-accent="anime"] .hero:not(.hero--credit)::after {
-  background-image: linear-gradient(to right, rgba(29, 32, 27, .94), transparent 58%), var(--special-art);
-  background-size: cover, cover; background-position: center, center 21%;
-}
-.appearance-preview--anime::after { background-position: center 8%; }
-@media (max-width: 760px) {
-  [data-accent="meme"] .hero:not(.hero--credit)::after {
-    position: relative; inset: auto; width: 100%; height: 220px;
-    background: url('../assets/meme-grid.webp') no-repeat center / contain; mask-image: none; opacity: 1;
-  }
-  [data-accent="meme"] .hero:not(.hero--credit) .hero__aside { width: 100%; flex-direction: row; justify-content: flex-start; gap: 16px; }
-  [data-accent="meme"] .hero:not(.hero--credit) .hero__ring-note { text-align: left; max-width: 20ch; }
-  [data-accent="anime"] .hero:not(.hero--credit)::after { background-image: var(--special-art); }
-}
+[data-theme="dark"][data-accent]:not([data-accent="default"]) { --muted: color-mix(in srgb, var(--primary) 22%, #a3aab7); }

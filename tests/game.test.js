@@ -627,68 +627,52 @@ test('общая покупка восстанавливает списание 
   assert.equal(AT.game.profile().appearances.ocean, true);
 });
 
-test('аниме и мем — самые дорогие оформления и покупаются через общую оплату', () => {
+test('аниме — самое дорогое оформление и покупается через общую оплату', () => {
   const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 9000; AT.save(true);
   const styles = AT.game.appearances;
-  const regularPrices = Object.entries(styles).filter(([id]) => !['anime','meme'].includes(id)).map(([, style]) => style.price);
-  assert.ok(styles.anime.price > Math.max(...regularPrices));
-  assert.ok(styles.meme.price > Math.max(...regularPrices));
-  assert.equal(styles.anime.price, 5000); assert.equal(styles.meme.price, 6000);
+  const regularPrices = Object.entries(styles).filter(([id]) => id !== 'anime').map(([, style]) => style.price);
+  assert.ok(styles.anime.price > Math.max(...regularPrices)); assert.equal(styles.anime.price, 5000);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
-  assert.equal(AT.game.ensure().coins, 6500);
-  assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 0);
-  assert.equal(AT.game.buyAppearance('meme', {'2':6000}).ok, true);
-  assert.equal(AT.game.ensure().coins, 500);
-  AT = app(storage, '3');
-  assert.equal(AT.game.profile().appearances.anime, true);
-  assert.equal(AT.game.profile().appearances.meme, true);
-  assert.equal(AT.game.profile().appearance, 'meme');
-  assert.equal(AT.game.selectAppearance('anime').ok, true);
+  assert.equal(AT.game.ensure().coins, 6500); assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 0);
+  AT = app(storage, '3'); assert.equal(AT.game.profile().appearances.anime, true);
+  assert.equal(AT.game.profile().appearance, 'anime');
 });
 
-test('абсолютное достижение выдаётся только за все платные оформления и общее для баз', () => {
-  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true, anime:true};
+test('достижение за все доступные оформления учитывает покупку аниме и сохраняется между базами', () => {
+  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true};
   const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:purchases, achievements:{}})};
-  let AT = app(storage, '1');
-  let badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.absolute, true); assert.equal(badge.goal, 8); assert.equal(badge.current, 7); assert.equal(badge.unlocked, false);
-  AT.game.ensure().coins = 3000; AT.save(true);
-  AT = app(storage, '2'); AT.game.ensure().coins = 3000; AT.save(true);
-  assert.equal(AT.game.buyAppearance('meme', {'1':3000, '2':3000}).ok, true);
+  let AT = app(storage, '1'); let badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
+  assert.equal(badge.absolute, true); assert.equal(badge.goal, 7); assert.equal(badge.current, 6); assert.equal(badge.unlocked, false);
+  AT.game.ensure().coins = 2500; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 2500; AT.save(true);
+  assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
   badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.current, 8); assert.equal(badge.unlocked, true);
-  assert.ok(AT.game.profile().achievements['absolute-collector']);
+  assert.equal(badge.current, 7); assert.equal(badge.unlocked, true);
   AT.resetProgress(); AT = app(storage, 'credit-1');
   assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
 });
 
-test('предыдущая коллекция не считается полной без новых оформлений, неизвестные покупки не засчитываются', () => {
-  const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:{ocean:true,ruby:true,amber:true,autumn:true,winter:true,spring:true,default:true,unknown:true}})};
-  const AT = app(storage, '1');
-  const badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.current, 6); assert.equal(badge.goal, 8); assert.equal(badge.unlocked, false);
-  AT.game.ensure().coins = 6000;
-  assert.equal(AT.game.buyAppearance('meme', {'1':5999}).ok, false);
-  assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, false);
+test('временно скрытое мемное оформление не продаётся, право на него не удаляется', () => {
+  const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearance:'meme', appearances:{meme:true}, achievements:{}})};
+  let AT = app(storage); assert.equal(AT.game.profile().appearance, 'default');
+  assert.equal(AT.game.profile().appearances.meme, true);
+  assert.equal(AT.game.buyAppearance('meme', {'1':6000}).ok, false);
+  assert.doesNotMatch(AT.views.rewards().html, /Мемопад/);
+  assert.equal(AT.game.inspectAppearanceImport({sharedRewards:{appearances:{anime:true,meme:true}}}).ok, true);
+  assert.equal(AT.game.importAppearances({sharedRewards:{appearances:{anime:true,meme:true}}}).ok, true);
+  AT = app(storage, '2'); assert.equal(AT.game.profile().appearances.meme, true);
 });
 
-test('особые оформления используют локальные изображения и доступны в обеих темах', () => {
+test('аниме оформление имеет локальный полноэкранный фон, постер и анимацию', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
-  for (const id of ['anime', 'meme']) {
-    assert.match(css, new RegExp('data-theme="dark"\\]\\[data-accent="' + id + '"'));
-    assert.match(css, new RegExp('appearance-preview--' + id));
-  }
-  const poster = fs.readFileSync(path.join(__dirname, '..', 'assets', 'attack-on-titan-key-visual.jpg'));
-  assert.equal(poster[0], 0xff); assert.equal(poster[1], 0xd8);
-  for (const name of ['meme-strip.webp', 'meme-grid.webp']) {
-    const image = fs.readFileSync(path.join(__dirname, '..', 'assets', name));
-    assert.equal(image.toString('ascii', 0, 4), 'RIFF'); assert.equal(image.toString('ascii', 8, 12), 'WEBP');
-    assert.ok(image.length > 10000); assert.ok(css.includes(name));
-  }
-  assert.match(css, /attack-on-titan-key-visual\.jpg/);
-  const html = app().views.rewards().html;
-  assert.match(html, /Атака титанов/); assert.match(html, /67, Chill Guy, Ждун/); assert.match(html, /Полная коллекция/);
+  assert.match(css, /data-theme="dark"\]\[data-accent="anime"/); assert.match(css, /prefers-reduced-motion/);
+  for (const name of ['attack-on-titan-key-visual.jpg', 'titan-sunset.webp', 'titan-intro.gif']) assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', name)).size > 10000);
+  assert.match(css, /titan-sunset\.webp/); assert.match(css, /cover no-repeat/);
+  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'titan-intro.gif'));
+  assert.match(gif.toString('ascii', 0, 6), /^GIF8/); assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
+  assert.match(css, /--teal: var\(--primary\)/); assert.match(css, /\.hero:not\(\.hero--credit\)/);
+  assert.match(app().views.rewards().html, /Атака титанов/);
 });
 
 test('импорт оформлений добавляет коллекцию, сохраняя прогресс, валюту и выбранную тему', () => {
@@ -698,13 +682,13 @@ test('импорт оформлений добавляет коллекцию, �
   AT.getState().key['1'] = [2];
   AT.game.ensure().coins = 321; AT.game.ensure().rating = 45; AT.save(true);
   const file = { sharedRewards: { appearances: Object.fromEntries(Object.keys(AT.game.appearances).filter(id => id !== 'default').map(id => [id, true])) }, game: { coins: 1000000 }, progress: {} };
-  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 8);
+  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 7);
   assert.equal(AT.game.importAppearances(file).ok, true);
   assert.equal(AT.game.ensure().coins, 321); assert.equal(AT.game.ensure().rating, 45);
   assert.equal(AT.getState().progress.q1.streak, 2); assert.deepEqual([...AT.getState().key['1']], [2]);
   assert.equal(AT.game.profile().appearance, 'default');
   assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
-  AT = app(storage, '2'); assert.equal(AT.game.profile().appearances.anime, true); assert.equal(AT.game.profile().appearances.meme, true);
+  AT = app(storage, '2'); assert.equal(AT.game.profile().appearances.anime, true);
   assert.equal(AT.game.selectAppearance('anime').ok, true);
 });
 
