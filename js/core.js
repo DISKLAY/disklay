@@ -146,6 +146,7 @@
       theme: 'auto',
       strict: true,
       hintCount: false,
+      shuffleAnswers: true,
     },
     key: {},          // правки/импорт: { "1": [1,2] }
     keyMeta: { updatedAt: null, source: '' },
@@ -656,17 +657,39 @@
     return pool.map((q) => q.id);
   }
 
+  // Внутренние номера вариантов всегда соответствуют исходной базе и ключу.
+  // Только отображаемый порядок записывается в сессию и не меняется при возврате к вопросу.
+  function optionOrder(session, q) {
+    const count = q.options.length;
+    const identity = Array.from({ length: count }, (_, i) => i + 1);
+    const saved = session && session.optionOrders && session.optionOrders[q.id];
+    if (!Array.isArray(saved) || saved.length !== count ||
+        saved.some(i => !Number.isInteger(i) || i < 1 || i > count) || new Set(saved).size !== count) return identity;
+    return saved.slice();
+  }
+
+  // Обобщающие варианты вроде «все перечисленное» оставляем в исходном порядке.
+  function optionsAreOrderDependent(q) {
+    return q.options.some(text => /(?:вс[её]|ничего|ни\s+один)[^.!?]{0,40}перечислен|вышеперечислен|нижеперечислен|предыдущ(?:ий|ие|их)\s+(?:вариант|ответ)|(?:вариант|ответ)[а-я]*\s*(?:№|номер)\s*\d/i.test(text));
+  }
+
   function startSession(config) {
     const mode = config.mode === 'exam' ? 'exam' : 'train';
     const ids = config.ids || pickQuestions(config);
     if (!ids.length) return null;
     const limitSeconds = mode === 'exam' && config.timerMinutes ? Math.round(config.timerMinutes * 60) : 0;
+    const optionOrders = {};
+    if (state.settings.shuffleAnswers) ids.forEach(id => {
+      const q = byId.get(id);
+      if (q && !optionsAreOrderDependent(q)) optionOrders[id] = utils.shuffle(Array.from({ length: q.options.length }, (_, i) => i + 1));
+    });
     const session = {
       id: 's' + Date.now(),
       mode,
       scope: config.scope || 'smart',
       topicIds: config.topicIds && config.topicIds.length ? config.topicIds : ['all'],
       ids,
+      optionOrders,
       index: 0,
       results: {},
       startedAt: Date.now(),
@@ -807,6 +830,7 @@
     progressOf,
     analytics,
     pickQuestions,
+    optionOrder,
     examPlan,
     buildExam,
     startSession,

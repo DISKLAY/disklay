@@ -406,7 +406,14 @@
     return list.length ? list.join(', ') : '—';
   }
 
-  function optionHtml(q, index, entry, revealed, disabled) {
+  function displayNumber(session, q, originalIndex) {
+    return AT.optionOrder(session, q).indexOf(originalIndex) + 1;
+  }
+  function inDisplayOrder(session, q, indices) {
+    return indices.slice().sort((a, b) => displayNumber(session, q, a) - displayNumber(session, q, b));
+  }
+
+  function optionHtml(q, index, number, entry, revealed, disabled) {
     const selected = entry.selected.indexOf(index) !== -1;
     const answer = AT.keyApi.forQuestion(q);
     let cls = 'option';
@@ -432,14 +439,14 @@
 
     return '<button type="button" class="' + cls + '" data-action="toggle-option" data-index="' + index + '"' +
       (disabled ? ' disabled' : '') + ' aria-pressed="' + (selected ? 'true' : 'false') + '">' +
-      '<span class="option__key">' + index + '</span>' +
+      '<span class="option__key">' + number + '</span>' +
       '<span class="option__text">' + esc(q.options[index - 1]) + '</span>' +
       mark +
       '<span class="option__check">' + icon('check') + '</span>' +
       '</button>';
   }
 
-  function feedbackHtml(q, entry) {
+  function feedbackHtml(session, q, entry) {
     const answer = AT.keyApi.forQuestion(q);
     if (!answer) {
       if (!entry.selected.length && entry.correct === null) {
@@ -460,7 +467,7 @@
     if (entry.correct) {
       return '<div class="feedback feedback--ok">' +
         '<div class="feedback__head">' + icon('check') + '<strong>Верно</strong></div>' +
-        '<p>Правильный ответ: <b>' + answerLabel(answer.answers) + '</b></p>' +
+        '<p>Правильный ответ: <b>' + answerLabel(inDisplayOrder(session, q, answer.answers).map(i => displayNumber(session, q, i))) + '</b></p>' +
         '</div>';
     }
 
@@ -468,10 +475,10 @@
       '<div class="feedback__head">' + icon('x') + '<strong>Неверно</strong></div>' +
       '<div class="feedback__grid">' +
       '<div><span class="feedback__label">Правильный ответ</span><p>' +
-      answer.answers.map((i) => '<span class="answer-pill">' + i + '. ' + esc(q.options[i - 1]) + '</span>').join('') +
+      inDisplayOrder(session, q, answer.answers).map((i) => '<span class="answer-pill">' + displayNumber(session, q, i) + '. ' + esc(q.options[i - 1]) + '</span>').join('') +
       '</p></div>' +
       '<div><span class="feedback__label">Ваш ответ</span><p>' +
-      (entry.selected.length ? entry.selected.map((i) => '<span class="answer-pill answer-pill--muted">' + i + '. ' + esc(q.options[i - 1]) + '</span>').join('') : '<span class="muted">ничего не выбрано</span>') +
+      (entry.selected.length ? inDisplayOrder(session, q, entry.selected).map((i) => '<span class="answer-pill answer-pill--muted">' + displayNumber(session, q, i) + '. ' + esc(q.options[i - 1]) + '</span>').join('') : '<span class="muted">ничего не выбрано</span>') +
       '</p></div>' +
       '</div></div>';
   }
@@ -495,9 +502,9 @@
       '<p class="question__hint">' + (isExam ? 'Можно вернуться к вопросу позже' : 'Выберите все правильные варианты') + '</p>' +
       '<div class="options">';
 
-    q.options.forEach((opt, i) => {
-      if (!revealed && entry.hiddenOptions && entry.hiddenOptions.includes(i + 1)) return;
-      html += optionHtml(q, i + 1, entry, revealed, revealed);
+    AT.optionOrder(session, q).forEach((originalIndex, i) => {
+      if (!revealed && entry.hiddenOptions && entry.hiddenOptions.includes(originalIndex)) return;
+      html += optionHtml(q, originalIndex, i + 1, entry, revealed, revealed);
     });
 
     html += '</div>';
@@ -529,7 +536,7 @@
 
     html += '</article>';
 
-    if (!isExam && revealed) html += feedbackHtml(q, entry);
+    if (!isExam && revealed) html += feedbackHtml(session, q, entry);
     return html;
   }
 
@@ -662,10 +669,11 @@
         const entry = entryOf(session, q.id);
 
         if (/^[1-6]$/.test(e.key)) {
-          const idx = parseInt(e.key, 10);
-          if (idx <= q.options.length) {
+          const position = parseInt(e.key, 10);
+          const originalIndex = AT.optionOrder(session, q)[position - 1];
+          if (originalIndex) {
             e.preventDefault();
-            toggleOption(idx);
+            toggleOption(originalIndex);
           }
         } else if (e.key === 'Enter') {
           e.preventDefault();
@@ -911,13 +919,13 @@
         '<div class="review__cols">' +
         '<div><span class="feedback__label">Правильный ответ</span>' +
         (answer
-          ? '<ul class="review__answers">' + answer.answers.map((idx) => '<li class="is-correct">' + idx + '. ' + esc(q.options[idx - 1]) + '</li>').join('') + '</ul>'
+          ? '<ul class="review__answers">' + inDisplayOrder(session, q, answer.answers).map((idx) => '<li class="is-correct">' + displayNumber(session, q, idx) + '. ' + esc(q.options[idx - 1]) + '</li>').join('') + '</ul>'
           : '<p class="muted">Ключа нет — вопрос в режиме самопроверки</p>') +
         '</div>' +
         '<div><span class="feedback__label">Ваш ответ</span>' +
         (r.selected && r.selected.length
-          ? '<ul class="review__answers">' + r.selected.map((idx) => '<li class="' + (answer && answer.answers.indexOf(idx) !== -1 ? 'is-ok' : answer ? 'is-bad' : '') + '">' +
-            idx + '. ' + esc(q.options[idx - 1]) + '</li>').join('') + '</ul>'
+          ? '<ul class="review__answers">' + inDisplayOrder(session, q, r.selected).map((idx) => '<li class="' + (answer && answer.answers.indexOf(idx) !== -1 ? 'is-ok' : answer ? 'is-bad' : '') + '">' +
+            displayNumber(session, q, idx) + '. ' + esc(q.options[idx - 1]) + '</li>').join('') + '</ul>'
           : '<p class="muted">Нет ответа</p>') +
         '</div></div>' +
         (r.correct === null || r.correct === undefined

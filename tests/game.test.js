@@ -705,3 +705,76 @@ test('неверный или несовместимый файл оформле
   }
   assert.match(AT.views.settings().html, /Импортировать оформления/);
 });
+
+test('порядок вариантов сохраняется на всю сессию и меняется только для новых сессий', () => {
+  const storage = {}; let AT = app(storage, '1');
+  assert.equal(AT.getState().settings.shuffleAnswers, true);
+  AT.utils.shuffle = values => values.slice().reverse();
+  const q = AT.dataset.questions[0];
+  const session = AT.startSession({mode:'train', ids:[q.id]});
+  const expected = Array.from({length:q.options.length}, (_, i) => q.options.length - i);
+  assert.deepEqual(Array.from(AT.optionOrder(session, q)), expected);
+  AT.getState().settings.shuffleAnswers = false;
+  AT.save(true);
+  AT = app(storage, '1');
+  assert.deepEqual(Array.from(AT.optionOrder(AT.currentSession(), q)), expected);
+  const plain = AT.startSession({mode:'train', ids:[q.id]});
+  assert.deepEqual(Array.from(AT.optionOrder(plain, q)), expected.slice().reverse());
+  assert.match(AT.views.settings().html, /Перемешивать варианты ответов/);
+  const legacy = {mode:'train', results:{[q.id]:{selected:[1], revealed:false}}};
+  assert.deepEqual(Array.from(AT.optionOrder(legacy, q)), expected.slice().reverse());
+  const damaged = {optionOrders:{[q.id]:expected.map(() => 1)}};
+  assert.deepEqual(Array.from(AT.optionOrder(damaged, q)), expected.slice().reverse());
+});
+
+test('перемешивание сохраняет исходные ключи, подсказки и номера в разборе', () => {
+  const AT = app(); const q = AT.dataset.questions[0];
+  AT.utils.shuffle = values => values.slice().reverse();
+  const session = AT.startSession({mode:'train', ids:[q.id]});
+  const order = Array.from(AT.optionOrder(session, q));
+  const key = Array.from(AT.keyApi.forQuestion(q).answers);
+  assert.deepEqual(key, [1,2]);
+  const entry = session.results[q.id] = {selected:key.slice(), revealed:false, correct:null};
+  assert.equal(AT.gradeQuestion(q, entry.selected).correct, true);
+  const html = AT.views.questionCard(session, q, entry);
+  assert.match(html, /data-index="5"[^>]*>[\s\S]*?<span class="option__key">1<\/span>/);
+  assert.match(html, /data-index="1"[^>]*>[\s\S]*?<span class="option__key">5<\/span>/);
+  AT.game.ensure().inventory['hint-train'] = 1;
+  assert.equal(AT.game.useHint(session, q, entry).ok, true);
+  assert.ok(!key.includes(entry.hiddenOptions[0]));
+  assert.doesNotMatch(AT.views.questionCard(session, q, entry), new RegExp('data-index="' + entry.hiddenOptions[0] + '"'));
+  entry.revealed = true; entry.correct = true;
+  assert.match(AT.views.questionCard(session, q, entry), /Правильный ответ: <b>4, 5<\/b>/);
+  AT.finishSession();
+  const summary = AT.views.summary().html;
+  assert.match(summary, new RegExp('4\\. ' + AT.utils.esc(q.options[1]).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(summary, new RegExp('5\\. ' + AT.utils.esc(q.options[0]).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(q).answers), key);
+  assert.deepEqual(Array.from(AT.optionOrder(session, q)), order);
+});
+
+test('варианты во всех базах, включая вопросы с четырьмя и шестью ответами, не меняют проверку', () => {
+  for (const id of ['1','2','3','4','credit-1','credit-2','stom-2','stom-3']) {
+    const AT = app({}, id); AT.utils.shuffle = values => values.slice().reverse();
+    const questions = AT.dataset.questions;
+    const session = AT.startSession({mode:'train', ids:questions.map(q => q.id)});
+    for (const q of questions) {
+      const original = Array.from(q.options), order = Array.from(AT.optionOrder(session, q));
+      assert.equal(new Set(order).size, original.length);
+      assert.deepEqual(order.slice().sort((a,b)=>a-b), original.map((_, i)=>i+1));
+      const answer = AT.keyApi.forQuestion(q);
+      if (answer) assert.equal(AT.gradeQuestion(q, Array.from(answer.answers)).correct, true);
+      else assert.equal(AT.gradeQuestion(q, []).correct, null);
+      assert.deepEqual(Array.from(q.options), original);
+    }
+  }
+});
+
+test('вопросы с обобщающими вариантами не меняют исходный порядок', () => {
+  for (const [id, num] of [['2','169'], ['credit-1','237']]) {
+    const AT = app({}, id); AT.utils.shuffle = values => values.slice().reverse();
+    const q = AT.dataset.byNum.get(num); const session = AT.startSession({mode:'train', ids:[q.id]});
+    assert.match(q.options.join(' '), /все перечисленное верно/i);
+    assert.deepEqual(Array.from(AT.optionOrder(session, q)), Array.from(q.options, (_,i)=>i+1));
+  }
+});

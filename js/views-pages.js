@@ -536,6 +536,8 @@
         settings.strict) +
       switchRow('hintCount', 'Подсказывать число верных ответов',
         'В тренировке показывать, сколько правильных вариантов в задании.', settings.hintCount) +
+      switchRow('shuffleAnswers', 'Перемешивать варианты ответов',
+        'В тренировке и экзамене варианты меняют порядок. Для новых сессий этой базы; зависимые от порядка варианты не перемешиваются.', settings.shuffleAnswers) +
       '</section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
