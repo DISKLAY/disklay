@@ -1585,10 +1585,10 @@ kbd {
 .rewards-hero__metrics strong { font-size: 1.8rem; line-height: 1.2; }
 .rewards-context { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; margin-top: 16px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); font-size: .84rem; }
 .rewards-context .icon { width: 18px; height: 18px; color: var(--primary); margin-top: 2px; }
-.achievement-grid, .shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.achievement-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
 .achievement { display: flex; gap: 12px; padding: 17px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
 .achievement.is-unlocked { border-color: var(--primary-border); background: var(--primary-soft); }
-.achievement__icon, .shop-card__icon { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--surface-3); color: var(--muted); }
+.achievement__icon { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--surface-3); color: var(--muted); }
 .achievement.is-unlocked .achievement__icon { background: var(--surface); color: var(--primary); }
 .achievement__content { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .achievement__content strong { font-size: .9rem; }
@@ -1598,13 +1598,6 @@ kbd {
 .achievement__progress { height: 4px; margin: 9px 0 3px; border-radius: var(--r-full); background: var(--border-strong); overflow: hidden; }
 .achievement__progress span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 .rewards-footnote, .rewards-intro { color: var(--muted); font-size: .83rem; margin: 12px 0; }
-.shop-card { display: flex; flex-direction: column; gap: 9px; padding: 19px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
-.shop-card__top, .shop-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.shop-card__icon { background: var(--primary-soft); color: var(--primary); }
-.shop-card__tag { padding: 4px 8px; border-radius: var(--r-full); background: var(--surface-3); color: var(--text-2); font-size: .67rem; font-weight: 700; }
-.shop-card h3 { font-size: .98rem; }
-.shop-card p { flex: 1; color: var(--muted); font-size: .82rem; }
-.shop-card__footer { padding-top: 8px; border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted); }
 .rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
 .rules-grid > div { padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
 .rules-grid strong { font-size: .9rem; }
@@ -1616,15 +1609,12 @@ kbd {
 .game-overview__body strong { font-size: .92rem; }
 .game-overview__body span { font-size: .8rem; color: var(--text-2); }
 .game-overview__arrow { color: var(--primary); }
-.boost-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding: 12px; border-radius: var(--r-md); background: var(--surface-2); }
-.boost-bar__title { font-weight: 700; font-size: .78rem; color: var(--text-2); }
-.boost-bar__note { width: 100%; color: var(--muted); font-size: .74rem; }
 .game-result { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; padding: 16px 18px; border: 1px solid var(--primary-border); border-radius: var(--r-md); background: var(--primary-soft); }
 .game-result div { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .game-result p, .game-result span { color: var(--text-2); font-size: .83rem; }
-@media (max-width: 1000px) { .achievement-grid, .shop-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 1000px) { .achievement-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 760px) { .rewards-hero { grid-template-columns: 1fr; padding: 26px 22px; gap: 20px; } .rewards-hero__metrics div { flex: 1; min-width: 0; } }
-@media (max-width: 520px) { .achievement-grid, .shop-grid, .rules-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .achievement-grid, .rules-grid { grid-template-columns: 1fr; } }
 
 .exam-game-note { margin-top: 18px; padding: 13px 15px; border: 1px solid var(--primary-border); border-radius: var(--r-md); background: var(--primary-soft); }
 .exam-game-note strong { font-size: .86rem; }
@@ -1718,30 +1708,6 @@ kbd {
 .appearance-preview--winter::after { background-image: url('../assets/season-winter.svg'); }
 .appearance-preview--spring::after { background-image: url('../assets/season-spring.svg'); }
 
-/* Оплата оформления: суммы видны и редактируются до подтверждения. */
-.checkout-modal { z-index: 110; }
-.checkout-card { width: min(540px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
-.checkout-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.checkout-head h3 { margin: 2px 0 8px; font-size: 1.14rem; }
-.checkout-overline { color: var(--primary); font-size: .68rem; font-weight: 750; letter-spacing: .08em; }
-.checkout-head .course-sidebar__close { flex: none; }
-.checkout-wallets { display: flex; flex-direction: column; gap: 8px; max-height: min(38dvh, 320px); overflow-y: auto; margin-top: 16px; padding: 2px; }
-.checkout-wallet { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); }
-.checkout-wallet__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; line-height: 1.3; }
-.checkout-wallet__text strong { font-size: .8rem; font-weight: 650; }
-.checkout-wallet__text small { color: var(--muted); font-size: .73rem; }
-.checkout-wallet input { width: 92px; height: 44px; flex: none; padding: 8px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--text); text-align: right; font-size: .9rem; }
-.checkout-wallet input[aria-invalid="true"] { border-color: var(--rose); }
-.checkout-total { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 14px; color: var(--muted); font-size: .8rem; }
-.checkout-total strong { color: var(--text); font-size: .9rem; }
-.checkout-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-@media (max-width: 520px) {
-  .checkout-modal { padding: 12px; }
-  .checkout-card { padding: 18px; }
-  .checkout-wallets { max-height: 35dvh; }
-  .checkout-actions { flex-direction: column-reverse; align-items: stretch; }
-}
-
 /* Атака титанов: постер внутри блока, выбранный закат — на весь экран. */
 [data-accent="anime"] { --primary: #6f3c8f; --primary-strong: #53296d; --primary-soft: #f3eaf8; --primary-border: #d9badd; --special-art: url('../assets/attack-on-titan-key-visual.jpg'); }
 [data-theme="dark"][data-accent="anime"] { --primary: #e2b6ef; --primary-strong: #f0d2f8; --primary-soft: #2e1e38; --primary-border: #684875; }
@@ -1789,7 +1755,7 @@ kbd {
 
 /* Декоративные цвета следуют выбранному оформлению; цвета верных и неверных ответов остаются смысловыми. */
 [data-accent]:not([data-accent="default"]) { --violet: var(--primary); --violet-soft: var(--primary-soft); --teal: var(--primary); --teal-soft: var(--primary-soft); }
-[data-accent]:not([data-accent="default"]):not([data-accent="anime"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
+[data-accent]:not([data-accent="default"]):not([data-accent="anime"]):not([data-accent="rickmorty"]):not([data-accent="breakingbad"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
 [data-accent]:not([data-accent="default"]) .progress:not(.progress--ok):not(.progress--mid):not(.progress--low) span { background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 65%, white)); }
 [data-accent]:not([data-accent="default"]) .rewards-hero { background: linear-gradient(125deg, color-mix(in srgb, var(--primary) 24%, #161927), color-mix(in srgb, var(--primary) 38%, #211a2a)); }
 /* Нейтральные поверхности и подписи тоже учитывают выбранную палитру. */
@@ -1843,3 +1809,76 @@ kbd {
 @keyframes germ-pop { 50% { transform: scale(1.3); opacity: .8; } 100% { transform: scale(.15); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .germ-squad__germ.is-popping svg { animation: none; opacity: 0; } .germ-squad__reward { animation: none; opacity: 0; } }
 @media (max-width: 520px) { .portfolio-group { padding: 17px; } }
+
+/* Особые оформления сериалов: изображения локальные, фон не мешает чтению. */
+[data-accent="rickmorty"] { --primary: #287038; --primary-strong: #175526; --primary-soft: #e8f5e5; --primary-border: #a5cba3; --series-art: url('../assets/rick-morty-hero.webp'); --series-background: url('../assets/rick-morty-world.webp'); --series-ink: #0b291b; --series-highlight: #d4f6bb; }
+[data-theme="dark"][data-accent="rickmorty"] { --primary: #9ede92; --primary-strong: #c1f2b5; --primary-soft: #1b3421; --primary-border: #426e47; }
+[data-accent="breakingbad"] { --primary: #626d28; --primary-strong: #46511a; --primary-soft: #f2f2da; --primary-border: #c4cb92; --series-art: url('../assets/breaking-bad.jpg'); --series-background: url('../assets/breaking-bad-background.jpg'); --series-ink: #29240d; --series-highlight: #f5e7a6; }
+[data-theme="dark"][data-accent="breakingbad"] { --primary: #d5d681; --primary-strong: #e9e9a9; --primary-soft: #30331d; --primary-border: #72784a; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) body { isolation: isolate; background-image: none; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) body::before {
+  content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
+  background: linear-gradient(rgba(250,251,246,.82), rgba(250,251,246,.82)), var(--series-background) center / cover no-repeat;
+}
+:is([data-theme="dark"][data-accent="rickmorty"], [data-theme="dark"][data-accent="breakingbad"]) body::before {
+  background-image: linear-gradient(rgba(12,17,12,.80), rgba(12,17,12,.80)), var(--series-background);
+}
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) {
+  color: #fff; border-color: color-mix(in srgb, var(--series-ink) 50%, white);
+  background: linear-gradient(90deg, var(--series-ink) 10%, color-mix(in srgb, var(--series-ink) 75%, transparent) 58%, color-mix(in srgb, var(--series-ink) 44%, transparent)), var(--series-art) center 45% / cover no-repeat;
+}
+[data-accent="rickmorty"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #235c30, #397e37); }
+[data-accent="breakingbad"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #48551c, #77752b); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit)::after { display: none; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .hero__body,
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .hero__aside { position: relative; z-index: 1; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) :is(.eyebrow, .hero__ring-note, .ring__label span, .hero__lead) { color: #edf4e8; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .hero__module { color: var(--series-highlight); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .ring__track { stroke: rgba(255,255,255,.25); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .ring__value { stroke: var(--series-highlight); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .btn--ghost { --btn-fg: #fff; --btn-border: rgba(255,255,255,.6); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .btn--ghost:hover { --btn-bg: rgba(255,255,255,.12); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) :focus-visible { outline-color: #fff; }
+.appearance-preview--rickmorty, .appearance-preview--breakingbad { position: relative; overflow: hidden; }
+.appearance-preview--rickmorty::after, .appearance-preview--breakingbad::after { content: ""; position: absolute; inset: 0; background: var(--preview-art) center / cover no-repeat; }
+.appearance-preview--rickmorty { --preview-art: url('../assets/rick-morty-hero.webp'); }
+.appearance-preview--breakingbad { --preview-art: url('../assets/breaking-bad.jpg'); }
+.appearance-preview--rickmorty span, .appearance-preview--breakingbad span { display: none; }
+@media (max-width: 760px) {
+  :is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) {
+    background: linear-gradient(color-mix(in srgb, var(--series-ink) 83%, transparent), color-mix(in srgb, var(--series-ink) 85%, transparent)), var(--series-art) center / cover no-repeat;
+  }
+}
+
+/* Вступительная сцена Рика и Морти: постер скрыт только во время GIF. */
+@media (min-width: 761px) {
+  [data-accent="rickmorty"] .hero:not(.hero--credit) { min-height: 400px; }
+}
+@media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
+  [data-accent="rickmorty"] .hero:not(.hero--credit).hero--rick-playing {
+    background: linear-gradient(110deg, #0b291b, #163d23 60%, #10281b);
+  }
+}
+.hero__rick-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
+.hero__rick-intro img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.hero__rick-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(11,41,27,.94), rgba(11,41,27,.75) 50%, rgba(11,41,27,.38)); }
+.hero__rick-intro.is-playing { animation: rick-intro 2.15s ease-out forwards; }
+@keyframes rick-intro { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (max-width: 760px) { .hero__rick-intro { display: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hero__rick-intro { display: none; animation: none; } }
+
+/* «Во все тяжкие»: отдельное интро только на ПК, без постера под анимацией. */
+@media (min-width: 761px) {
+  [data-accent="breakingbad"] .hero:not(.hero--credit) { min-height: 400px; }
+}
+@media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
+  [data-accent="breakingbad"] .hero:not(.hero--credit).hero--breaking-playing {
+    background: linear-gradient(110deg, #29240d, #413a18 60%, #211e0c);
+  }
+}
+.hero__breaking-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
+.hero__breaking-intro img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: brightness(1.18); }
+.hero__breaking-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(30,25,10,.94), rgba(30,25,10,.75) 50%, rgba(30,25,10,.38)); }
+.hero__breaking-intro.is-playing { animation: rick-intro 2s ease-out forwards; }
+@media (max-width: 760px) { .hero__breaking-intro { display: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hero__breaking-intro { display: none; animation: none; } }

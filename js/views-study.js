@@ -92,6 +92,8 @@
   /* ---------------------------------------------------------------- главная */
 
   let titanIntroPlayed = false;
+  let rickIntroPlayed = false;
+  let breakingIntroPlayed = false;
   views.dashboard = function () {
     const overall = analytics.overall();
     const keyed = keyApi.count();
@@ -125,7 +127,7 @@
 
     if (AT.game) {
       html += '<a class="game-overview" href="#/rewards"><span class="game-overview__icon">' + icon('sparkles') + '</span>' +
-        '<span class="game-overview__body"><strong>Награды и усиления</strong><span>Валюта этой базы: ' + AT.game.ensure().coins + ' · Общий рейтинг: ' + AT.game.totalRating() + '</span></span>' +
+        '<span class="game-overview__body"><strong>Награды и оформление</strong><span>Общий кошелёк: ' + AT.game.walletBalance() + ' · Общий рейтинг: ' + AT.game.totalRating() + '</span></span>' +
         '<span class="game-overview__arrow">' + icon('chevronRight') + '</span></a>';
     }
 
@@ -194,8 +196,41 @@
     html += '</div>';
 
     const mount = (root) => {
-      if (titanIntroPlayed || AT.colloquium.kind === 'credit' || !AT.game || AT.game.profile().appearance !== 'anime') return;
-      if (window.matchMedia && (window.matchMedia('(max-width: 760px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+      if (AT.colloquium.kind === 'credit' || !AT.game) return;
+      // Декоративные интро не загружаются на мобильных и при снижении движения.
+      const mobileMedia = window.matchMedia && window.matchMedia('(max-width: 760px)');
+      const reducedMedia = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      if ((mobileMedia && mobileMedia.matches) || (reducedMedia && reducedMedia.matches)) return;
+      const appearance = AT.game.profile().appearance;
+      if (appearance === 'rickmorty' || appearance === 'breakingbad') {
+        const isRick = appearance === 'rickmorty';
+        if (isRick ? rickIntroPlayed : breakingIntroPlayed) return;
+        const hero = root.querySelector('.hero:not(.hero--credit)');
+        if (!hero) return;
+        if (isRick) rickIntroPlayed = true; else breakingIntroPlayed = true;
+        const media = document.createElement('div'), clip = document.createElement('img');
+        const playingClass = isRick ? 'hero--rick-playing' : 'hero--breaking-playing';
+        media.className = isRick ? 'hero__rick-intro' : 'hero__breaking-intro'; media.setAttribute('aria-hidden', 'true');
+        clip.alt = '';
+        const queries = [mobileMedia, reducedMedia].filter(Boolean);
+        const onMediaChange = event => { if (event.matches) finishIntro(); };
+        const finishIntro = () => {
+          queries.forEach(query => { if (query.removeEventListener) query.removeEventListener('change', onMediaChange); });
+          hero.classList.remove(playingClass); media.remove();
+        };
+        queries.forEach(query => { if (query.addEventListener) query.addEventListener('change', onMediaChange); });
+        media.addEventListener('animationend', finishIntro, { once: true });
+        media.addEventListener('animationcancel', finishIntro, { once: true });
+        clip.addEventListener('error', finishIntro, { once: true });
+        clip.addEventListener('load', () => {
+          if (media.isConnected) { hero.classList.add(playingClass); media.classList.add('is-playing'); }
+          else finishIntro();
+        }, { once: true });
+        media.appendChild(clip); hero.prepend(media);
+        clip.src = isRick ? 'assets/rick-morty-intro-hd.gif' : 'assets/breaking-bad-intro.gif';
+        return;
+      }
+      if (titanIntroPlayed || appearance !== 'anime') return;
       const media = root.querySelector('.hero:not(.hero--credit) .hero__titan-media');
       if (!media) return;
       titanIntroPlayed = true;
@@ -288,7 +323,7 @@
     const poolSize = new Set(plan.sections.flatMap((sec) => sec.questions.map((q) => q.id))).size;
 
     let html = '<div class="view">';
-    html += pageHead('Экзамен', examFormatText() + '. Число верных ответов не подсказывается, проверка — после завершения. Усиления можно купить заранее в разделе «Награды».');
+    html += pageHead('Экзамен', examFormatText() + '. Число верных ответов не подсказывается, проверка — после завершения.');
 
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">План экзамена</div>' +
@@ -308,7 +343,7 @@
       ' — из каждого раздела случайно выбирается своё количество заданий, ' +
       'порядок вопросов совпадает с планом. На ответ — около ' + per + ' сек., таймер на ' + plan.minutes + ' мин.</p>' +
       '<p class="muted small">Вопросы о черепе в целом и размерах таза распределены по ближайшим разделам.</p>' +
-      (AT.game ? '<div class="exam-game-note"><strong>Игровые ставки</strong><p>Верный ответ приносит валюту и рейтинг. За каждую ошибку или пропуск: −5 валюты и −3 рейтинга. Баланс и рейтинг не опускаются ниже нуля. Подсказки и бонусы можно купить в <a href="#/rewards">магазине усилений</a>; их использование будет отмечено в результате.</p></div>' : '') +
+      (AT.game ? '<div class="exam-game-note"><strong>Игровые ставки</strong><p>Верный ответ приносит валюту и рейтинг. За каждую ошибку или пропуск: −5 валюты и −3 рейтинга. Баланс и рейтинг не опускаются ниже нуля.</p></div>' : '') +
       '</div>' +
 
       '<div class="panel__footer">' +
@@ -545,17 +580,6 @@
     });
 
     html += '</div>';
-    if (AT.game && (isExam || !revealed)) {
-      const g = AT.game.sessionGame(session);
-      const hints = AT.game.count('hint-' + session.mode);
-      const doubles = AT.game.count('double-' + session.mode);
-      const hintUsed = !!(entry.hiddenOptions && entry.hiddenOptions.length);
-      html += '<div class="boost-bar"><span class="boost-bar__title">Усиления</span>' +
-        '<button class="btn btn--ghost btn--sm" data-action="use-hint"' + (!answer || !hints || hintUsed ? ' disabled' : '') + '>' + icon('sparkles') + (hintUsed ? 'Подсказка использована' : 'Убрать неверный · ' + hints) + '</button>' +
-        '<button class="btn btn--ghost btn--sm" data-action="use-double"' + (!doubles || g.bonusRemaining ? ' disabled' : '') + '>' + icon('target') + (g.bonusRemaining ? '×2 ' + (g.bonusEffect === 'currency' ? 'валюта' : 'рейтинг') + ' · осталось ' + g.bonusRemaining : '×2 рейтинг · ' + doubles) + '</button>' +
-        '<span class="boost-bar__note">' + (!answer ? 'Для подсказки нужен ключ.' : 'Усиления покупаются заранее в разделе «Награды».') + '</span></div>';
-    }
-
     if (!isExam) {
       html += '<div class="question__actions">';
       if (!revealed) {
@@ -822,12 +846,7 @@
         else if (action === 'next') next();
         else if (action === 'prev') go(session.index - 1);
         else if (action === 'jump') go(parseInt(el.getAttribute('data-index'), 10));
-        else if (action === 'use-hint' || action === 'use-double') {
-          if (!AT.game) return;
-          const result = action === 'use-hint' ? AT.game.useHint(session, q, entry) : AT.game.activateDouble(session);
-          toast(result.message, result.ok ? undefined : 'warn');
-          renderInto(false);
-        } else if (action === 'self-mark') {
+        else if (action === 'self-mark') {
           if (entry.revealed && entry.correct === null) {
             entry.correct = el.getAttribute('data-value') === '1';
             entry.self = true;
@@ -927,7 +946,7 @@
       html += '<div class="game-result"><div><strong>Игровой результат</strong><span>Валюта: ' + sign(game.coinsChange) + ' · Рейтинг: ' + sign(game.ratingChange) + '</span></div>' +
         (isExam ? '<p>Начислено за ответы: ' + game.coinsEarned + ' валюты и ' + game.ratingEarned + ' рейтинга; штраф за ошибки: −' + game.coinsPenalty + ' и −' + game.ratingPenalty + '. Баланс и рейтинг не опускаются ниже нуля.</p>' : '') +
         (game.germsPopped ? '<p>Микробы: ' + game.germsPopped + ' · +' + game.germCoins + ' валюты.</p>' : '') +
-        (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ' + game.bonusEffects.map(effect => effect === 'currency' ? '×2 валюта' : '×2 рейтинг').join(', ') : '') + '.</p>' : '<p>Без усилений.</p>') + '</div>';
+        (game.hintsUsed || game.bonusUsed ? '<p>Использованы усиления' + (game.hintsUsed ? ': подсказок — ' + game.hintsUsed : '') + (game.bonusUsed ? ' · ' + game.bonusEffects.map(effect => effect === 'currency' ? '×2 валюта' : '×2 рейтинг').join(', ') : '') + '.</p>' : '') + '</div>';
     }
 
     if (ungraded.length) {

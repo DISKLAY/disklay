@@ -8,7 +8,7 @@ function app(storage = {}, selected = '1') {
   storage['anatomy-colloquium-selected'] = selected;
   const ctx = vm.createContext({ window: {}, console, setTimeout, clearTimeout, setInterval, clearInterval,
     localStorage: { getItem: key => storage[key] || null, setItem: (key, value) => { storage[key] = value; } } });
-  for (const f of ['js/data/questions.js','js/data/answers.js','js/data/exam.js','js/data/colloquium-2.js','js/data/colloquium-3.js','js/data/colloquium-4.js','js/data/credit-1.js','js/data/credit-2.js','js/data/dental-2.js','js/data/dental-3.js','js/modules.js','js/core.js','js/game.js','js/ui.js','js/views-study.js','js/views-pages.js','js/views-rewards.js']) {
+  for (const f of ['js/data/questions.js','js/data/answers.js','js/data/exam.js','js/data/colloquium-2.js','js/data/colloquium-3.js','js/data/colloquium-4.js', 'js/data/colloquium-5.js', 'js/data/colloquium-6.js', 'js/data/colloquium-7.js','js/data/credit-1.js','js/data/credit-2.js','js/data/dental-2.js','js/data/dental-3.js','js/modules.js','js/core.js','js/game.js','js/ui.js','js/views-study.js','js/views-pages.js','js/views-rewards.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
   }
   return ctx.window.AT;
@@ -57,36 +57,6 @@ test('самооценка без ключа не начисляет награ�
   assert.equal(AT.game.achievements().find(a => a.id === 'explore-1').unlocked, true);
 });
 
-test('кошельки изолированы, рейтинг суммируется, сброс затрагивает одну базу', () => {
-  const storage = {};
-  let AT = app(storage, '1'); attempt(AT, AT.dataset.questions[0]);
-  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 0); assert.equal(AT.game.totalRating(), 5);
-  attempt(AT, AT.dataset.questions[0]);
-  assert.equal(AT.game.totalRating(), 10);
-  AT.resetProgress();
-  assert.equal(AT.game.totalRating(), 5);
-  AT = app(storage, '1');
-  assert.equal(AT.game.ensure().coins, 10);
-  assert.equal(AT.game.totalRating(), 5);
-});
-
-test('покупка и использование подсказки атомарны и не удаляют верный вариант', () => {
-  const AT = app(), q = AT.dataset.questions[0], game = AT.game;
-  assert.equal(game.buy('hint-train').ok, false);
-  game.ensure().coins = 200;
-  assert.equal(game.buy('hint-train').ok, true);
-  assert.equal(game.ensure().coins, 40);
-  const session = AT.startSession({mode:'train', ids:[q.id]});
-  const entry = session.results[q.id] = {selected:[], correct:null, revealed:false};
-  assert.equal(game.useHint(session, q, entry).ok, true);
-  assert.equal(game.count('hint-train'), 0);
-  assert.equal(game.useHint(session, q, entry).ok, false);
-  assert.equal(game.count('hint-train'), 0);
-  assert.equal(AT.keyApi.forQuestion(q).answers.includes(entry.hiddenOptions[0]), false);
-  assert.doesNotMatch(AT.views.questionCard(session, q, entry), new RegExp('data-index="' + entry.hiddenOptions[0] + '"'));
-  assert.equal(session.game.hintsUsed, 1);
-});
-
 test('экзамен даёт больше очков, ошибки штрафуются и расчёт не повторяется', () => {
   const AT = app();
   const [q1,q2] = AT.dataset.questions;
@@ -104,25 +74,6 @@ test('экзамен даёт больше очков, ошибки штрафу
   assert.equal(record.assisted, false);
 });
 
-test('экзаменационные усиления дороже, бонус действует на двадцать верных ответов и помечается', () => {
-  const AT = app(), game = AT.game;
-  game.ensure().coins = 1000;
-  assert.ok(game.products['hint-exam'].price > game.products['hint-train'].price);
-  assert.ok(game.products['double-exam'].price > game.products['double-train'].price);
-  assert.equal(game.buy('double-exam').ok, true);
-  const qs = AT.dataset.questions.slice(0,21);
-  const session = AT.startSession({mode:'exam', ids:qs.map(q => q.id)});
-  assert.equal(game.activateDouble(session).ok, true);
-  assert.equal(game.activateDouble(session).ok, false);
-  qs.forEach(q => { session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers}; });
-  AT.gradeSession(session);
-  assert.equal(session.game.coinsEarned, 21*25);
-  assert.equal(session.game.ratingEarned, 20*30+15);
-  assert.equal(AT.finishSession().assisted, true);
-  assert.match(AT.views.summary().html, /Использованы усиления/);
-  assert.match(AT.views.stats().html, /с усилениями/);
-});
-
 test('штрафы не опускают баланс и рейтинг ниже нуля, недоступные экзамены не продаются', () => {
   let AT = app(), q = AT.dataset.questions[0];
   const session = AT.startSession({mode:'exam', ids:[q.id]});
@@ -130,8 +81,7 @@ test('штрафы не опускают баланс и рейтинг ниже
   assert.equal(AT.game.ensure().coins, 0);
   assert.equal(AT.game.ensure().rating, 0);
   AT = app({}, 'credit-1'); AT.game.ensure().coins = 500;
-  assert.equal(AT.game.buy('hint-exam').ok, false);
-  assert.equal(AT.game.ensure().coins, 500);
+  assert.equal(AT.game.walletBalance(), 500);
   assert.match(AT.views.examSetup().html, /Скоро добавится/);
 });
 
@@ -144,37 +94,6 @@ test('штрафы вычитаются из существующих очков
   assert.equal(AT.game.ensure().rating, 5);
   assert.equal(AT.game.sessionGame(session).coinsChange, -5);
   assert.match(AT.views.summary().html, /Валюта: -5/);
-});
-
-test('подсказка без ключа или для уже выбранных неверных вариантов не расходуется', () => {
-  const AT = app({}, 'stom-2'), q = AT.dataset.questions[0];
-  const game = AT.game; game.ensure().inventory['hint-train'] = 1;
-  const session = AT.startSession({mode:'train', ids:[q.id]});
-  const entry = session.results[q.id] = {selected: [1], correct:null, revealed:false};
-  assert.equal(game.useHint(session, q, entry).ok, false);
-  assert.equal(game.count('hint-train'), 1);
-  AT.keyApi.set(q, [1,2,3,4]);
-  entry.selected = [5];
-  assert.equal(game.useHint(session, q, entry).ok, false);
-  assert.equal(game.count('hint-train'), 1);
-});
-
-test('покупки, активные усиления и начисления переживают перезагрузку без повторной награды', () => {
-  const storage = {}; let AT = app(storage);
-  AT.game.ensure().coins = 200;
-  assert.equal(AT.game.buy('hint-train').ok, true);
-  const q = AT.dataset.questions[0];
-  const {session, entry} = attempt(AT, q);
-  assert.equal(AT.game.ensure().coins, 50);
-  AT = app(storage);
-  assert.equal(AT.game.ensure().coins, 50);
-  assert.equal(AT.game.count('hint-train'), 1);
-  assert.equal(AT.game.ensure().rating, 5);
-  const loaded = AT.currentSession(), question = AT.dataset.byId.get(q.id);
-  assert.equal(loaded.id, session.id);
-  AT.game.awardTraining(loaded, question, loaded.results[q.id], false);
-  assert.equal(AT.game.ensure().coins, 50);
-  assert.equal(loaded.results[q.id].gameRewarded, entry.gameRewarded);
 });
 
 test('достижения рейтинга используют общую сумму из разных баз', () => {
@@ -209,120 +128,6 @@ test('абсолютный экзамен требует 20 из 20 без ус�
     assert.equal(AT.game.achievements().find(a => a.id === 'absolute-exam').unlocked, !assisted);
   }
   assert.equal(app({}, 'credit-1').game.achievements().some(a => a.id === 'absolute-exam'), true);
-});
-
-test('обновлённые цены и ассортимент доступны в правилах и магазине', () => {
-  const AT = app();
-  assert.equal(AT.game.products['hint-train'].price, 160);
-  assert.equal(AT.game.products['hint-exam'].price, 480);
-  assert.equal(AT.game.products['double-train'].price, 320);
-  assert.equal(AT.game.products['double-exam'].price, 800);
-  const html = AT.views.rewards().html;
-  assert.match(html, /Абсолютные достижения/);
-  assert.match(html, /50 000 общего рейтинга/);
-  assert.match(html, /800 валюты/);
-});
-
-test('подорожание не удаляет ранее купленные усиления и не списывает валюту', () => {
-  const storage = { 'anatomy-colloquium-v1': JSON.stringify({ game: { coins: 37, rating: 4, inventory: { 'hint-train': 2, 'double-exam': 1 } } }) };
-  const AT = app(storage);
-  assert.equal(AT.game.ensure().coins, 37);
-  assert.equal(AT.game.count('hint-train'), 2);
-  assert.equal(AT.game.count('double-exam'), 1);
-});
-
-test('удвоение в тренировке увеличивает рейтинг, но не валюту', () => {
-  const AT = app(), game = AT.game;
-  game.ensure().coins = 320;
-  assert.equal(game.buy('double-train').ok, true);
-  const qs = AT.dataset.questions.slice(0, 21);
-  const session = AT.startSession({mode:'train', ids:qs.map(q => q.id)});
-  assert.equal(game.activateDouble(session).ok, true);
-  qs.forEach(q => {
-    const entry = session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
-    const mastered = AT.progressOf(q.id).streak >= 2;
-    AT.recordAttempt(q, true, entry.selected);
-    game.awardTraining(session, q, entry, mastered);
-  });
-  assert.equal(session.game.coinsEarned, 210);
-  assert.equal(session.game.ratingEarned, 20 * 10 + 5);
-  assert.equal(game.ensure().coins, 210);
-  assert.equal(game.ensure().rating, 205);
-  AT.finishSession();
-  assert.match(AT.views.summary().html, /×2 рейтинг/);
-});
-
-test('старое активированное удвоение валюты сохраняется после обновления и помечается', () => {
-  const storage = {}; let AT = app(storage), q = AT.dataset.questions[0];
-  const session = AT.startSession({mode:'train', ids:[q.id]});
-  session.game = {bonusUsed: true, bonusRemaining: 2};
-  AT.save(true);
-  AT = app(storage); q = AT.dataset.questions[0];
-  const loaded = AT.currentSession();
-  const entry = loaded.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
-  AT.recordAttempt(q, true, entry.selected);
-  AT.game.awardTraining(loaded, q, entry, false);
-  assert.equal(AT.game.ensure().coins, 20);
-  assert.equal(AT.game.ensure().rating, 5);
-  assert.equal(loaded.game.bonusRemaining, 1);
-  AT.finishSession();
-  assert.match(AT.views.summary().html, /×2 валюта/);
-});
-
-test('неиспользованные старые покупки превращаются в усиления рейтинга', () => {
-  const storage = { 'anatomy-colloquium-v1': JSON.stringify({game:{coins:0, rating:0, inventory:{'double-train':1}}}) };
-  const AT = app(storage), q = AT.dataset.questions[0];
-  const session = AT.startSession({mode:'train', ids:[q.id]});
-  assert.equal(AT.game.activateDouble(session).ok, true);
-  const entry = session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
-  AT.recordAttempt(q, true, entry.selected);
-  AT.game.awardTraining(session, q, entry, false);
-  assert.equal(AT.game.ensure().coins, 10);
-  assert.equal(AT.game.ensure().rating, 10);
-});
-
-test('удвоенный рейтинг на экзамене не меняет валюту и штраф за ошибку', () => {
-  const AT = app(), game = AT.game;
-  game.ensure().inventory['double-exam'] = 1;
-  const qs = AT.dataset.questions.slice(0, 20);
-  const session = AT.startSession({mode:'exam', ids:qs.map(q => q.id)});
-  assert.equal(game.activateDouble(session).ok, true);
-  qs.slice(0, 19).forEach(q => { session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers}; });
-  AT.gradeSession(session);
-  assert.equal(session.game.coinsEarned, 19 * 25);
-  assert.equal(session.game.ratingEarned, 19 * 30);
-  assert.equal(session.game.coinsPenalty, 5);
-  assert.equal(session.game.ratingPenalty, 3);
-  assert.equal(game.ensure().coins, 19 * 25 - 5);
-  assert.equal(game.ensure().rating, 19 * 30 - 3);
-  AT.finishSession();
-  assert.match(AT.views.summary().html, /×2 рейтинг/);
-});
-
-test('старый активный бонус в незавершённом экзамене по-прежнему удваивает валюту', () => {
-  const storage = {}; let AT = app(storage), q = AT.dataset.questions[0];
-  const session = AT.startSession({mode:'exam', ids:[q.id]});
-  session.game = {bonusUsed: true, bonusRemaining: 1};
-  session.results[q.id] = {selected: AT.keyApi.forQuestion(q).answers};
-  AT.save(true);
-  AT = app(storage);
-  const loaded = AT.currentSession();
-  AT.gradeSession(loaded); AT.finishSession();
-  assert.equal(AT.game.ensure().coins, 50);
-  assert.equal(AT.game.ensure().rating, 15);
-  assert.match(AT.views.summary().html, /×2 валюта/);
-});
-
-test('удвоенный рейтинг открывает достижения по общему рейтингу', () => {
-  const AT = app(), game = AT.game, q = AT.dataset.questions[0];
-  game.ensure().rating = 490; game.ensure().inventory['double-train'] = 1;
-  const session = AT.startSession({mode:'train', ids:[q.id]});
-  assert.equal(game.activateDouble(session).ok, true);
-  const entry = session.results[q.id] = {selected:AT.keyApi.forQuestion(q).answers, correct:true, self:false, revealed:true};
-  AT.recordAttempt(q, true, entry.selected);
-  game.awardTraining(session, q, entry, false);
-  assert.equal(game.totalRating(), 500);
-  assert.equal(game.achievements().find(a => a.id === 'rating-500').unlocked, true);
 });
 
 test('достижения суммируются по всем базам и одинаково видны в каждой', () => {
@@ -387,12 +192,12 @@ test('направления считают только освоенные во
   assert.equal(badges.find(a => a.id === 'muscles-200').current, 0);
 });
 
-test('оформление покупается валютой текущей базы, доступно везде и переживает сброс', () => {
+test('оформление покупается из общего кошелька, доступно везде и переживает сброс', () => {
   const storage = {}; let AT = app(storage, '1'), game = AT.game;
   game.ensure().coins = 500;
   assert.equal(game.buyAppearance('ruby', {'1': 500}).ok, false);
   assert.equal(game.buyAppearance('ocean', {'1': 500}).ok, true);
-  assert.equal(game.ensure().coins, 0);
+  assert.equal(game.walletBalance(), 0);
   assert.equal(game.profile().appearance, 'ocean');
   assert.equal(game.buyAppearance('ocean', {'1': 500}).ok, false);
   assert.equal(game.selectAppearance('__proto__').ok, false);
@@ -496,7 +301,7 @@ test('сезонные оформления покупаются, сохраня
     assert.equal(AT.game.appearances[id].price, 1500);
     AT.game.ensure().coins = 1500;
     assert.equal(AT.game.buyAppearance(id, {'1': 1500}).ok, true);
-    assert.equal(AT.game.ensure().coins, 0);
+    assert.equal(AT.game.walletBalance(), 0);
     assert.equal(AT.game.profile().appearance, id);
     AT = app(storage, 'stom-2');
     assert.equal(AT.game.profile().appearances[id], true);
@@ -519,136 +324,28 @@ test('сезонные рисунки локальны, статичны и до
   }
 });
 
-test('оформление оплачивается выбранными суммами из нескольких баз без переноса валюты', () => {
-  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 100; AT.save(true);
-  AT = app(storage, '2'); AT.game.ensure().coins = 250; AT.save(true);
-  AT = app(storage, '3'); AT.game.ensure().coins = 300; AT.save(true);
-  let wallets = AT.game.walletBalances();
-  assert.equal(wallets[0].id, '3'); assert.equal(wallets[0].balance, 300);
-  assert.equal(wallets.find(w => w.id === '1').balance, 100);
-  assert.equal(AT.game.buyAppearance('ocean', {'1':100, '2':200, '3':200}).ok, true);
-  assert.equal(AT.game.ensure().coins, 100);
-  wallets = AT.game.walletBalances();
-  assert.equal(wallets.find(w => w.id === '1').balance, 0);
-  assert.equal(wallets.find(w => w.id === '2').balance, 50);
-  assert.equal(wallets.find(w => w.id === '3').balance, 100);
-  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 50);
-  AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 0);
-  assert.equal(AT.game.profile().appearances.ocean, true);
-  AT = app(storage, '3'); assert.equal(AT.game.ensure().coins, 100);
-});
-
-test('неверное распределение не списывает валюту и не покупает оформление', () => {
-  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 400; AT.save(true);
-  AT = app(storage, '2'); AT.game.ensure().coins = 200; AT.save(true);
-  for (const allocation of [undefined, {'1':400}, {'1':401,'2':99}, {'1':-1,'2':501}, {'1':300.5,'2':199.5}, {'1':400, '2':101}, {'1':400, unknown:100}]) {
-    assert.equal(AT.game.buyAppearance('ocean', allocation).ok, false);
-    assert.equal(AT.game.ensure().coins, 200);
-    assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 400);
-    assert.equal(AT.game.profile().appearances.ocean, undefined);
-  }
-});
-
-test('при ошибке записи общего журнала все выбранные кошельки сохраняют баланс', () => {
-  const data = {}; let fail = false;
-  const storage = new Proxy(data, {set(target, key, value) {
-    if (fail && key === 'anatomy-colloquium-rewards-shared-v1') throw new Error('storage full');
-    target[key] = value; return true;
-  }});
-  let AT = app(storage, '1'); AT.game.ensure().coins = 300; AT.save(true);
-  AT = app(storage, '2'); AT.game.ensure().coins = 300; AT.save(true);
-  fail = true;
-  assert.equal(AT.game.buyAppearance('ocean', {'1':200, '2':300}).ok, false);
-  assert.equal(AT.game.ensure().coins, 300);
-  assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 300);
-  assert.equal(AT.game.profile().appearances.ocean, undefined);
-  fail = false; AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 300);
-});
-
-test('журнал применяется к каждому кошельку ровно один раз даже после перезагрузки', () => {
-  const storage = {
-    'anatomy-colloquium-v1': JSON.stringify({game:{coins:120}}),
-    'anatomy-colloquium-v1-2': JSON.stringify({game:{coins:125}}),
-    'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:{ocean:true}, appearance:'ocean', cosmeticSpent:{'1':70,'2':100}}),
-  };
-  let AT = app(storage, '1');
-  assert.equal(AT.game.ensure().coins, 50);
-  assert.equal(AT.game.walletBalances().find(w => w.id === '2').balance, 25);
-  AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 50);
-  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 25);
-  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 25);
-});
-
-test('открытая вкладка не перезаписывает списание из другой базы', () => {
-  const storage = {}; const oldTab = app(storage, '1');
-  oldTab.game.ensure().coins = 400; oldTab.save(true);
-  const buyer = app(storage, '2'); buyer.game.ensure().coins = 200; buyer.save(true);
-  assert.equal(buyer.game.buyAppearance('ocean', {'1':300,'2':200}).ok, true);
-  oldTab.save(true);
-  assert.equal(oldTab.game.ensure().coins, 100);
-  assert.equal(app(storage, '1').game.ensure().coins, 100);
-});
-
-test('сброс базы не переносит старые списания на новые заработанные очки', () => {
-  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 500; AT.save(true);
-  assert.equal(AT.game.buyAppearance('ocean', {'1':500}).ok, true);
-  AT.resetProgress();
-  AT.game.ensure().coins += 50; AT.save(true);
-  AT = app(storage, '1');
-  assert.equal(AT.game.ensure().coins, 50);
-  assert.equal(AT.game.profile().appearances.ocean, true);
-});
-
-test('покупка доступна при достаточном общем балансе, усиления всё ещё раздельны', () => {
-  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 400; AT.save(true);
-  AT = app(storage, '2'); AT.game.ensure().coins = 150; AT.save(true);
-  const html = AT.views.rewards().html;
-  assert.match(html, /Во всех базах: 550/);
-  assert.match(html, /data-action="buy-appearance" data-appearance="ocean">/);
-  assert.equal(AT.game.buy('hint-train').ok, false);
-  assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 400);
-});
-
-test('общая покупка восстанавливает списание если сохранение текущего кошелька прервалось', () => {
-  const data = {}; let arm = false, failBank = false;
-  const storage = new Proxy(data, {set(target, key, value) {
-    if (arm && key === 'anatomy-colloquium-rewards-shared-v1') failBank = true;
-    if (failBank && key === 'anatomy-colloquium-v1-2') { failBank = false; throw new Error('storage full'); }
-    target[key] = value; return true;
-  }});
-  let AT = app(storage, '1'); AT.game.ensure().coins = 300; AT.save(true);
-  AT = app(storage, '2'); AT.game.ensure().coins = 300; AT.save(true);
-  arm = true;
-  assert.equal(AT.game.buyAppearance('ocean', {'1':200,'2':300}).ok, true);
-  arm = false;
-  assert.equal(AT.game.ensure().coins, 0);
-  AT = app(storage, '2'); assert.equal(AT.game.ensure().coins, 0);
-  AT = app(storage, '1'); assert.equal(AT.game.ensure().coins, 100);
-  assert.equal(AT.game.profile().appearances.ocean, true);
-});
-
-test('аниме — самое дорогое оформление и покупается через общую оплату', () => {
+test('аниме — одно из самых дорогих оформлений и покупается через общую оплату', () => {
   const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 9000; AT.save(true);
   const styles = AT.game.appearances;
-  const regularPrices = Object.entries(styles).filter(([id]) => id !== 'anime').map(([, style]) => style.price);
+  const regularPrices = Object.entries(styles).filter(([, style]) => !style.premium).map(([, style]) => style.price);
   assert.ok(styles.anime.price > Math.max(...regularPrices)); assert.equal(styles.anime.price, 5000);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
-  assert.equal(AT.game.ensure().coins, 6500); assert.equal(AT.game.walletBalances().find(w => w.id === '1').balance, 0);
+  assert.equal(AT.game.walletBalance(), 6500);
   AT = app(storage, '3'); assert.equal(AT.game.profile().appearances.anime, true);
   assert.equal(AT.game.profile().appearance, 'anime');
 });
 
 test('достижение за все доступные оформления учитывает покупку аниме и сохраняется между базами', () => {
-  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true};
+  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true, rickmorty:true, breakingbad:true};
   const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:purchases, achievements:{}})};
   let AT = app(storage, '1'); let badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.absolute, true); assert.equal(badge.goal, 7); assert.equal(badge.current, 6); assert.equal(badge.unlocked, false);
+  assert.equal(badge.absolute, true); assert.equal(badge.goal, 9); assert.equal(badge.current, 8); assert.equal(badge.unlocked, false);
   AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 2500; AT.save(true);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
   badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.current, 7); assert.equal(badge.unlocked, true);
+  assert.equal(badge.current, 9); assert.equal(badge.unlocked, true);
   AT.resetProgress(); AT = app(storage, 'credit-1');
   assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
 });
@@ -687,7 +384,7 @@ test('импорт оформлений добавляет коллекцию, �
   AT.getState().key['1'] = [2];
   AT.game.ensure().coins = 321; AT.game.ensure().rating = 45; AT.save(true);
   const file = { sharedRewards: { appearances: Object.fromEntries(Object.keys(AT.game.appearances).filter(id => id !== 'default').map(id => [id, true])) }, game: { coins: 1000000 }, progress: {} };
-  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 7);
+  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 9);
   assert.equal(AT.game.importAppearances(file).ok, true);
   assert.equal(AT.game.ensure().coins, 321); assert.equal(AT.game.ensure().rating, 45);
   assert.equal(AT.getState().progress.q1.streak, 2); assert.deepEqual([...AT.getState().key['1']], [2]);
@@ -727,7 +424,7 @@ test('порядок вариантов сохраняется на всю се�
   assert.deepEqual(Array.from(AT.optionOrder(damaged, q)), expected.slice().reverse());
 });
 
-test('перемешивание сохраняет исходные ключи, подсказки и номера в разборе', () => {
+test('перемешивание сохраняет исходные ключи и номера в разборе', () => {
   const AT = app(); const q = AT.dataset.questions[0];
   AT.utils.shuffle = values => values.slice().reverse();
   const session = AT.startSession({mode:'train', ids:[q.id]});
@@ -739,10 +436,6 @@ test('перемешивание сохраняет исходные ключи,
   const html = AT.views.questionCard(session, q, entry);
   assert.match(html, /data-index="5"[^>]*>[\s\S]*?<span class="option__key">1<\/span>/);
   assert.match(html, /data-index="1"[^>]*>[\s\S]*?<span class="option__key">5<\/span>/);
-  AT.game.ensure().inventory['hint-train'] = 1;
-  assert.equal(AT.game.useHint(session, q, entry).ok, true);
-  assert.ok(!key.includes(entry.hiddenOptions[0]));
-  assert.doesNotMatch(AT.views.questionCard(session, q, entry), new RegExp('data-index="' + entry.hiddenOptions[0] + '"'));
   entry.revealed = true; entry.correct = true;
   assert.match(AT.views.questionCard(session, q, entry), /Правильный ответ: <b>4, 5<\/b>/);
   AT.finishSession();
@@ -864,24 +557,24 @@ test('возврат назад доступен без проверки и от
   assert.equal(AT.progressOf(qs[1].id).attempts, 0);
 });
 
-test('каждый микроб даёт ровно 50 валюты текущей базы без рейтинга и без повторных начислений', () => {
+test('каждый микроб даёт ровно 50 общей валюты без рейтинга и без повторных начислений', () => {
   const storage = {}; let AT = app(storage, '1');
   const q = AT.dataset.questions[0];
   const s = AT.startSession({mode:'train',ids:[q.id]});
   s.results[q.id] = {selected:[],revealed:false,correct:null}; s.germSeen = {[q.id]:true};
   AT.game.ensure().coins = 10; AT.game.ensure().rating = 23;
-  const g = AT.game.sessionGame(s); g.bonusRemaining = 20; g.bonusEffect = 'rating';
+  const g = AT.game.sessionGame(s);
   for (let i = 0; i < 3; i++) assert.equal(AT.game.awardMicrobe(s, q, i).ok, true);
   assert.equal(AT.game.ensure().coins, 160); assert.equal(AT.game.ensure().rating, 23);
   assert.equal(g.coinsChange, 150); assert.equal(g.coinsEarned, 150); assert.equal(g.germCoins, 150); assert.equal(g.germsPopped, 3);
-  assert.equal(g.bonusRemaining, 20); assert.equal(AT.progressOf(q.id).attempts, 0);
+  assert.equal(AT.progressOf(q.id).attempts, 0);
   assert.equal(AT.game.awardMicrobe(s, q, 0).ok, false);
   AT = app(storage, '1');
   const restored = AT.currentSession(), qr = AT.dataset.byId.get(q.id);
   assert.equal(AT.game.ensure().coins, 160);
   assert.equal(AT.game.awardMicrobe(restored, qr, 2).ok, false);
   assert.equal(AT.game.ensure().coins, 160);
-  assert.equal(app(storage, '2').game.ensure().coins, 0);
+  assert.equal(app(storage, '2').game.walletBalance(), 160);
   AT.finishSession();
   assert.match(AT.views.summary().html, /Микробы: 3 · \+150 валюты/);
 });
@@ -914,4 +607,247 @@ test('награда за микроба сохраняется даже при 
   assert.equal(AT.currentSession(), null);
   assert.equal(AT.game.ensure().coins, 50);
   assert.equal(AT.game.ensure().rating, 0);
+});
+
+test('общий кошелёк объединяет прежние балансы, старые списания и возврат неиспользованных усилений один раз', () => {
+  const storage = {
+    'anatomy-colloquium-v1': JSON.stringify({game:{coins:120, rating:12, inventory:{'hint-train':2}}}),
+    'anatomy-colloquium-v1-2': JSON.stringify({game:{coins:125, rating:4, inventory:{'double-exam':1}}}),
+    'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:{ocean:true}, appearance:'ocean', cosmeticSpent:{'1':70,'2':100}}),
+  };
+  for (const id of ['1','2','stom-2','1','2']) {
+    const AT = app(storage, id);
+    assert.equal(AT.game.walletBalance(), 1195);
+    assert.equal(AT.game.totalRating(), 16);
+    assert.equal(AT.game.profile().appearances.ocean, true);
+  }
+});
+
+test('новые начисления общие и покупки списываются один раз из общей суммы', () => {
+  const storage = {}; let AT = app(storage, '1');
+  AT.game.ensure().coins = 300; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 300; AT.save(true);
+  assert.equal(AT.game.walletBalance(), 600);
+  assert.match(AT.views.rewards().html, /Общий кошелёк/);
+  assert.doesNotMatch(AT.views.rewards().html, /Магазин усилений|buy-boost|data-wallet/);
+  assert.equal(AT.game.buyAppearance('ocean').ok, true);
+  assert.equal(AT.game.walletBalance(), 100);
+  assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  AT = app(storage, '1'); assert.equal(AT.game.walletBalance(), 100);
+  attempt(AT, AT.dataset.questions[0]);
+  AT = app(storage, '3'); assert.equal(AT.game.walletBalance(), 110);
+  assert.equal(AT.game.profile().appearances.ocean, true);
+  assert.equal(AT.game.buyAppearance('ruby').ok, false);
+  assert.equal(AT.game.walletBalance(), 110);
+});
+
+test('сброс любой базы сохраняет общий кошелёк, включая заработанное в ней, и купленные оформления', () => {
+  const storage = {}; let AT = app(storage, '1');
+  AT.game.ensure().coins = 400; AT.game.ensure().rating = 10; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 200; AT.game.ensure().rating = 7; AT.save(true);
+  assert.equal(AT.game.buyAppearance('ocean').ok, true);
+  AT.resetProgress(); assert.equal(AT.game.walletBalance(), 100); assert.equal(AT.game.totalRating(), 10);
+  AT = app(storage, '1'); AT.resetProgress();
+  AT = app(storage, '2'); assert.equal(AT.game.walletBalance(), 100);
+  assert.equal(AT.game.totalRating(), 0); assert.equal(AT.game.profile().appearances.ocean, true);
+  assert.match(AT.views.settings().html, /общий кошелёк/);
+});
+
+test('экзаменационный штраф списывается из общего кошелька и ограничен доступной суммой', () => {
+  const storage = {}; let AT = app(storage, '2'); AT.game.ensure().coins = 7; AT.save(true);
+  AT = app(storage, '1'); const qs = AT.dataset.questions.slice(0,2);
+  const s = AT.startSession({mode:'exam',ids:qs.map(q=>q.id)});
+  AT.gradeSession(s); AT.finishSession();
+  assert.equal(s.game.coinsPenalty, 10); assert.equal(s.game.coinsChange, -7);
+  assert.equal(AT.game.walletBalance(), 0);
+  AT = app(storage, '2'); assert.equal(AT.game.walletBalance(), 0);
+  AT.resetProgress(); assert.equal(AT.game.walletBalance(), 0);
+  AT = app(storage, '1'); attempt(AT, qs[0]);
+  assert.equal(AT.game.walletBalance(), 10);
+});
+
+test('остаток активного удвоения возвращается пропорционально, подсказка убрана, история сохраняется', () => {
+  const storage = {}; let AT = app(storage, '1'); const q = AT.dataset.questions[0];
+  AT.startSession({mode:'train',ids:[q.id]});
+  const raw = JSON.parse(storage['anatomy-colloquium-v1']);
+  raw.game.coins = 30; raw.game.inventory = {'hint-train':1, 'double-train':1};
+  raw.session.game = {bonusUsed:true, bonusEffect:'rating', bonusRemaining:10, hintsUsed:1};
+  raw.session.results[q.id] = {selected:[], revealed:false, hiddenOptions:[3]};
+  storage['anatomy-colloquium-v1'] = JSON.stringify(raw);
+  AT = app(storage, '2'); assert.equal(AT.game.walletBalance(), 670);
+  AT = app(storage, '1'); const s = AT.currentSession();
+  assert.equal(AT.game.walletBalance(), 670); assert.equal(s.game.bonusRemaining, 0);
+  assert.equal(s.game.hintsUsed, 1); assert.equal(s.results[q.id].hiddenOptions, undefined);
+  const question = AT.dataset.byId.get(q.id);
+  assert.doesNotMatch(AT.views.questionCard(s, question, s.results[q.id]), /boost-bar|use-hint|use-double/);
+  const entry = s.results[q.id] = {selected:AT.keyApi.forQuestion(question).answers, correct:true, self:false, revealed:true};
+  AT.game.awardTraining(s, question, entry, false);
+  assert.equal(AT.game.walletBalance(), 680); assert.equal(AT.game.ensure().rating, 5);
+  AT.finishSession(); assert.equal(AT.getState().sessions[0].assisted, true);
+  AT = app(storage, '1'); assert.equal(AT.game.walletBalance(), 680);
+});
+
+test('законченные усиления не возвращаются заново, старые записи о помощи остаются', () => {
+  const storage = {'anatomy-colloquium-v1': JSON.stringify({game:{coins:22}, session:{mode:'exam', finished:true, game:{bonusUsed:true,bonusRemaining:12,hintsUsed:1}}})};
+  const AT = app(storage);
+  assert.equal(AT.game.walletBalance(), 22);
+  assert.equal(AT.getState().session.game.bonusRemaining, 0);
+  assert.equal(AT.getState().session.game.bonusUsed, true);
+});
+
+test('покупка не тратит валюту при ошибке записи общего профиля', () => {
+  const data = {}; let fail = false;
+  const storage = new Proxy(data, {set(target, key, value) {
+    if (fail && key === 'anatomy-colloquium-rewards-shared-v1') throw new Error('storage full');
+    target[key] = value; return true;
+  }});
+  let AT = app(storage, '1'); AT.game.ensure().coins = 300; AT.save(true);
+  AT = app(storage, '2'); AT.game.ensure().coins = 300; AT.save(true);
+  fail = true; assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  assert.equal(AT.game.walletBalance(), 600); assert.equal(AT.game.profile().appearances.ocean, undefined);
+  fail = false; AT = app(storage, '1'); assert.equal(AT.game.walletBalance(), 600);
+});
+
+test('покупки из других открытых вкладок не теряются и повторно проверяют общий баланс', () => {
+  const storage = {}; let a = app(storage, '1'); a.game.ensure().coins = 600; a.save(true);
+  const b = app(storage, '2');
+  assert.equal(b.game.buyAppearance('ocean').ok, true);
+  a.save(true); assert.equal(a.game.walletBalance(), 100);
+  assert.equal(a.game.buyAppearance('ocean').ok, false);
+  assert.equal(a.game.buyAppearance('ruby').ok, false);
+  assert.equal(app(storage, '2').game.walletBalance(), 100);
+});
+
+test('возврат усилений переживает ошибку записи и не дублируется после повторной загрузки', () => {
+  const data = {'anatomy-colloquium-v1': JSON.stringify({game:{coins:15,inventory:{'hint-exam':1}}})};
+  let fail = true;
+  const storage = new Proxy(data, {set(target,key,value) {
+    if (fail && key === 'anatomy-colloquium-v1') throw new Error('storage full');
+    target[key] = value; return true;
+  }});
+  let AT = app(storage); assert.equal(AT.game.walletBalance(), 495);
+  assert.equal(AT.game.buyAppearance('ocean').ok, false);
+  fail = false; AT = app(storage); assert.equal(AT.game.walletBalance(), 495);
+  AT = app(storage); assert.equal(AT.game.walletBalance(), 495);
+});
+
+
+test('пасхалка скрыта в настройках даже при сохранённом старом отключении', () => {
+  const storage = {'anatomy-colloquium-v1': JSON.stringify({settings:{germSquad:false}})};
+  const AT = app(storage);
+  const html = AT.views.settings().html;
+  assert.doesNotMatch(html, /germSquad|Бригада микробов|0,2%/);
+});
+
+test('ПНС участвует в общем кошельке, рейтинге и достижениях по нервной системе', () => {
+  const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 300; AT.save(true);
+  AT = app(storage, '6'); assert.equal(AT.game.walletBalance(), 300);
+  const q = AT.dataset.questions[0]; attempt(AT, q); attempt(AT, q);
+  assert.equal(AT.game.walletBalance(), 320);
+  assert.equal(AT.game.achievements().find(a => a.id === 'nervous-200').current, 1);
+  AT = app(storage, '1'); assert.equal(AT.game.walletBalance(), 320);
+  assert.equal(AT.game.totalRating(), 10);
+});
+
+test('пятый коллоквиум использует общий кошелёк и считает освоенные вопросы по нервной системе', () => {
+  const storage = {}; let AT = app(storage, '6'); AT.game.ensure().coins = 80; AT.save(true);
+  AT = app(storage, '5'); assert.equal(AT.game.walletBalance(), 80);
+  const q = AT.dataset.byNum.get('133'); attempt(AT, q); attempt(AT, q);
+  assert.equal(AT.game.walletBalance(), 100);
+  assert.equal(AT.game.achievements().find(a => a.id === 'nervous-200').current, 1);
+  AT = app(storage, '6'); assert.equal(AT.game.walletBalance(), 100);
+});
+
+test('база ССС участвует в общем кошельке и рейтинге всех баз', () => {
+  const storage = {}; let AT = app(storage, '6'); AT.game.ensure().coins = 80; AT.save(true);
+  AT = app(storage, '7'); assert.equal(AT.game.walletBalance(), 80);
+  const q = AT.dataset.questions[0]; attempt(AT, q);
+  assert.equal(AT.game.walletBalance(), 90); assert.equal(AT.game.totalRating(), 5);
+  AT = app(storage, '6'); assert.equal(AT.game.walletBalance(), 90);
+});
+
+test('оформления сериалов покупаются из общего кошелька, сохраняются и доступны во всех базах', () => {
+  const storage = {}; let AT = app(storage, '5'); AT.game.ensure().coins = 6000; AT.save(true);
+  AT = app(storage, '7'); AT.game.ensure().coins = 5000; AT.save(true);
+  for (const id of ['rickmorty', 'breakingbad']) {
+    assert.equal(AT.game.appearances[id].premium, true);
+    assert.equal(AT.game.appearances[id].price, 5000);
+    assert.equal(AT.game.buyAppearance(id).ok, true);
+    assert.equal(AT.game.profile().appearance, id);
+  }
+  assert.equal(AT.game.walletBalance(), 1000);
+  AT = app(storage, '6');
+  for (const id of ['rickmorty', 'breakingbad']) {
+    assert.equal(AT.game.profile().appearances[id], true);
+    assert.match(AT.views.rewards().html, new RegExp('appearance-preview--' + id));
+    assert.equal(AT.game.selectAppearance(id).ok, true);
+  }
+  AT.resetProgress(); AT = app(storage, '5');
+  assert.equal(AT.game.walletBalance(), 1000);
+  assert.equal(AT.game.profile().appearance, 'breakingbad');
+  assert.equal(AT.game.profile().appearances.rickmorty, true);
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const [id, filename] of [['rickmorty', 'rick-morty-hero.webp'], ['breakingbad', 'breaking-bad.jpg']]) {
+    assert.match(css, new RegExp('data-accent="' + id + '"'));
+    assert.match(css, new RegExp('appearance-preview--' + id));
+    assert.ok(css.includes(filename));
+    assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', filename)).size > 10000);
+  }
+});
+
+test('ранее полученное достижение коллекционера сохраняется после расширения магазина', () => {
+  const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({achievements:{'absolute-collector':123}, appearances:{anime:true}})};
+  const badge = app(storage).game.achievements().find(a => a.id === 'absolute-collector');
+  assert.equal(badge.goal, 9); assert.equal(badge.unlocked, true);
+});
+
+
+test('общий фон и центральный блок оформлений сериалов используют разные локальные картинки', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const [id, hero, background] of [
+    ['rickmorty', 'rick-morty-hero.webp', 'rick-morty-world.webp'],
+    ['breakingbad', 'breaking-bad.jpg', 'breaking-bad-background.jpg'],
+  ]) {
+    const rule = css.match(new RegExp('\\[data-accent="' + id + '"\\] \\{([^}]+)\\}'))[1];
+    assert.ok(rule.includes('--series-art: url(\'../assets/' + hero + '\')'));
+    assert.ok(rule.includes('--series-background: url(\'../assets/' + background + '\')'));
+    assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', background)).size > 10000);
+  }
+  assert.match(css, /var\(--series-background\) center \/ cover no-repeat/);
+  assert.match(css, /var\(--series-art\) center 45% \/ cover no-repeat/);
+});
+
+test('оформление Рика использует выбранные изображения и однократную GIF-сцену', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
+  assert.match(css, /rick-morty-hero\.webp/); assert.match(css, /rick-morty-world\.webp/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__rick-intro/);
+  assert.match(css, /\.hero__rick-intro img \{[^}]*object-fit: cover/);
+  assert.match(css, /\.hero__rick-intro \{[^}]*inset: 0/);
+  assert.match(css, /@media \(max-width: 760px\) \{ \.hero__rick-intro \{ display: none; animation: none;/);
+  const mobileCheck = study.indexOf("matchMedia('(max-width: 760px)')");
+  assert.ok(mobileCheck > 0 && mobileCheck < study.indexOf("appearance === 'rickmorty'"));
+  assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro-hd\.gif/);
+  assert.match(css, /\.hero--rick-playing \{\s*background: linear-gradient/);
+  assert.match(study, /animationcancel/); assert.match(study, /hero\.classList\.remove\(playingClass\)/);
+  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro-hd.gif'));
+  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
+  assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
+  assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
+});
+
+
+test('у Во все тяжкие есть однократное интро, не загружаемое на телефоне', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
+  assert.match(study, /breakingIntroPlayed/); assert.match(study, /breaking-bad-intro\.gif/);
+  assert.match(css, /\.hero--breaking-playing \{\s*background: linear-gradient/);
+  assert.match(css, /\.hero__breaking-intro img \{[^}]*object-fit: cover/);
+  assert.match(css, /\.hero__breaking-intro \{[^}]*inset: 0/);
+  assert.match(css, /@media \(max-width: 760px\) \{ \.hero__breaking-intro \{ display: none; animation: none;/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__breaking-intro/);
+  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'breaking-bad-intro.gif'));
+  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
+  assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
+  assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
 });

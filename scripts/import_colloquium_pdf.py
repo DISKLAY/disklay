@@ -4,6 +4,7 @@
 python scripts/import_colloquium_pdf.py 2 path/to/myology.pdf js/data/colloquium-2.js
 python scripts/import_colloquium_pdf.py 3 path/to/splanchnology.pdf js/data/colloquium-3.js
 python scripts/import_colloquium_pdf.py 4 path/to/cns.pdf js/data/colloquium-4.js
+python scripts/import_colloquium_pdf.py 7 path/to/sss.pdf js/data/colloquium-7.js
 python scripts/import_colloquium_pdf.py credit-1 path/to/credit1.pdf js/data/credit-1.js
 python scripts/import_colloquium_pdf.py credit-2 path/to/credit2.pdf js/data/credit-2.js
 """
@@ -51,6 +52,16 @@ TOPICS = {
         (243, 'cerebrum', 'Конечный мозг', 'Полушария, кора и белое вещество'),
         (257, 'pathways', 'Проводящие пути', 'Чувствительные и двигательные пути'),
     ],
+    '7': [
+        (48, 'heart', 'Сердце и перикард', 'Камеры, клапаны, проводящая система и оболочки'),
+        (59, 'coronary', 'Коронарные сосуды и круги кровообращения', 'Артерии, вены и круги кровообращения'),
+        (95, 'head-neck', 'Сосуды головы и шеи', 'Сонные артерии и яремные вены'),
+        (130, 'trunk-vessels', 'Сосуды туловища и анастомозы', 'Аорта и системы полых и воротной вен'),
+        (135, 'abdominal-branches', 'Ветви брюшной аорты', 'Висцеральные и париетальные ветви'),
+        (170, 'upper-limb', 'Сосуды верхней конечности', 'Артерии, вены и лимфатические сосуды'),
+        (198, 'lower-limb', 'Сосуды нижней конечности', 'Артерии и вены'),
+        (209, 'lymphatic', 'Лимфатическая и иммунная системы', 'Органы, протоки и узлы'),
+    ],
     'credit-1': [
         (14, 'general', 'Общая анатомия и кости', 'Плоскости, оси и классификация костей'),
         (30, 'axial', 'Позвоночник и грудная клетка', 'Позвонки, рёбра и грудина'),
@@ -88,7 +99,7 @@ def extract(module, source):
     questions, answers = [], {}
     current = None
     with pymupdf.open(source) as document:
-        for page in document:
+        for page_number, page in enumerate(document, 1):
             # В исходных файлах каждый прямоугольник подсветки расположен под текстом варианта.
             highlights = [drawing['rect'] for drawing in page.get_drawings() if drawing.get('fill')]
             for block in page.get_text('dict')['blocks']:
@@ -99,7 +110,7 @@ def extract(module, source):
                 if not text:
                     continue
                 if re.fullmatch(r'#\s*\d+', text):
-                    current = {'num': int(re.search(r'\d+', text).group()), 'blocks': []}
+                    current = {'num': int(re.search(r'\d+', text).group()), 'page': page_number, 'blocks': []}
                     questions.append(current)
                     continue
                 if current is None:
@@ -116,11 +127,13 @@ def extract(module, source):
         if num != position or not blocks or not blocks[0][1] or any(b[1] for b in blocks[1:]):
             raise ValueError(f'Неожиданная структура вопроса № {num}')
         options = blocks[1:]
-        if not 2 <= len(options) <= 6 or not any(b[2] for b in options):
+        if (len(options) != 5 if module == '7' else not 2 <= len(options) <= 6) or not any(b[2] for b in options):
             raise ValueError(f'Проверьте варианты и подсветку вопроса № {num}')
         topic = next(topic_id for end, topic_id, _, _ in topics if num <= end)
         output.append({'id': f'q{num}', 'pos': position, 'num': num, 'topic': topic,
                        'text': blocks[0][0], 'options': [b[0] for b in options]})
+        if module == '7':
+            output[-1].update(sourcePage=item['page'], sourceNumber=num)
         answers[str(num)] = [i for i, block in enumerate(options, 1) if block[2]]
     if len(output) != topics[-1][0]:
         raise ValueError(f'Найдено {len(output)} вопросов вместо {topics[-1][0]}')

@@ -1,14 +1,10 @@
-/* Кошелёк хранится отдельно по базам; достижения и оформления общие на устройстве. */
+/* Общий кошелёк, достижения и оформления на устройстве. */
 (function () {
   'use strict';
   const AT = window.AT;
   const BANKS = window.COLLOQUIUM_IDS || [AT.colloquium.id];
-  const PRODUCTS = {
-    'hint-train': { title: 'Убрать неверный вариант', mode: 'train', kind: 'hint', price: 160, description: 'Убирает один неверный вариант в тренировке.' },
-    'hint-exam': { title: 'Подсказка на экзамене', mode: 'exam', kind: 'hint', price: 480, description: 'Убирает один неверный вариант в пробном экзамене.' },
-    'double-train': { title: 'Двойной рейтинг', mode: 'train', kind: 'double', price: 320, description: 'Удваивает рейтинг за следующие 20 верных ответов в этой тренировке.' },
-    'double-exam': { title: 'Двойной рейтинг на экзамене', mode: 'exam', kind: 'double', price: 800, description: 'Удваивает рейтинг за первые 20 верных ответов при проверке экзамена.' },
-  };
+  // Возврат за оставшиеся старые усиления по последним ценам магазина.
+  const LEGACY_BOOST_PRICES = { 'hint-train': 160, 'hint-exam': 480, 'double-train': 320, 'double-exam': 800 };
   const ACHIEVEMENTS = [
     { id: 'explore-1', title: 'Первый шаг', description: 'Открыть и оценить 1 вопрос', metric: 'explored', goal: 1 },
     { id: 'explore-10', title: 'Начало пути', description: 'Изучить 10 разных вопросов', metric: 'explored', goal: 10 },
@@ -38,29 +34,48 @@
   ];
 
   function number(value) { return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0; }
-  function ensure() {
-    const state = AT.getState();
+  // Локальные записи остаются бухгалтерскими частями одного общего кошелька.
+  // Прежние списания применяются до возврата усилений, каждый ровно один раз.
+  function normalizeBank(state, id) {
     if (!state.game || typeof state.game !== 'object') state.game = {};
     const game = state.game;
-    game.coins = number(game.coins);
-    // Общий журнал списаний применяется ровно один раз к каждому кошельку.
-    readShared();
-    const spent = number(shared.cosmeticSpent[AT.colloquium.id]);
-    const applied = number(game.cosmeticSpentApplied);
+    game.coins = Number.isFinite(game.coins) ? Math.trunc(game.coins) : 0;
+    const spent = number(shared.cosmeticSpent[id]), applied = number(game.cosmeticSpentApplied);
     if (spent > applied) game.coins = Math.max(0, game.coins - (spent - applied));
     game.cosmeticSpentApplied = Math.max(applied, spent);
+    if (game.inventory && typeof game.inventory === 'object') {
+      for (const [product, price] of Object.entries(LEGACY_BOOST_PRICES)) {
+        game.coins += number(game.inventory[product]) * price;
+        delete game.inventory[product];
+      }
+    }
+    const session = state.session, sg = session && session.game;
+    if (sg && sg.bonusRemaining) {
+      if (!session.finished && !sg.examScored && (session.mode === 'train' || session.mode === 'exam')) {
+        game.coins += Math.floor(Math.min(number(sg.bonusRemaining), 20) * LEGACY_BOOST_PRICES['double-' + session.mode] / 20);
+      }
+      sg.bonusRemaining = 0;
+    }
+    if (session && !session.finished && session.results) {
+      Object.values(session.results).forEach(entry => {
+        if (entry && !entry.revealed && !entry.graded) delete entry.hiddenOptions;
+      });
+    }
     game.rating = number(game.rating);
     game.verified = number(game.verified);
-    if (!game.inventory || typeof game.inventory !== 'object') game.inventory = {};
     if (!game.achievements || typeof game.achievements !== 'object') game.achievements = {};
     return game;
+  }
+  function ensure() {
+    readShared();
+    return normalizeBank(AT.getState(), AT.colloquium.id);
   }
   function sessionGame(session) {
     if (!session.game || typeof session.game !== 'object') session.game = {};
     const g = session.game;
     for (const field of ['coinsEarned', 'ratingEarned', 'coinsPenalty', 'ratingPenalty', 'hintsUsed', 'bonusRemaining', 'germCoins', 'germsPopped']) g[field] = number(g[field]);
     for (const field of ['coinsChange', 'ratingChange']) g[field] = Number.isFinite(g[field]) ? Math.trunc(g[field]) : 0;
-    // Старое уже активированное усиление остаётся валютным до конца действия.
+    // История ранее использованных усилений остаётся в результатах.
     if (g.bonusUsed && !g.bonusEffect) g.bonusEffect = 'currency';
     if (!Array.isArray(g.bonusEffects)) g.bonusEffects = g.bonusUsed ? [g.bonusEffect] : [];
     return g;
@@ -71,6 +86,8 @@
     '2': { muscles: 'all' },
     '3': { organs: 'all' },
     '4': { nervous: 'all' },
+    '5': { nervous: ['visual-pathways', 'hearing-pathways', 'cranial-nerves', 'trigeminal', 'facial', 'glossopharyngeal-vagus'] },
+    '6': { nervous: 'all' },
     'credit-1': { bones: ['general', 'axial', 'limb-bones', 'skull-bones', 'skull'], joints: ['joints-trunk', 'joints-limbs'], muscles: ['trunk-muscles', 'head-neck', 'upper-muscles', 'lower-muscles'] },
     'credit-2': { organs: ['upper-digestive', 'digestive', 'peritoneum', 'airways', 'lungs', 'urinary', 'male', 'female'], nervous: ['spinal-cord', 'brainstem', 'cerebellum', 'diencephalon', 'cerebrum', 'pathways'] },
     'stom-2': { organs: 'all' },
@@ -85,9 +102,11 @@
     winter: { title: 'Зима', description: 'Морозные оттенки и снежинки.', price: 1500, color: '#316f9e' },
     spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
     anime: { title: 'Аниме · Атака титанов', description: 'Атмосфера Attack on Titan: титаны, тёмный город и огонь.', price: 5000, color: '#745337', premium: true },
+    rickmorty: { title: 'Рик и Морти', description: 'Портал в другие измерения и приключения Рика и Морти.', price: 5000, color: '#367741', premium: true },
+    breakingbad: { title: 'Во все тяжкие', description: 'Уолтер и Джесси в жёлто-зелёных тонах сериала.', price: 5000, color: '#647232', premium: true },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
-  let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, appearance: 'default' };
+  let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, walletSpent: 0, appearance: 'default' };
   function readShared() {
     try {
       const value = JSON.parse(localStorage.getItem(SHARED_KEY) || '{}');
@@ -95,6 +114,7 @@
         if (value.achievements && typeof value.achievements === 'object') Object.assign(shared.achievements, value.achievements);
         if (value.appearances && typeof value.appearances === 'object') Object.assign(shared.appearances, value.appearances);
         if (value.cosmeticSpent && typeof value.cosmeticSpent === 'object') Object.assign(shared.cosmeticSpent, value.cosmeticSpent);
+        shared.walletSpent = number(value.walletSpent);
         if (typeof value.appearance === 'string') shared.appearance = value.appearance;
       }
     } catch (e) { /* При недоступном хранилище работаем с данными в памяти. */ }
@@ -113,6 +133,7 @@
       if (latest.cosmeticSpent && typeof latest.cosmeticSpent === 'object') {
         BANKS.forEach(id => { shared.cosmeticSpent[id] = Math.max(number(shared.cosmeticSpent[id]), number(latest.cosmeticSpent[id])); });
       }
+      shared.walletSpent = Math.max(number(shared.walletSpent), number(latest.walletSpent));
       localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); return true;
     } catch (e) { return false; }
   }
@@ -221,93 +242,25 @@
     syncAchievements();
     return { ok: true, message: 'Оформления добавлены. Выберите их в разделе «Награды».' };
   }
-  function walletBalances() {
+  function walletBalance() {
     readShared();
-    const modules = window.COLLOQUIUM_MODULES || {};
-    // Сначала текущая база, затем остальные в привычном порядке.
-    return [AT.colloquium.id, ...BANKS.filter(id => id !== AT.colloquium.id)].map(id => {
-      const module = modules[id] || {}, state = bankState(id), game = state.game || {};
-      const spent = number(shared.cosmeticSpent[id]);
-      const pending = Math.max(0, spent - number(game.cosmeticSpentApplied));
-      const label = module.kind === 'credit' ? 'Зачёт · ' + module.semester + ' семестр'
-        : 'Коллоквиум ' + (module.number || id);
-      return { id, label: label + (module.name ? ' · ' + module.name : '') + (module.faculty ? ' · стоматология' : ''),
-        balance: Math.max(0, number(game.coins) - pending), current: id === AT.colloquium.id };
-    });
+    return Math.max(0, BANKS.reduce((sum, id) => sum + normalizeBank(bankState(id), id).coins, 0) - number(shared.walletSpent));
   }
-  function buyAppearance(id, allocation) {
+  function buyAppearance(id) {
     readShared();
     if (!Object.prototype.hasOwnProperty.call(APPEARANCES, id) || id === 'default') return { ok: false, message: 'Неизвестное оформление' };
     if (shared.appearances[id]) return { ok: false, message: 'Оформление уже куплено' };
-    if (!allocation || typeof allocation !== 'object' || Array.isArray(allocation)) return { ok: false, message: 'Выберите суммы для оплаты' };
-    const wallets = walletBalances();
-    const allowed = new Set(wallets.map(w => w.id));
-    let total = 0;
-    for (const [bankId, amount] of Object.entries(allocation)) {
-      const wallet = wallets.find(w => w.id === bankId);
-      if (!allowed.has(bankId) || !Number.isSafeInteger(amount) || amount < 0 || amount > wallet.balance) {
-        return { ok: false, message: 'Суммы изменились или превышают баланс базы. Проверьте распределение.' };
-      }
-      total += amount;
-    }
-    if (!Number.isSafeInteger(total) || total !== APPEARANCES[id].price) return { ok: false, message: 'Распределите точную стоимость оформления' };
-    // До общей записи сохраняем текущий кошелёк. Никакое списание пока не произведено.
-    ensure();
+    if (walletBalance() < APPEARANCES[id].price) return { ok: false, message: 'Недостаточно валюты в общем кошельке' };
+    // Сохраняем все начисления текущей базы до атомарной записи покупки.
     if (!AT.save(true)) return { ok: false, message: 'Не удалось сохранить покупку' };
     const previous = JSON.parse(JSON.stringify(shared));
-    Object.entries(allocation).forEach(([bankId, amount]) => {
-      if (amount) shared.cosmeticSpent[bankId] = number(shared.cosmeticSpent[bankId]) + amount;
-    });
+    shared.walletSpent = number(shared.walletSpent) + APPEARANCES[id].price;
     shared.appearances[id] = true;
     shared.appearance = id;
-    // Приобретение и все списания фиксируются одной записью, до изменения кошельков.
     if (!saveShared()) { shared = previous; return { ok: false, message: 'Не удалось сохранить покупку' }; }
-    ensure();
-    // Если сохранение кошелька прервано, журнал применится при следующем открытии базы.
-    AT.save(true);
     syncAchievements();
     applyAppearance();
     return { ok: true, message: 'Оформление куплено и применено во всех базах' };
-  }
-  function count(id) { return number(ensure().inventory[id]); }
-  function buy(id) {
-    const product = PRODUCTS[id], game = ensure();
-    if (!product) return { ok: false, message: 'Неизвестное усиление' };
-    if (product.mode === 'exam' && !AT.colloquium.examAvailable) return { ok: false, message: 'Пробный экзамен для этой базы пока недоступен' };
-    if (count(id) >= 99) return { ok: false, message: 'Достигнут предел запаса' };
-    if (game.coins < product.price) return { ok: false, message: 'Недостаточно валюты в этой базе' };
-    game.coins -= product.price;
-    game.inventory[id] = count(id) + 1;
-    AT.save(true);
-    return { ok: true, message: 'Усиление добавлено в запас' };
-  }
-  function useHint(session, q, entry) {
-    if (!session || session.finished || !q || !entry || session.ids[session.index] !== q.id || (session.mode !== 'exam' && entry.revealed)) return { ok: false, message: 'Подсказка сейчас недоступна' };
-    const product = 'hint-' + session.mode, answer = AT.keyApi.forQuestion(q);
-    if (!answer) return { ok: false, message: 'Для этого вопроса нет ключа' };
-    if (entry.hiddenOptions && entry.hiddenOptions.length) return { ok: false, message: 'Подсказка уже использована в этом вопросе' };
-    if (!count(product)) return { ok: false, message: 'Нет подсказок: их можно купить в магазине' };
-    const candidates = q.options.map((_, i) => i + 1).filter(i => !answer.answers.includes(i) && !entry.selected.includes(i));
-    if (!candidates.length) return { ok: false, message: 'Нет доступного неверного варианта для удаления' };
-    const removed = candidates[Math.floor(Math.random() * candidates.length)];
-    entry.hiddenOptions = [removed];
-    ensure().inventory[product] = count(product) - 1;
-    sessionGame(session).hintsUsed += 1;
-    AT.save(true);
-    return { ok: true, message: 'Один неверный вариант убран' };
-  }
-  function activateDouble(session) {
-    if (!session || session.finished || !['train', 'exam'].includes(session.mode)) return { ok: false, message: 'Сейчас усиление недоступно' };
-    const g = sessionGame(session), product = 'double-' + session.mode;
-    if (g.bonusRemaining) return { ok: false, message: 'Бонус уже действует' };
-    if (!count(product)) return { ok: false, message: 'Нет бонусов: их можно купить в магазине' };
-    ensure().inventory[product] = count(product) - 1;
-    g.bonusRemaining = 20;
-    g.bonusUsed = true;
-    g.bonusEffect = 'rating';
-    if (!g.bonusEffects.includes('rating')) g.bonusEffects.push('rating');
-    AT.save(true);
-    return { ok: true, message: 'Двойной рейтинг за 20 верных ответов' };
   }
   // Однократная награда за конкретного микроба в вопросе этой сессии.
   function awardMicrobe(session, q, index) {
@@ -337,13 +290,8 @@
   function awardTraining(session, q, entry, previouslyMastered) {
     if (!session || session.mode !== 'train' || session.finished || !q || !entry || entry.gameRewarded || entry.correct !== true || entry.self || !AT.keyApi.has(q)) return;
     const game = ensure(), g = sessionGame(session);
-    let coins = previouslyMastered ? 2 : 10;
-    let rating = previouslyMastered ? 1 : 5;
-    if (g.bonusRemaining) {
-      if (g.bonusEffect === 'currency') coins *= 2;
-      else rating *= 2;
-      g.bonusRemaining--;
-    }
+    const coins = previouslyMastered ? 2 : 10;
+    const rating = previouslyMastered ? 1 : 5;
     game.coins += coins; game.rating += rating; game.verified++;
     g.coinsEarned += coins; g.ratingEarned += rating;
     g.coinsChange += coins; g.ratingChange += rating;
@@ -360,29 +308,25 @@
       const entry = session.results[q.id];
       if (!entry || !entry.graded || entry.self) return;
       if (entry.correct === true) {
-        let coins = entry.gamePreviouslyMastered ? 5 : 25;
-        let points = entry.gamePreviouslyMastered ? 3 : 15;
-        if (g.bonusRemaining) {
-          if (g.bonusEffect === 'currency') coins *= 2;
-          else points *= 2;
-          g.bonusRemaining--;
-        }
+        const coins = entry.gamePreviouslyMastered ? 5 : 25;
+        const points = entry.gamePreviouslyMastered ? 3 : 15;
         rating += points;
         earned += coins; game.verified++;
       } else if (entry.correct === false) wrong++;
     });
     const coinPenalty = wrong * 5, ratingPenalty = wrong * 3;
-    const beforeCoins = game.coins, beforeRating = game.rating;
-    game.coins = Math.max(0, beforeCoins + earned - coinPenalty);
+    const balance = walletBalance(), beforeRating = game.rating;
+    const actualPenalty = Math.min(coinPenalty, balance + earned);
+    game.coins += earned - actualPenalty;
     game.rating = Math.max(0, beforeRating + rating - ratingPenalty);
     g.coinsEarned = earned; g.ratingEarned = rating;
     g.coinsPenalty = coinPenalty; g.ratingPenalty = ratingPenalty;
     // Изменение может быть отрицательным; баланс никогда не уходит ниже нуля.
-    g.coinsChange = game.coins - beforeCoins; g.ratingChange = game.rating - beforeRating;
+    g.coinsChange = earned - actualPenalty; g.ratingChange = game.rating - beforeRating;
     g.examScored = true;
     syncAchievements();
   }
-  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, products: PRODUCTS, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, walletBalances, buyAppearance, count, buy, useHint, activateDouble, awardMicrobe, awardTraining, awardExam };
+  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, walletBalance, buyAppearance, awardMicrobe, awardTraining, awardExam };
   // Старый прогресс признаём только достижениями. Очки задним числом не начисляем.
   syncAchievements();
   AT.save(true);
