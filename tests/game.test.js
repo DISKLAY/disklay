@@ -828,6 +828,8 @@ test('оформление Рика использует выбранные из
   const mobileCheck = study.indexOf("matchMedia('(max-width: 760px)')");
   assert.ok(mobileCheck > 0 && mobileCheck < study.indexOf("appearance === 'rickmorty'"));
   assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro-hd\.gif/);
+  assert.match(css, /\.hero--rick-playing \{\s*background: linear-gradient/);
+  assert.match(study, /animationcancel/); assert.match(study, /hero\.classList\.remove\('hero--rick-playing'\)/);
   const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro-hd.gif'));
   assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
   assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);

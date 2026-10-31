@@ -197,7 +197,9 @@
     const mount = (root) => {
       if (AT.colloquium.kind === 'credit' || !AT.game) return;
       // Декоративные интро не загружаются на мобильных и при снижении движения.
-      if (window.matchMedia && (window.matchMedia('(max-width: 760px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+      const mobileMedia = window.matchMedia && window.matchMedia('(max-width: 760px)');
+      const reducedMedia = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      if ((mobileMedia && mobileMedia.matches) || (reducedMedia && reducedMedia.matches)) return;
       const appearance = AT.game.profile().appearance;
       if (appearance === 'rickmorty') {
         if (rickIntroPlayed) return;
@@ -207,9 +209,20 @@
         const media = document.createElement('div'), clip = document.createElement('img');
         media.className = 'hero__rick-intro'; media.setAttribute('aria-hidden', 'true');
         clip.alt = '';
-        media.addEventListener('animationend', () => media.remove(), { once: true });
-        clip.addEventListener('error', () => media.remove(), { once: true });
-        clip.addEventListener('load', () => { if (media.isConnected) media.classList.add('is-playing'); }, { once: true });
+        const queries = [mobileMedia, reducedMedia].filter(Boolean);
+        const onMediaChange = event => { if (event.matches) finishIntro(); };
+        const finishIntro = () => {
+          queries.forEach(query => { if (query.removeEventListener) query.removeEventListener('change', onMediaChange); });
+          hero.classList.remove('hero--rick-playing'); media.remove();
+        };
+        queries.forEach(query => { if (query.addEventListener) query.addEventListener('change', onMediaChange); });
+        media.addEventListener('animationend', finishIntro, { once: true });
+        media.addEventListener('animationcancel', finishIntro, { once: true });
+        clip.addEventListener('error', finishIntro, { once: true });
+        clip.addEventListener('load', () => {
+          if (media.isConnected) { hero.classList.add('hero--rick-playing'); media.classList.add('is-playing'); }
+          else finishIntro();
+        }, { once: true });
         media.appendChild(clip); hero.prepend(media); clip.src = 'assets/rick-morty-intro-hd.gif';
         return;
       }
