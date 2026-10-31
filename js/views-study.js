@@ -93,6 +93,7 @@
 
   let titanIntroPlayed = false;
   let rickIntroPlayed = false;
+  let breakingIntroPlayed = false;
   views.dashboard = function () {
     const overall = analytics.overall();
     const keyed = keyApi.count();
@@ -201,29 +202,32 @@
       const reducedMedia = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
       if ((mobileMedia && mobileMedia.matches) || (reducedMedia && reducedMedia.matches)) return;
       const appearance = AT.game.profile().appearance;
-      if (appearance === 'rickmorty') {
-        if (rickIntroPlayed) return;
+      if (appearance === 'rickmorty' || appearance === 'breakingbad') {
+        const isRick = appearance === 'rickmorty';
+        if (isRick ? rickIntroPlayed : breakingIntroPlayed) return;
         const hero = root.querySelector('.hero:not(.hero--credit)');
         if (!hero) return;
-        rickIntroPlayed = true;
+        if (isRick) rickIntroPlayed = true; else breakingIntroPlayed = true;
         const media = document.createElement('div'), clip = document.createElement('img');
-        media.className = 'hero__rick-intro'; media.setAttribute('aria-hidden', 'true');
+        const playingClass = isRick ? 'hero--rick-playing' : 'hero--breaking-playing';
+        media.className = isRick ? 'hero__rick-intro' : 'hero__breaking-intro'; media.setAttribute('aria-hidden', 'true');
         clip.alt = '';
         const queries = [mobileMedia, reducedMedia].filter(Boolean);
         const onMediaChange = event => { if (event.matches) finishIntro(); };
         const finishIntro = () => {
           queries.forEach(query => { if (query.removeEventListener) query.removeEventListener('change', onMediaChange); });
-          hero.classList.remove('hero--rick-playing'); media.remove();
+          hero.classList.remove(playingClass); media.remove();
         };
         queries.forEach(query => { if (query.addEventListener) query.addEventListener('change', onMediaChange); });
         media.addEventListener('animationend', finishIntro, { once: true });
         media.addEventListener('animationcancel', finishIntro, { once: true });
         clip.addEventListener('error', finishIntro, { once: true });
         clip.addEventListener('load', () => {
-          if (media.isConnected) { hero.classList.add('hero--rick-playing'); media.classList.add('is-playing'); }
+          if (media.isConnected) { hero.classList.add(playingClass); media.classList.add('is-playing'); }
           else finishIntro();
         }, { once: true });
-        media.appendChild(clip); hero.prepend(media); clip.src = 'assets/rick-morty-intro-hd.gif';
+        media.appendChild(clip); hero.prepend(media);
+        clip.src = isRick ? 'assets/rick-morty-intro-hd.gif' : 'assets/breaking-bad-intro.gif';
         return;
       }
       if (titanIntroPlayed || appearance !== 'anime') return;

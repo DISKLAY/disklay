@@ -829,8 +829,23 @@ test('оформление Рика использует выбранные из
   assert.ok(mobileCheck > 0 && mobileCheck < study.indexOf("appearance === 'rickmorty'"));
   assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro-hd\.gif/);
   assert.match(css, /\.hero--rick-playing \{\s*background: linear-gradient/);
-  assert.match(study, /animationcancel/); assert.match(study, /hero\.classList\.remove\('hero--rick-playing'\)/);
+  assert.match(study, /animationcancel/); assert.match(study, /hero\.classList\.remove\(playingClass\)/);
   const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro-hd.gif'));
+  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
+  assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
+  assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
+});
+
+
+test('у Во все тяжкие есть однократное интро, не загружаемое на телефоне', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
+  assert.match(study, /breakingIntroPlayed/); assert.match(study, /breaking-bad-intro\.gif/);
+  assert.match(css, /\.hero--breaking-playing \{\s*background: linear-gradient/);
+  assert.match(css, /\.hero__breaking-intro img \{[^}]*object-fit: contain/);
+  assert.match(css, /@media \(max-width: 760px\) \{ \.hero__breaking-intro \{ display: none; animation: none;/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__breaking-intro/);
+  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'breaking-bad-intro.gif'));
   assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
   assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
   assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
