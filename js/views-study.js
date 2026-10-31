@@ -196,9 +196,11 @@
 
     const mount = (root) => {
       if (AT.colloquium.kind === 'credit' || !AT.game) return;
+      // Декоративные интро не загружаются на мобильных и при снижении движения.
+      if (window.matchMedia && (window.matchMedia('(max-width: 760px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
       const appearance = AT.game.profile().appearance;
       if (appearance === 'rickmorty') {
-        if (rickIntroPlayed || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+        if (rickIntroPlayed) return;
         const hero = root.querySelector('.hero:not(.hero--credit)');
         if (!hero) return;
         rickIntroPlayed = true;
@@ -212,7 +214,6 @@
         return;
       }
       if (titanIntroPlayed || appearance !== 'anime') return;
-      if (window.matchMedia && (window.matchMedia('(max-width: 760px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
       const media = root.querySelector('.hero:not(.hero--credit) .hero__titan-media');
       if (!media) return;
       titanIntroPlayed = true;

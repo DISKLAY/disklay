@@ -822,6 +822,9 @@ test('оформление Рика использует выбранные из
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(css, /rick-morty-hero\.webp/); assert.match(css, /rick-morty-world\.webp/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__rick-intro/);
+  assert.match(css, /@media \(max-width: 760px\) \{ \.hero__rick-intro \{ display: none; animation: none;/);
+  const mobileCheck = study.indexOf("matchMedia('(max-width: 760px)')");
+  assert.ok(mobileCheck > 0 && mobileCheck < study.indexOf("appearance === 'rickmorty'"));
   assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro-hd\.gif/);
   const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro-hd.gif'));
   assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
