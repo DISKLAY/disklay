@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const scripts = ['js/data/questions.js', 'js/data/answers.js', 'js/data/exam.js',
-  'js/data/colloquium-2.js', 'js/data/colloquium-3.js', 'js/data/colloquium-4.js', 'js/data/colloquium-5.js', 'js/data/colloquium-6.js', 'js/data/credit-1.js', 'js/data/credit-2.js', 'js/data/dental-2.js', 'js/data/dental-3.js', 'js/modules.js',
+  'js/data/colloquium-2.js', 'js/data/colloquium-3.js', 'js/data/colloquium-4.js', 'js/data/colloquium-5.js', 'js/data/colloquium-6.js', 'js/data/colloquium-7.js', 'js/data/credit-1.js', 'js/data/credit-2.js', 'js/data/dental-2.js', 'js/data/dental-3.js', 'js/modules.js',
   'js/core.js', 'js/ui.js', 'js/views-study.js', 'js/views-pages.js'];
 
 function app(storage, selected) {
@@ -18,7 +18,7 @@ function app(storage, selected) {
 
 test('во всех коллоквиумах загружены вопросы, темы и ключи', () => {
   const storage = {};
-  for (const [id, count] of [['1', 211], ['2', 188], ['3', 254], ['4', 257], ['5', 161], ['6', 118], ['credit-1', 245], ['credit-2', 297]]) {
+  for (const [id, count] of [['1', 211], ['2', 188], ['3', 254], ['4', 257], ['5', 161], ['6', 118], ['7', 209], ['credit-1', 245], ['credit-2', 297]]) {
     const AT = app(storage, id);
     assert.equal(AT.colloquium.id, id);
     assert.equal(AT.dataset.total, count);
@@ -42,7 +42,7 @@ test('в первом коллоквиуме экзамен по схеме; в 
   let AT = app(storage, '1');
   assert.match(AT.views.examSetup().html, /20 вопросов за 20 минут/);
   assert.equal(AT.buildExam().ids.length, 20);
-  for (const id of ['2', '3', '4', '5', '6', 'credit-1', 'credit-2', 'stom-2', 'stom-3']) {
+  for (const id of ['2', '3', '4', '5', '6', '7', 'credit-1', 'credit-2', 'stom-2', 'stom-3']) {
     AT = app(storage, id);
     const html = AT.views.examSetup().html;
     assert.match(html, /Скоро добавится/);
@@ -350,4 +350,46 @@ test('эстезиология и ПНС: разные сохранения, з�
   assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.questions[0]).answers), [2]);
   assert.equal(AT.currentSession().ids[0], 'q1');
   assert.ok(storage['anatomy-colloquium-v1-5']);
+});
+
+test('ССС — седьмой коллоквиум третьего семестра, все вопросы и отмеченные ответы на месте', () => {
+  const AT = app({}, '7');
+  assert.equal(AT.colloquium.semester, 3); assert.equal(AT.colloquium.id, '7');
+  assert.equal(AT.colloquium.name, 'Сердечно-сосудистая система');
+  assert.equal(AT.dataset.total, 209); assert.equal(AT.keyApi.count(), 209);
+  assert.match(AT.views.dashboard().html, /3 семестр · Коллоквиум 7/);
+  assert.match(AT.views.examSetup().html, /Скоро добавится/);
+  assert.match(AT.views.key().html, /отмечены в PDF подсветкой/);
+  assert.ok(AT.dataset.topics.every(t => AT.dataset.topicQuestions(t.id).length));
+  for (const [i,q] of AT.dataset.questions.entries()) {
+    assert.equal(q.id, 'q' + (i + 1)); assert.equal(q.num, i + 1);
+    assert.equal(q.sourceNumber, q.num); assert.ok(q.sourcePage >= 1 && q.sourcePage <= 60);
+    assert.ok(q.text && q.options.length === 5 && q.options.every(Boolean));
+    const key = AT.keyApi.forQuestion(q).answers;
+    assert.ok(key.length && key.every(n => n >= 1 && n <= 5));
+    assert.equal(AT.gradeQuestion(q, key).correct, true);
+  }
+  for (const [num,key] of [[1,[1,2,3]], [2,[1,2,3,4]], [7,[1,2,3]], [36,[3,5]], [49,[1,2]], [57,[2,4]], [60,[1,2]], [94,[1,2,3,4]], [130,[1]], [131,[2,3,4]], [136,[1]], [170,[1,2]], [171,[1,3]], [198,[1]], [199,[1,4]], [208,[2,4,5]], [209,[2,3,4]]]) {
+    assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.byNum.get(String(num))).answers), key, '№ ' + num);
+  }
+  assert.equal(AT.dataset.byNum.get('7').sourcePage, 2); // варианты продолжаются на следующей странице
+  assert.equal(AT.dataset.byNum.get('209').sourcePage, 60);
+  const index = fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+  assert.match(index, /optgroup label="3 семестр"[\s\S]*?value="5"[\s\S]*?value="6"[\s\S]*?value="7"/);
+});
+
+test('ССС изолирует прогресс, ключ, сессию и избранное от других коллоквиумов', () => {
+  const storage = {}; let AT = app(storage, '6');
+  AT.recordAttempt(AT.dataset.questions[0], true, [1]); AT.save(true);
+  AT = app(storage, '7'); const q = AT.dataset.questions[0];
+  assert.equal(AT.progressOf(q.id).attempts, 0);
+  AT.recordAttempt(q, false, [5]); AT.keyApi.set(q, [2]);
+  AT.annotations.toggleFavorite(q.id); AT.annotations.setComment(q.id, 'ССС');
+  AT.startSession({mode:'train', ids:[q.id]}); AT.save(true);
+  AT = app(storage, '6'); assert.equal(AT.progressOf('q1').correct, 1);
+  const group = AT.portfolio.allFavorites().find(g => g.module.id === '7');
+  assert.equal(group.questions[0].question.id, 'q1'); assert.equal(group.questions[0].comment, 'ССС');
+  AT = app(storage, '7'); assert.equal(AT.progressOf('q1').wrong, 1);
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.questions[0]).answers), [2]);
+  assert.equal(AT.currentSession().ids[0], 'q1'); assert.ok(storage['anatomy-colloquium-v1-7']);
 });

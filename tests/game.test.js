@@ -8,7 +8,7 @@ function app(storage = {}, selected = '1') {
   storage['anatomy-colloquium-selected'] = selected;
   const ctx = vm.createContext({ window: {}, console, setTimeout, clearTimeout, setInterval, clearInterval,
     localStorage: { getItem: key => storage[key] || null, setItem: (key, value) => { storage[key] = value; } } });
-  for (const f of ['js/data/questions.js','js/data/answers.js','js/data/exam.js','js/data/colloquium-2.js','js/data/colloquium-3.js','js/data/colloquium-4.js', 'js/data/colloquium-5.js', 'js/data/colloquium-6.js','js/data/credit-1.js','js/data/credit-2.js','js/data/dental-2.js','js/data/dental-3.js','js/modules.js','js/core.js','js/game.js','js/ui.js','js/views-study.js','js/views-pages.js','js/views-rewards.js']) {
+  for (const f of ['js/data/questions.js','js/data/answers.js','js/data/exam.js','js/data/colloquium-2.js','js/data/colloquium-3.js','js/data/colloquium-4.js', 'js/data/colloquium-5.js', 'js/data/colloquium-6.js', 'js/data/colloquium-7.js','js/data/credit-1.js','js/data/credit-2.js','js/data/dental-2.js','js/data/dental-3.js','js/modules.js','js/core.js','js/game.js','js/ui.js','js/views-study.js','js/views-pages.js','js/views-rewards.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
   }
   return ctx.window.AT;
@@ -756,4 +756,12 @@ test('пятый коллоквиум использует общий кошел
   assert.equal(AT.game.walletBalance(), 100);
   assert.equal(AT.game.achievements().find(a => a.id === 'nervous-200').current, 1);
   AT = app(storage, '6'); assert.equal(AT.game.walletBalance(), 100);
+});
+
+test('база ССС участвует в общем кошельке и рейтинге всех баз', () => {
+  const storage = {}; let AT = app(storage, '6'); AT.game.ensure().coins = 80; AT.save(true);
+  AT = app(storage, '7'); assert.equal(AT.game.walletBalance(), 80);
+  const q = AT.dataset.questions[0]; attempt(AT, q);
+  assert.equal(AT.game.walletBalance(), 90); assert.equal(AT.game.totalRating(), 5);
+  AT = app(storage, '6'); assert.equal(AT.game.walletBalance(), 90);
 });

@@ -23,7 +23,7 @@ function makePicker(selected = '1') {
   const groups = [
     { label: '1 семестр', choices: [['1', '1 · Остеология'], ['2', '2 · Миология'], ['credit-1', 'Зачёт · Остеология и миология']] },
     { label: '2 семестр', choices: [['3', '3 · Спланхнология'], ['4', '4 · Центральная нервная система'], ['credit-2', 'Зачёт · Спланхнология и ЦНС']] },
-    { label: '3 семестр', choices: [['5', '5 · Эстезиология и черепные нервы'], ['6', '6 · Периферическая нервная система']] },
+    { label: '3 семестр', choices: [['5', '5 · Эстезиология и черепные нервы'], ['6', '6 · Периферическая нервная система'], ['7', '7 · Сердечно-сосудистая система']] },
     { label: 'Стоматологический факультет', choices: [['stom-2', 'Стом · 2 · Спланхнология'], ['stom-3', 'Стом · 3 · Ангионеврология']] },
   ].map(({label, choices}) => {
     const group = new Element('optgroup'); group.label = label;
@@ -48,7 +48,7 @@ test('выбор базы находится только в панели, ак�
   const groups = sidebarNav.children;
   assert.deepEqual(groups.map(group => group.children[0].textContent), ['1 семестр', '2 семестр', '3 семестр', 'Стоматологический факультет']);
   assert.deepEqual(groups.map(group => group.open), [false, false, false, true]);
-  assert.equal(groups.flatMap(group => group.children.slice(1)).length, 10);
+  assert.equal(groups.flatMap(group => group.children.slice(1)).length, 11);
   assert.equal(groups[3].children[1].getAttribute('aria-current'), 'true');
   assert.equal(groups[3].children[1].children[2].textContent, 'Выбрана');
 });
@@ -102,4 +102,13 @@ test('третий семестр показывает коллоквиумы 5 
   assert.equal(select.value, '6');
   assert.equal(semester.open, true);
   assert.equal(semester.children[2].getAttribute('aria-current'), 'true');
+});
+
+test('седьмой коллоквиум доступен после пятого и шестого в третьем семестре', () => {
+  const { sidebarNav, select, click } = makePicker('6');
+  const semester = sidebarNav.children[2];
+  assert.equal(semester.children[3].children[0].textContent, '7');
+  assert.match(semester.children[3].children[1].children[1].textContent, /Сердечно-сосудистая система/);
+  click(semester.children[3]); assert.equal(select.value, '7');
+  assert.equal(semester.children[3].getAttribute('aria-current'), 'true');
 });
