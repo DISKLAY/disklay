@@ -822,8 +822,9 @@ test('оформление Рика использует выбранные из
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(css, /rick-morty-hero\.webp/); assert.match(css, /rick-morty-world\.webp/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__rick-intro/);
-  assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro\.gif/);
-  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro.gif'));
+  assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro-hd\.gif/);
+  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro-hd.gif'));
   assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
+  assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
   assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
 });

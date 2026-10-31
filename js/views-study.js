@@ -208,7 +208,7 @@
         media.addEventListener('animationend', () => media.remove(), { once: true });
         clip.addEventListener('error', () => media.remove(), { once: true });
         clip.addEventListener('load', () => { if (media.isConnected) media.classList.add('is-playing'); }, { once: true });
-        media.appendChild(clip); hero.prepend(media); clip.src = 'assets/rick-morty-intro.gif';
+        media.appendChild(clip); hero.prepend(media); clip.src = 'assets/rick-morty-intro-hd.gif';
         return;
       }
       if (titanIntroPlayed || appearance !== 'anime') return;
