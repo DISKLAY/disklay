@@ -1876,9 +1876,9 @@ kbd {
     background: linear-gradient(110deg, #29240d, #413a18 60%, #211e0c);
   }
 }
-.hero__breaking-intro { position: absolute; top: 50%; right: 8%; width: min(62%, 680px); height: calc(100% - 24px); transform: translateY(-50%); z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; mask-image: radial-gradient(ellipse 65% 65% at center, #000 48%, transparent 78%); }
-.hero__breaking-intro img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; filter: brightness(1.18); }
-.hero__breaking-intro::after { content: ""; position: absolute; inset: 0; background: rgba(30,25,10,.18); }
+.hero__breaking-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
+.hero__breaking-intro img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: brightness(1.18); }
+.hero__breaking-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(30,25,10,.94), rgba(30,25,10,.75) 50%, rgba(30,25,10,.38)); }
 .hero__breaking-intro.is-playing { animation: rick-intro 2s ease-out forwards; }
 @media (max-width: 760px) { .hero__breaking-intro { display: none; animation: none; } }
 @media (prefers-reduced-motion: reduce) { .hero__breaking-intro { display: none; animation: none; } }

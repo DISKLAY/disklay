@@ -842,7 +842,8 @@ test('у Во все тяжкие есть однократное интро, н
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(study, /breakingIntroPlayed/); assert.match(study, /breaking-bad-intro\.gif/);
   assert.match(css, /\.hero--breaking-playing \{\s*background: linear-gradient/);
-  assert.match(css, /\.hero__breaking-intro img \{[^}]*object-fit: contain/);
+  assert.match(css, /\.hero__breaking-intro img \{[^}]*object-fit: cover/);
+  assert.match(css, /\.hero__breaking-intro \{[^}]*inset: 0/);
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__breaking-intro \{ display: none; animation: none;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__breaking-intro/);
   const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'breaking-bad-intro.gif'));
