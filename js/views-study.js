@@ -92,6 +92,7 @@
   /* ---------------------------------------------------------------- главная */
 
   let titanIntroPlayed = false;
+  let rickIntroPlayed = false;
   views.dashboard = function () {
     const overall = analytics.overall();
     const keyed = keyApi.count();
@@ -194,7 +195,23 @@
     html += '</div>';
 
     const mount = (root) => {
-      if (titanIntroPlayed || AT.colloquium.kind === 'credit' || !AT.game || AT.game.profile().appearance !== 'anime') return;
+      if (AT.colloquium.kind === 'credit' || !AT.game) return;
+      const appearance = AT.game.profile().appearance;
+      if (appearance === 'rickmorty') {
+        if (rickIntroPlayed || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+        const hero = root.querySelector('.hero:not(.hero--credit)');
+        if (!hero) return;
+        rickIntroPlayed = true;
+        const media = document.createElement('div'), clip = document.createElement('img');
+        media.className = 'hero__rick-intro'; media.setAttribute('aria-hidden', 'true');
+        clip.alt = '';
+        media.addEventListener('animationend', () => media.remove(), { once: true });
+        clip.addEventListener('error', () => media.remove(), { once: true });
+        clip.addEventListener('load', () => { if (media.isConnected) media.classList.add('is-playing'); }, { once: true });
+        media.appendChild(clip); hero.prepend(media); clip.src = 'assets/rick-morty-intro.gif';
+        return;
+      }
+      if (titanIntroPlayed || appearance !== 'anime') return;
       if (window.matchMedia && (window.matchMedia('(max-width: 760px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
       const media = root.querySelector('.hero:not(.hero--credit) .hero__titan-media');
       if (!media) return;

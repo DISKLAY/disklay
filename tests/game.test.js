@@ -787,7 +787,7 @@ test('оформления сериалов покупаются из общег
   assert.equal(AT.game.profile().appearance, 'breakingbad');
   assert.equal(AT.game.profile().appearances.rickmorty, true);
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
-  for (const [id, filename] of [['rickmorty', 'rick-and-morty.jpg'], ['breakingbad', 'breaking-bad.jpg']]) {
+  for (const [id, filename] of [['rickmorty', 'rick-morty-hero.webp'], ['breakingbad', 'breaking-bad.jpg']]) {
     assert.match(css, new RegExp('data-accent="' + id + '"'));
     assert.match(css, new RegExp('appearance-preview--' + id));
     assert.ok(css.includes(filename));
@@ -805,7 +805,7 @@ test('ранее полученное достижение коллекцион�
 test('общий фон и центральный блок оформлений сериалов используют разные локальные картинки', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
   for (const [id, hero, background] of [
-    ['rickmorty', 'rick-and-morty.jpg', 'rick-and-morty-background.jpg'],
+    ['rickmorty', 'rick-morty-hero.webp', 'rick-morty-world.webp'],
     ['breakingbad', 'breaking-bad.jpg', 'breaking-bad-background.jpg'],
   ]) {
     const rule = css.match(new RegExp('\\[data-accent="' + id + '"\\] \\{([^}]+)\\}'))[1];
@@ -815,4 +815,15 @@ test('общий фон и центральный блок оформлений 
   }
   assert.match(css, /var\(--series-background\) center \/ cover no-repeat/);
   assert.match(css, /var\(--series-art\) center 45% \/ cover no-repeat/);
+});
+
+test('оформление Рика использует выбранные изображения и однократную GIF-сцену', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
+  assert.match(css, /rick-morty-hero\.webp/); assert.match(css, /rick-morty-world\.webp/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__rick-intro/);
+  assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro\.gif/);
+  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro.gif'));
+  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
+  assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
 });
