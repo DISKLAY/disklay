@@ -800,3 +800,19 @@ test('ранее полученное достижение коллекцион�
   const badge = app(storage).game.achievements().find(a => a.id === 'absolute-collector');
   assert.equal(badge.goal, 9); assert.equal(badge.unlocked, true);
 });
+
+
+test('общий фон и центральный блок оформлений сериалов используют разные локальные картинки', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const [id, hero, background] of [
+    ['rickmorty', 'rick-and-morty.jpg', 'rick-and-morty-background.jpg'],
+    ['breakingbad', 'breaking-bad.jpg', 'breaking-bad-background.jpg'],
+  ]) {
+    const rule = css.match(new RegExp('\\[data-accent="' + id + '"\\] \\{([^}]+)\\}'))[1];
+    assert.ok(rule.includes('--series-art: url(\'../assets/' + hero + '\')'));
+    assert.ok(rule.includes('--series-background: url(\'../assets/' + background + '\')'));
+    assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', background)).size > 10000);
+  }
+  assert.match(css, /var\(--series-background\) center \/ cover no-repeat/);
+  assert.match(css, /var\(--series-art\) center 45% \/ cover no-repeat/);
+});

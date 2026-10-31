@@ -1811,17 +1811,17 @@ kbd {
 @media (max-width: 520px) { .portfolio-group { padding: 17px; } }
 
 /* Особые оформления сериалов: изображения локальные, фон не мешает чтению. */
-[data-accent="rickmorty"] { --primary: #287038; --primary-strong: #175526; --primary-soft: #e8f5e5; --primary-border: #a5cba3; --series-art: url('../assets/rick-and-morty.jpg'); --series-ink: #0b291b; --series-highlight: #d4f6bb; }
+[data-accent="rickmorty"] { --primary: #287038; --primary-strong: #175526; --primary-soft: #e8f5e5; --primary-border: #a5cba3; --series-art: url('../assets/rick-and-morty.jpg'); --series-background: url('../assets/rick-and-morty-background.jpg'); --series-ink: #0b291b; --series-highlight: #d4f6bb; }
 [data-theme="dark"][data-accent="rickmorty"] { --primary: #9ede92; --primary-strong: #c1f2b5; --primary-soft: #1b3421; --primary-border: #426e47; }
-[data-accent="breakingbad"] { --primary: #626d28; --primary-strong: #46511a; --primary-soft: #f2f2da; --primary-border: #c4cb92; --series-art: url('../assets/breaking-bad.jpg'); --series-ink: #29240d; --series-highlight: #f5e7a6; }
+[data-accent="breakingbad"] { --primary: #626d28; --primary-strong: #46511a; --primary-soft: #f2f2da; --primary-border: #c4cb92; --series-art: url('../assets/breaking-bad.jpg'); --series-background: url('../assets/breaking-bad-background.jpg'); --series-ink: #29240d; --series-highlight: #f5e7a6; }
 [data-theme="dark"][data-accent="breakingbad"] { --primary: #d5d681; --primary-strong: #e9e9a9; --primary-soft: #30331d; --primary-border: #72784a; }
 :is([data-accent="rickmorty"], [data-accent="breakingbad"]) body { isolation: isolate; background-image: none; }
 :is([data-accent="rickmorty"], [data-accent="breakingbad"]) body::before {
   content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
-  background: linear-gradient(rgba(250,251,246,.88), rgba(250,251,246,.88)), var(--series-art) center / cover no-repeat;
+  background: linear-gradient(rgba(250,251,246,.82), rgba(250,251,246,.82)), var(--series-background) center / cover no-repeat;
 }
 :is([data-theme="dark"][data-accent="rickmorty"], [data-theme="dark"][data-accent="breakingbad"]) body::before {
-  background-image: linear-gradient(rgba(12,17,12,.88), rgba(12,17,12,.88)), var(--series-art);
+  background-image: linear-gradient(rgba(12,17,12,.80), rgba(12,17,12,.80)), var(--series-background);
 }
 :is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) {
   color: #fff; border-color: color-mix(in srgb, var(--series-ink) 50%, white);
