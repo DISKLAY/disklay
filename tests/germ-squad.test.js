@@ -49,7 +49,7 @@ function harness({mode = 'train', key = [1], enabled = true, total = 2, random =
 }
 
 test('при появлении три клика останавливают проделку и повторно не запускают её на вопросе', () => {
-  const h = harness(); assert.equal(h.AT.germSquad.APPEARANCE_CHANCE, 0.005);
+  const h = harness(); assert.equal(h.AT.germSquad.APPEARANCE_CHANCE, 0.002);
   h.squad.enter(); assert.equal(h.getPanel(), null); assert.match(h.getOverlay().innerHTML, /data-action="pop-germ"/);
   assert.equal(h.getSaves(), 1);
   for (let i = 0; i < 3; i++) assert.equal(h.pop(i).disabled, true);
@@ -58,13 +58,20 @@ test('при появлении три клика останавливают п�
   h.squad.leave(); h.squad.enter(); assert.equal(h.timers.size, 0);
 });
 
-test('вероятность 0,5%: значение ниже границы вызывает появление, на границе и выше — нет', () => {
-  for (const [roll, appears] of [[0, true], [0.004999, true], [0.005, false], [0.999999, false]]) {
+test('вероятность 0,2%: значение ниже границы вызывает появление, на границе и выше — нет', () => {
+  for (const [roll, appears] of [[0, true], [0.001999, true], [0.002, false], [0.999999, false]]) {
     const h = harness({random: () => roll});
     h.squad.enter();
     assert.equal(!!h.getOverlay(), appears, 'случайное значение ' + roll);
     assert.equal(h.session.germSeen.q1, true);
   }
+});
+
+test('старое отключение микробов в настройках больше не препятствует пасхалке', () => {
+  const h = harness({enabled:false, random: () => 0});
+  h.squad.enter();
+  assert.ok(h.getOverlay());
+  h.pop(0); assert.deepEqual(h.rewards, [['q1', 0]]);
 });
 
 test('повторный вход не перебрасывает вероятность, для следующего вопроса выполняется новый бросок', () => {
@@ -100,7 +107,7 @@ test('микробы не снимают уже выбранный или скр
 test('на последнем вопросе, при выходе, экзамене и без ключа нет опасного автозавершения', () => {
   const last = harness({total:1}); last.squad.enter(); last.tick(14000); assert.equal(last.getAdvances(), 0);
   const left = harness(); left.squad.enter(); left.squad.dispose(); left.tick(20000); assert.equal(left.getAdvances(), 0);
-  for (const opts of [{mode:'exam'}, {key:null}, {key:[1,2,3]}, {enabled:false}]) {
+  for (const opts of [{mode:'exam'}, {key:null}, {key:[1,2,3]}]) {
     const h = harness(opts); h.squad.enter(); assert.equal(h.timers.size, 0); assert.equal(h.getOverlay(), null);
   }
 });

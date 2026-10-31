@@ -23,6 +23,7 @@ function makePicker(selected = '1') {
   const groups = [
     { label: '1 семестр', choices: [['1', '1 · Остеология'], ['2', '2 · Миология'], ['credit-1', 'Зачёт · Остеология и миология']] },
     { label: '2 семестр', choices: [['3', '3 · Спланхнология'], ['4', '4 · Центральная нервная система'], ['credit-2', 'Зачёт · Спланхнология и ЦНС']] },
+    { label: '3 семестр', choices: [['5', '5 · Эстезиология и черепные нервы'], ['6', '6 · Периферическая нервная система']] },
     { label: 'Стоматологический факультет', choices: [['stom-2', 'Стом · 2 · Спланхнология'], ['stom-3', 'Стом · 3 · Ангионеврология']] },
   ].map(({label, choices}) => {
     const group = new Element('optgroup'); group.label = label;
@@ -45,11 +46,11 @@ function makePicker(selected = '1') {
 test('выбор базы находится только в панели, актуальная группа раскрыта', () => {
   const { sidebarNav } = makePicker('stom-2');
   const groups = sidebarNav.children;
-  assert.deepEqual(groups.map(group => group.children[0].textContent), ['1 семестр', '2 семестр', 'Стоматологический факультет']);
-  assert.deepEqual(groups.map(group => group.open), [false, false, true]);
-  assert.equal(groups.flatMap(group => group.children.slice(1)).length, 8);
-  assert.equal(groups[2].children[1].getAttribute('aria-current'), 'true');
-  assert.equal(groups[2].children[1].children[2].textContent, 'Выбрана');
+  assert.deepEqual(groups.map(group => group.children[0].textContent), ['1 семестр', '2 семестр', '3 семестр', 'Стоматологический факультет']);
+  assert.deepEqual(groups.map(group => group.open), [false, false, false, true]);
+  assert.equal(groups.flatMap(group => group.children.slice(1)).length, 10);
+  assert.equal(groups[3].children[1].getAttribute('aria-current'), 'true');
+  assert.equal(groups[3].children[1].children[2].textContent, 'Выбрана');
 });
 
 test('выбор базы переключает исходное значение и выделяет новую группу', () => {
@@ -63,7 +64,7 @@ test('выбор базы переключает исходное значени
   assert.equal(changes, 1);
   assert.equal(credit.getAttribute('aria-current'), 'true');
   assert.equal(groups[0].children[1].getAttribute('aria-current'), undefined);
-  assert.deepEqual(groups.map(group => group.open), [false, true, false]);
+  assert.deepEqual(groups.map(group => group.open), [false, true, false, false]);
   click(credit);
   assert.equal(changes, 1);
 });
@@ -88,4 +89,17 @@ test('в шапке нет второго выпадающего списка и
   assert.match(html, /id="courseSidebarNav"/);
   assert.match(css, /@media \(max-width: 760px\)\s*\{\s*\.nav\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /\.course-toggle span\s*\{\s*display:\s*none/);
+});
+
+test('третий семестр показывает коллоквиумы 5 и 6 и раскрывается при выборе', () => {
+  const { sidebarNav, select, click } = makePicker('5');
+  const semester = sidebarNav.children[2];
+  assert.equal(semester.children[0].textContent, '3 семестр');
+  assert.equal(semester.open, true);
+  assert.equal(semester.children[1].children[0].textContent, '5');
+  assert.equal(semester.children[1].getAttribute('aria-current'), 'true');
+  click(semester.children[2]);
+  assert.equal(select.value, '6');
+  assert.equal(semester.open, true);
+  assert.equal(semester.children[2].getAttribute('aria-current'), 'true');
 });

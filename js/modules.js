@@ -7,6 +7,8 @@
     '2': Object.assign({ id: '2', semester: 1, name: 'Миология', source: 'Миология 2025 by students', examAvailable: false }, window.COLLOQUIUM_2),
     '3': Object.assign({ id: '3', semester: 2, name: 'Спланхнология', source: 'Спланхнология ЛФ ПФ by students от 28.03.26', examAvailable: false }, window.COLLOQUIUM_3),
     '4': Object.assign({ id: '4', semester: 2, name: 'Центральная нервная система', source: 'ЦНС by students от 10.05.2026', examAvailable: false }, window.COLLOQUIUM_4),
+    '5': Object.assign({ id: '5', semester: 3, name: 'Эстезиология и черепные нервы', source: 'Эстезиология и черепные нервы — анат 7 коллок', keyNote: 'В вопросе № 15 второй вариант выделен зелёным, но не отмечен знаком «+»; он включён по подсветке.', examAvailable: false }, window.COLLOQUIUM_5),
+    '6': Object.assign({ id: '6', semester: 3, name: 'Периферическая нервная система', source: 'ПНС (периферическая нервная система) — тест', keyMark: 'галочками', examAvailable: false }, window.COLLOQUIUM_6),
     'credit-1': Object.assign({ id: 'credit-1', kind: 'credit', semester: 1, name: 'Остеология, артрология и миология', source: 'ОстеоАртроМио январь 2026 by students', examAvailable: false }, window.CREDIT_1),
     'credit-2': Object.assign({ id: 'credit-2', kind: 'credit', semester: 2, name: 'Спланхнология и ЦНС', source: 'Спланхнология и ЦНС зачёт by students от 21.05.26', examAvailable: false }, window.CREDIT_2),
     'stom-2': Object.assign({ id: 'stom-2', number: '2', faculty: 'Стоматологический факультет', name: 'Спланхнология', source: 'Модуль 2. Спланхология — стоматологический факультет', examAvailable: false, hasBaseKey: false, renumbered: true }, window.DENTAL_2),

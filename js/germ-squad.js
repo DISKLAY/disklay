@@ -2,8 +2,8 @@
 (function () {
   'use strict';
   const AT = window.AT;
-  // Вероятность для каждого подходящего вопроса в сессии — 0,5%.
-  const APPEARANCE_CHANCE = 0.005;
+  // Вероятность для каждого подходящего вопроса в сессии — 0,2%.
+  const APPEARANCE_CHANCE = 0.002;
   const REACTION_TIME = 12000;
   const MOVE_TIME = 1800;
 
@@ -141,7 +141,7 @@
     }
     function enter() {
       leave();
-      if (disposed || session.mode !== 'train' || !AT.getState().settings.germSquad) return;
+      if (disposed || session.mode !== 'train') return;
       const q = questions[session.index];
       if (!q) return;
       const entry = session.results[q.id];

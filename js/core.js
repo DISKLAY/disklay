@@ -147,7 +147,6 @@
       strict: true,
       hintCount: false,
       shuffleAnswers: true,
-      germSquad: true, // Временно 100% для проверки эксперимента пользователем.
     },
     key: {},          // правки/импорт: { "1": [1,2] }
     keyMeta: { updatedAt: null, source: '' },
@@ -872,10 +871,14 @@
   }
 
   function resetProgress() {
+    // Валюта общая и не должна исчезать при сбросе отдельной базы.
+    const walletPart = window.AT.game ? window.AT.game.ensure() : state.game;
+    const coins = walletPart && walletPart.coins || 0;
+    const cosmeticSpentApplied = walletPart && walletPart.cosmeticSpentApplied || 0;
     state.progress = {};
     state.sessions = [];
     state.session = null;
-    delete state.game;
+    state.game = { coins, cosmeticSpentApplied };
     if (window.AT.game) window.AT.game.ensure();
     save(true);
   }

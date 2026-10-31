@@ -1585,10 +1585,10 @@ kbd {
 .rewards-hero__metrics strong { font-size: 1.8rem; line-height: 1.2; }
 .rewards-context { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; margin-top: 16px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); font-size: .84rem; }
 .rewards-context .icon { width: 18px; height: 18px; color: var(--primary); margin-top: 2px; }
-.achievement-grid, .shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.achievement-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
 .achievement { display: flex; gap: 12px; padding: 17px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
 .achievement.is-unlocked { border-color: var(--primary-border); background: var(--primary-soft); }
-.achievement__icon, .shop-card__icon { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--surface-3); color: var(--muted); }
+.achievement__icon { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--surface-3); color: var(--muted); }
 .achievement.is-unlocked .achievement__icon { background: var(--surface); color: var(--primary); }
 .achievement__content { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .achievement__content strong { font-size: .9rem; }
@@ -1598,13 +1598,6 @@ kbd {
 .achievement__progress { height: 4px; margin: 9px 0 3px; border-radius: var(--r-full); background: var(--border-strong); overflow: hidden; }
 .achievement__progress span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 .rewards-footnote, .rewards-intro { color: var(--muted); font-size: .83rem; margin: 12px 0; }
-.shop-card { display: flex; flex-direction: column; gap: 9px; padding: 19px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
-.shop-card__top, .shop-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.shop-card__icon { background: var(--primary-soft); color: var(--primary); }
-.shop-card__tag { padding: 4px 8px; border-radius: var(--r-full); background: var(--surface-3); color: var(--text-2); font-size: .67rem; font-weight: 700; }
-.shop-card h3 { font-size: .98rem; }
-.shop-card p { flex: 1; color: var(--muted); font-size: .82rem; }
-.shop-card__footer { padding-top: 8px; border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted); }
 .rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
 .rules-grid > div { padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
 .rules-grid strong { font-size: .9rem; }
@@ -1616,15 +1609,12 @@ kbd {
 .game-overview__body strong { font-size: .92rem; }
 .game-overview__body span { font-size: .8rem; color: var(--text-2); }
 .game-overview__arrow { color: var(--primary); }
-.boost-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding: 12px; border-radius: var(--r-md); background: var(--surface-2); }
-.boost-bar__title { font-weight: 700; font-size: .78rem; color: var(--text-2); }
-.boost-bar__note { width: 100%; color: var(--muted); font-size: .74rem; }
 .game-result { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; padding: 16px 18px; border: 1px solid var(--primary-border); border-radius: var(--r-md); background: var(--primary-soft); }
 .game-result div { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .game-result p, .game-result span { color: var(--text-2); font-size: .83rem; }
-@media (max-width: 1000px) { .achievement-grid, .shop-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 1000px) { .achievement-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 760px) { .rewards-hero { grid-template-columns: 1fr; padding: 26px 22px; gap: 20px; } .rewards-hero__metrics div { flex: 1; min-width: 0; } }
-@media (max-width: 520px) { .achievement-grid, .shop-grid, .rules-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .achievement-grid, .rules-grid { grid-template-columns: 1fr; } }
 
 .exam-game-note { margin-top: 18px; padding: 13px 15px; border: 1px solid var(--primary-border); border-radius: var(--r-md); background: var(--primary-soft); }
 .exam-game-note strong { font-size: .86rem; }
@@ -1717,30 +1707,6 @@ kbd {
 .appearance-preview--autumn::after { background-image: url('../assets/season-autumn.svg'); }
 .appearance-preview--winter::after { background-image: url('../assets/season-winter.svg'); }
 .appearance-preview--spring::after { background-image: url('../assets/season-spring.svg'); }
-
-/* Оплата оформления: суммы видны и редактируются до подтверждения. */
-.checkout-modal { z-index: 110; }
-.checkout-card { width: min(540px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
-.checkout-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.checkout-head h3 { margin: 2px 0 8px; font-size: 1.14rem; }
-.checkout-overline { color: var(--primary); font-size: .68rem; font-weight: 750; letter-spacing: .08em; }
-.checkout-head .course-sidebar__close { flex: none; }
-.checkout-wallets { display: flex; flex-direction: column; gap: 8px; max-height: min(38dvh, 320px); overflow-y: auto; margin-top: 16px; padding: 2px; }
-.checkout-wallet { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); }
-.checkout-wallet__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; line-height: 1.3; }
-.checkout-wallet__text strong { font-size: .8rem; font-weight: 650; }
-.checkout-wallet__text small { color: var(--muted); font-size: .73rem; }
-.checkout-wallet input { width: 92px; height: 44px; flex: none; padding: 8px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--text); text-align: right; font-size: .9rem; }
-.checkout-wallet input[aria-invalid="true"] { border-color: var(--rose); }
-.checkout-total { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 14px; color: var(--muted); font-size: .8rem; }
-.checkout-total strong { color: var(--text); font-size: .9rem; }
-.checkout-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-@media (max-width: 520px) {
-  .checkout-modal { padding: 12px; }
-  .checkout-card { padding: 18px; }
-  .checkout-wallets { max-height: 35dvh; }
-  .checkout-actions { flex-direction: column-reverse; align-items: stretch; }
-}
 
 /* Атака титанов: постер внутри блока, выбранный закат — на весь экран. */
 [data-accent="anime"] { --primary: #6f3c8f; --primary-strong: #53296d; --primary-soft: #f3eaf8; --primary-border: #d9badd; --special-art: url('../assets/attack-on-titan-key-visual.jpg'); }

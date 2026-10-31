@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const scripts = ['js/data/questions.js', 'js/data/answers.js', 'js/data/exam.js',
-  'js/data/colloquium-2.js', 'js/data/colloquium-3.js', 'js/data/colloquium-4.js', 'js/data/credit-1.js', 'js/data/credit-2.js', 'js/data/dental-2.js', 'js/data/dental-3.js', 'js/modules.js',
+  'js/data/colloquium-2.js', 'js/data/colloquium-3.js', 'js/data/colloquium-4.js', 'js/data/colloquium-5.js', 'js/data/colloquium-6.js', 'js/data/credit-1.js', 'js/data/credit-2.js', 'js/data/dental-2.js', 'js/data/dental-3.js', 'js/modules.js',
   'js/core.js', 'js/ui.js', 'js/views-study.js', 'js/views-pages.js'];
 
 function app(storage, selected) {
@@ -18,7 +18,7 @@ function app(storage, selected) {
 
 test('во всех коллоквиумах загружены вопросы, темы и ключи', () => {
   const storage = {};
-  for (const [id, count] of [['1', 211], ['2', 188], ['3', 254], ['4', 257], ['credit-1', 245], ['credit-2', 297]]) {
+  for (const [id, count] of [['1', 211], ['2', 188], ['3', 254], ['4', 257], ['5', 161], ['6', 118], ['credit-1', 245], ['credit-2', 297]]) {
     const AT = app(storage, id);
     assert.equal(AT.colloquium.id, id);
     assert.equal(AT.dataset.total, count);
@@ -42,7 +42,7 @@ test('в первом коллоквиуме экзамен по схеме; в 
   let AT = app(storage, '1');
   assert.match(AT.views.examSetup().html, /20 вопросов за 20 минут/);
   assert.equal(AT.buildExam().ids.length, 20);
-  for (const id of ['2', '3', '4', 'credit-1', 'credit-2', 'stom-2', 'stom-3']) {
+  for (const id of ['2', '3', '4', '5', '6', 'credit-1', 'credit-2', 'stom-2', 'stom-3']) {
     AT = app(storage, id);
     const html = AT.views.examSetup().html;
     assert.match(html, /Скоро добавится/);
@@ -249,4 +249,105 @@ test('сине-индиговое оформление блока применя
   for (const id of ['1', '2', '3', '4', 'stom-2', 'stom-3']) {
     assert.doesNotMatch(app({}, id).views.dashboard().html, /hero--credit/);
   }
+});
+
+test('ПНС — шестой коллоквиум третьего семестра, ЦНС остаётся во втором', () => {
+  const AT = app({}, '6');
+  assert.equal(AT.colloquium.semester, 3); assert.equal(AT.colloquium.id, '6');
+  assert.equal(AT.colloquium.name, 'Периферическая нервная система');
+  assert.equal(AT.colloquium.examAvailable, false);
+  assert.equal(AT.dataset.total, 118); assert.equal(AT.keyApi.count(), 118);
+  assert.match(AT.views.dashboard().html, /3 семестр · Коллоквиум 6/);
+  assert.match(AT.views.examSetup().html, /Скоро добавится/);
+  assert.match(AT.views.key().html, /отмечены в PDF галочками/);
+  assert.match(AT.views.settings().html, /отмеченные в PDF галочками/);
+  assert.equal(app({}, '4').colloquium.semester, 2);
+  const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(index, /optgroup label="3 семестр"\s*>\s*<option value="5"[^>]*>[\s\S]*?<option value="6"/);
+  assert.doesNotMatch(index, /Первый курс/i);
+});
+
+test('ПНС: все варианты и отмеченные ключи перенесены по порядку колонок и страниц', () => {
+  const AT = app({}, '6');
+  for (const [i, q] of AT.dataset.questions.entries()) {
+    assert.equal(q.num, i + 1); assert.equal(q.id, 'q' + (i + 1));
+    assert.equal(q.options.length, 5); assert.ok(q.text.length > 8);
+    assert.equal(q.sourceNumber, q.num);
+    assert.equal(q.sourcePage, q.num <= 32 ? 1 : q.num <= 62 ? 2 : q.num <= 87 ? 3 : q.num <= 113 ? 4 : 5);
+    assert.ok(q.options.every(o => o.length && !o.includes('✓') && !o.includes('|')));
+    assert.ok(AT.keyApi.has(q));
+  }
+  for (const [num, key] of [[1,[1,2,3,4]], [6,[2]], [16,[1,2,3]], [17,[1]], [32,[1,2]], [47,[1,2,3,4]], [62,[1,2]], [71,[1,2,3]], [74,[1,2,3,4]], [88,[1,2]], [100,[1,2]], [113,[1,2,3,4]], [118,[1]]]) {
+    assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.byNum.get(String(num))).answers), key, '№' + num);
+  }
+  assert.ok(AT.dataset.topics.every(t => AT.dataset.topicQuestions(t.id).length));
+  assert.equal(AT.pickQuestions({topicIds:['autonomic-general'],scope:'all',limit:0}).length, 17);
+});
+
+test('ПНС сохраняет свой прогресс, избранное и ключ отдельно от остальных баз', () => {
+  const storage = {};
+  let AT = app(storage, '4');
+  AT.recordAttempt(AT.dataset.questions[0], true, [1]); AT.save(true);
+  AT = app(storage, '6'); const q = AT.dataset.questions[0];
+  assert.equal(AT.progressOf(q.id).attempts, 0);
+  AT.recordAttempt(q, false, [5]); AT.keyApi.set(q, [2]);
+  AT.annotations.toggleFavorite(q.id); AT.annotations.setComment(q.id, 'ПНС');
+  AT.startSession({mode:'train', ids:[q.id]}); AT.save(true);
+  AT = app(storage, '4'); assert.equal(AT.progressOf('q1').correct, 1);
+  assert.equal(AT.keyApi.forQuestion(AT.dataset.questions[0]).source, 'base');
+  assert.equal(AT.portfolio.allFavorites().some(g => g.module.id === '6' && g.questions.some(i => i.question.id === 'q1' && i.comment === 'ПНС')), true);
+  AT = app(storage, '6');
+  assert.equal(AT.progressOf('q1').wrong, 1);
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.questions[0]).answers), [2]);
+  assert.equal(AT.currentSession().ids[0], 'q1');
+  assert.ok(storage['anatomy-colloquium-v1-6']);
+});
+
+test('эстезиология и черепные нервы — пятый коллоквиум третьего семестра', () => {
+  const AT = app({}, '5');
+  assert.equal(AT.colloquium.semester, 3); assert.equal(AT.colloquium.id, '5');
+  assert.equal(AT.colloquium.name, 'Эстезиология и черепные нервы');
+  assert.equal(AT.dataset.total, 161); assert.equal(AT.keyApi.count(), 161);
+  assert.match(AT.views.dashboard().html, /3 семестр · Коллоквиум 5/);
+  assert.match(AT.views.examSetup().html, /Скоро добавится/);
+  assert.match(AT.views.key().html, /в вопросе № 15 второй вариант выделен зелёным/i);
+  assert.ok(AT.dataset.topics.every(t => AT.dataset.topicQuestions(t.id).length));
+  const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(index, /optgroup label="3 семестр"[\s\S]*?value="5"[\s\S]*?value="6"/);
+});
+
+test('пятый коллоквиум: 161 вопрос с пятью вариантами, исходными номерами и ключом по зелёным отметкам', () => {
+  const AT = app({}, '5');
+  for (const [i, q] of AT.dataset.questions.entries()) {
+    assert.equal(q.num, i + 1); assert.equal(q.id, 'q' + (i + 1));
+    assert.equal(q.sourceNumber, i + 1); assert.ok(q.sourcePage >= 2 && q.sourcePage <= 64);
+    assert.ok(q.text && q.options.length === 5 && q.options.every(Boolean));
+    const key = AT.keyApi.forQuestion(q).answers;
+    assert.ok(key.length && key.every(n => n >= 1 && n <= 5));
+    assert.equal(AT.gradeQuestion(q, key).correct, true);
+  }
+  for (const [num, key] of [[1,[1]], [2,[1,2]], [3,[1,2]], [15,[1,2,3,4]], [16,[1]], [18,[1,2]], [25,[1]], [47,[1,2,3]], [63,[1,2,3]], [79,[1,2]], [86,[3]], [133,[1,2,3]], [160,[1,2,3]], [161,[1,2,3,5]]]) {
+    assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.byNum.get(String(num))).answers), key, '№ ' + num);
+  }
+  const q25 = AT.dataset.byNum.get('25');
+  assert.equal(q25.options[0], 'глазодвигательным нервом (n. oculomotorius)');
+  assert.equal(AT.dataset.byNum.get('16').sourcePage, 7); // варианты на следующей странице
+  assert.equal(AT.dataset.byNum.get('161').sourcePage, 64);
+});
+
+test('эстезиология и ПНС: разные сохранения, заметки, ключи и незавершённые тренировки', () => {
+  const storage = {}; let AT = app(storage, '6');
+  AT.recordAttempt(AT.dataset.questions[0], true, [1]); AT.save(true);
+  AT = app(storage, '5'); const q = AT.dataset.questions[0];
+  assert.equal(AT.progressOf(q.id).attempts, 0);
+  AT.recordAttempt(q, false, [5]); AT.keyApi.set(q, [2]);
+  AT.annotations.toggleFavorite(q.id); AT.annotations.setComment(q.id, 'Заметка');
+  AT.startSession({mode:'train', ids:[q.id]}); AT.save(true);
+  AT = app(storage, '6'); assert.equal(AT.progressOf('q1').correct, 1);
+  const group = AT.portfolio.allFavorites().find(g => g.module.id === '5');
+  assert.equal(group.questions[0].question.id, 'q1'); assert.equal(group.questions[0].comment, 'Заметка');
+  AT = app(storage, '5'); assert.equal(AT.progressOf('q1').wrong, 1);
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.questions[0]).answers), [2]);
+  assert.equal(AT.currentSession().ids[0], 'q1');
+  assert.ok(storage['anatomy-colloquium-v1-5']);
 });
