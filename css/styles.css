@@ -1755,7 +1755,7 @@ kbd {
 
 /* Декоративные цвета следуют выбранному оформлению; цвета верных и неверных ответов остаются смысловыми. */
 [data-accent]:not([data-accent="default"]) { --violet: var(--primary); --violet-soft: var(--primary-soft); --teal: var(--primary); --teal-soft: var(--primary-soft); }
-[data-accent]:not([data-accent="default"]):not([data-accent="anime"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
+[data-accent]:not([data-accent="default"]):not([data-accent="anime"]):not([data-accent="rickmorty"]):not([data-accent="breakingbad"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
 [data-accent]:not([data-accent="default"]) .progress:not(.progress--ok):not(.progress--mid):not(.progress--low) span { background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 65%, white)); }
 [data-accent]:not([data-accent="default"]) .rewards-hero { background: linear-gradient(125deg, color-mix(in srgb, var(--primary) 24%, #161927), color-mix(in srgb, var(--primary) 38%, #211a2a)); }
 /* Нейтральные поверхности и подписи тоже учитывают выбранную палитру. */
@@ -1809,3 +1809,43 @@ kbd {
 @keyframes germ-pop { 50% { transform: scale(1.3); opacity: .8; } 100% { transform: scale(.15); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .germ-squad__germ.is-popping svg { animation: none; opacity: 0; } .germ-squad__reward { animation: none; opacity: 0; } }
 @media (max-width: 520px) { .portfolio-group { padding: 17px; } }
+
+/* Особые оформления сериалов: изображения локальные, фон не мешает чтению. */
+[data-accent="rickmorty"] { --primary: #287038; --primary-strong: #175526; --primary-soft: #e8f5e5; --primary-border: #a5cba3; --series-art: url('../assets/rick-and-morty.jpg'); --series-ink: #0b291b; --series-highlight: #d4f6bb; }
+[data-theme="dark"][data-accent="rickmorty"] { --primary: #9ede92; --primary-strong: #c1f2b5; --primary-soft: #1b3421; --primary-border: #426e47; }
+[data-accent="breakingbad"] { --primary: #626d28; --primary-strong: #46511a; --primary-soft: #f2f2da; --primary-border: #c4cb92; --series-art: url('../assets/breaking-bad.jpg'); --series-ink: #29240d; --series-highlight: #f5e7a6; }
+[data-theme="dark"][data-accent="breakingbad"] { --primary: #d5d681; --primary-strong: #e9e9a9; --primary-soft: #30331d; --primary-border: #72784a; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) body { isolation: isolate; background-image: none; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) body::before {
+  content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
+  background: linear-gradient(rgba(250,251,246,.88), rgba(250,251,246,.88)), var(--series-art) center / cover no-repeat;
+}
+:is([data-theme="dark"][data-accent="rickmorty"], [data-theme="dark"][data-accent="breakingbad"]) body::before {
+  background-image: linear-gradient(rgba(12,17,12,.88), rgba(12,17,12,.88)), var(--series-art);
+}
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) {
+  color: #fff; border-color: color-mix(in srgb, var(--series-ink) 50%, white);
+  background: linear-gradient(90deg, var(--series-ink) 10%, color-mix(in srgb, var(--series-ink) 75%, transparent) 58%, color-mix(in srgb, var(--series-ink) 44%, transparent)), var(--series-art) center 45% / cover no-repeat;
+}
+[data-accent="rickmorty"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #235c30, #397e37); }
+[data-accent="breakingbad"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #48551c, #77752b); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit)::after { display: none; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .hero__body,
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .hero__aside { position: relative; z-index: 1; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) :is(.eyebrow, .hero__ring-note, .ring__label span, .hero__lead) { color: #edf4e8; }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .hero__module { color: var(--series-highlight); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .ring__track { stroke: rgba(255,255,255,.25); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .ring__value { stroke: var(--series-highlight); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .btn--ghost { --btn-fg: #fff; --btn-border: rgba(255,255,255,.6); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) .btn--ghost:hover { --btn-bg: rgba(255,255,255,.12); }
+:is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) :focus-visible { outline-color: #fff; }
+.appearance-preview--rickmorty, .appearance-preview--breakingbad { position: relative; overflow: hidden; }
+.appearance-preview--rickmorty::after, .appearance-preview--breakingbad::after { content: ""; position: absolute; inset: 0; background: var(--preview-art) center / cover no-repeat; }
+.appearance-preview--rickmorty { --preview-art: url('../assets/rick-and-morty.jpg'); }
+.appearance-preview--breakingbad { --preview-art: url('../assets/breaking-bad.jpg'); }
+.appearance-preview--rickmorty span, .appearance-preview--breakingbad span { display: none; }
+@media (max-width: 760px) {
+  :is([data-accent="rickmorty"], [data-accent="breakingbad"]) .hero:not(.hero--credit) {
+    background: linear-gradient(color-mix(in srgb, var(--series-ink) 83%, transparent), color-mix(in srgb, var(--series-ink) 85%, transparent)), var(--series-art) center / cover no-repeat;
+  }
+}

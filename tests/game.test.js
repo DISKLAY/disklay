@@ -324,11 +324,11 @@ test('сезонные рисунки локальны, статичны и до
   }
 });
 
-test('аниме — самое дорогое оформление и покупается через общую оплату', () => {
+test('аниме — одно из самых дорогих оформлений и покупается через общую оплату', () => {
   const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 9000; AT.save(true);
   const styles = AT.game.appearances;
-  const regularPrices = Object.entries(styles).filter(([id]) => id !== 'anime').map(([, style]) => style.price);
+  const regularPrices = Object.entries(styles).filter(([, style]) => !style.premium).map(([, style]) => style.price);
   assert.ok(styles.anime.price > Math.max(...regularPrices)); assert.equal(styles.anime.price, 5000);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
   assert.equal(AT.game.walletBalance(), 6500);
@@ -337,15 +337,15 @@ test('аниме — самое дорогое оформление и поку�
 });
 
 test('достижение за все доступные оформления учитывает покупку аниме и сохраняется между базами', () => {
-  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true};
+  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true, rickmorty:true, breakingbad:true};
   const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:purchases, achievements:{}})};
   let AT = app(storage, '1'); let badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.absolute, true); assert.equal(badge.goal, 7); assert.equal(badge.current, 6); assert.equal(badge.unlocked, false);
+  assert.equal(badge.absolute, true); assert.equal(badge.goal, 9); assert.equal(badge.current, 8); assert.equal(badge.unlocked, false);
   AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 2500; AT.save(true);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
   badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.current, 7); assert.equal(badge.unlocked, true);
+  assert.equal(badge.current, 9); assert.equal(badge.unlocked, true);
   AT.resetProgress(); AT = app(storage, 'credit-1');
   assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
 });
@@ -384,7 +384,7 @@ test('импорт оформлений добавляет коллекцию, �
   AT.getState().key['1'] = [2];
   AT.game.ensure().coins = 321; AT.game.ensure().rating = 45; AT.save(true);
   const file = { sharedRewards: { appearances: Object.fromEntries(Object.keys(AT.game.appearances).filter(id => id !== 'default').map(id => [id, true])) }, game: { coins: 1000000 }, progress: {} };
-  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 7);
+  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 9);
   assert.equal(AT.game.importAppearances(file).ok, true);
   assert.equal(AT.game.ensure().coins, 321); assert.equal(AT.game.ensure().rating, 45);
   assert.equal(AT.getState().progress.q1.streak, 2); assert.deepEqual([...AT.getState().key['1']], [2]);
@@ -764,4 +764,39 @@ test('база ССС участвует в общем кошельке и ре�
   const q = AT.dataset.questions[0]; attempt(AT, q);
   assert.equal(AT.game.walletBalance(), 90); assert.equal(AT.game.totalRating(), 5);
   AT = app(storage, '6'); assert.equal(AT.game.walletBalance(), 90);
+});
+
+test('оформления сериалов покупаются из общего кошелька, сохраняются и доступны во всех базах', () => {
+  const storage = {}; let AT = app(storage, '5'); AT.game.ensure().coins = 6000; AT.save(true);
+  AT = app(storage, '7'); AT.game.ensure().coins = 5000; AT.save(true);
+  for (const id of ['rickmorty', 'breakingbad']) {
+    assert.equal(AT.game.appearances[id].premium, true);
+    assert.equal(AT.game.appearances[id].price, 5000);
+    assert.equal(AT.game.buyAppearance(id).ok, true);
+    assert.equal(AT.game.profile().appearance, id);
+  }
+  assert.equal(AT.game.walletBalance(), 1000);
+  AT = app(storage, '6');
+  for (const id of ['rickmorty', 'breakingbad']) {
+    assert.equal(AT.game.profile().appearances[id], true);
+    assert.match(AT.views.rewards().html, new RegExp('appearance-preview--' + id));
+    assert.equal(AT.game.selectAppearance(id).ok, true);
+  }
+  AT.resetProgress(); AT = app(storage, '5');
+  assert.equal(AT.game.walletBalance(), 1000);
+  assert.equal(AT.game.profile().appearance, 'breakingbad');
+  assert.equal(AT.game.profile().appearances.rickmorty, true);
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const [id, filename] of [['rickmorty', 'rick-and-morty.jpg'], ['breakingbad', 'breaking-bad.jpg']]) {
+    assert.match(css, new RegExp('data-accent="' + id + '"'));
+    assert.match(css, new RegExp('appearance-preview--' + id));
+    assert.ok(css.includes(filename));
+    assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', filename)).size > 10000);
+  }
+});
+
+test('ранее полученное достижение коллекционера сохраняется после расширения магазина', () => {
+  const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({achievements:{'absolute-collector':123}, appearances:{anime:true}})};
+  const badge = app(storage).game.achievements().find(a => a.id === 'absolute-collector');
+  assert.equal(badge.goal, 9); assert.equal(badge.unlocked, true);
 });

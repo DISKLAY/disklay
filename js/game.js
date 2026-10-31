@@ -102,6 +102,8 @@
     winter: { title: 'Зима', description: 'Морозные оттенки и снежинки.', price: 1500, color: '#316f9e' },
     spring: { title: 'Весна', description: 'Цветы, лепестки и свежая зелень.', price: 1500, color: '#ae4264' },
     anime: { title: 'Аниме · Атака титанов', description: 'Атмосфера Attack on Titan: титаны, тёмный город и огонь.', price: 5000, color: '#745337', premium: true },
+    rickmorty: { title: 'Рик и Морти', description: 'Портал в другие измерения и приключения Рика и Морти.', price: 5000, color: '#367741', premium: true },
+    breakingbad: { title: 'Во все тяжкие', description: 'Уолтер и Джесси в жёлто-зелёных тонах сериала.', price: 5000, color: '#647232', premium: true },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
   let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, walletSpent: 0, appearance: 'default' };
