@@ -393,3 +393,89 @@ test('ССС изолирует прогресс, ключ, сессию и из
   assert.deepEqual(Array.from(AT.keyApi.forQuestion(AT.dataset.questions[0]).answers), [2]);
   assert.equal(AT.currentSession().ids[0], 'q1'); assert.ok(storage['anatomy-colloquium-v1-7']);
 });
+
+test('верхняя стенка глазницы: клиновидная и лобная кости в коллоквиуме и зачёте', () => {
+  for (const [bank, number] of [['1', '121'], ['credit-1', '102']]) {
+    const AT=app({},bank), q=AT.dataset.byNum.get(number);
+    assert.equal(q.text,'Верхнюю стенку глазницы образуют:');
+    assert.equal(q.options[0],'клиновидная кость');assert.equal(q.options[4],'лобная кость');
+    assert.deepEqual(Array.from(AT.keyApi.forQuestion(q).answers),[1,5]);
+    assert.equal(AT.gradeQuestion(q,[1,5]).correct,true);
+    assert.equal(AT.gradeQuestion(q,[1]).correct,false);
+    assert.equal(AT.gradeQuestion(q,[5]).correct,false);
+  }
+  assert.match(app({},'1').views.key().html,/Исправлены № 119 .* и № 121/);
+});
+
+test('локальная правка ключа сохраняет приоритет после исправления № 121', () => {
+  const storage={};let AT=app(storage,'1'),q=AT.dataset.byNum.get('121');
+  AT.keyApi.set(q,[1]);AT.save(true);AT=app(storage,'1');q=AT.dataset.byNum.get('121');
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(q).answers),[1]);assert.equal(AT.keyApi.forQuestion(q).source,'local');
+  AT.keyApi.clear(q);assert.deepEqual(Array.from(AT.keyApi.forQuestion(q).answers),[1,5]);
+});
+
+test('оба разных вопроса № 58 сохранены раздельно, а номер 92 не выдуман', () => {
+  const AT=app({}, '1'), a=AT.dataset.byNum.get('58'), b=AT.dataset.byNum.get('58а');
+  assert.equal(AT.dataset.total,211);assert.notEqual(a.id,b.id);assert.match(a.text,/Лобковая кость состоит/);assert.match(b.text,/Поверхность лобковой кости/);
+  assert.deepEqual(Array.from(AT.keyApi.forQuestion(a).answers),[1,3]);assert.deepEqual(Array.from(AT.keyApi.forQuestion(b).answers),[3]);
+  assert.equal(AT.lookupQuestion('58.2',false).id,b.id);assert.equal(AT.lookupQuestion('92',false),null);
+  assert.equal(AT.lookupQuestion('p92',false).num,91);assert.equal(AT.dataset.byNum.get('93').pos,93);
+});
+
+
+test('кнопки редактирования ключа видны без импорта, локальные ответы можно вернуть к исходным', () => {
+  const storage = {}, AT = app(storage, '1'), html = AT.views.key().html;
+  assert.match(html, /Нажимайте на варианты/);
+  assert.match(html, /<details class="key-advanced"><summary>Импорт, экспорт и нумерация/);
+  assert.match(html, /data-action="key-toggle"[^>]*aria-pressed="(?:true|false)"/);
+  assert.match(html, /data-action="key-reset"[^>]*hidden>Вернуть исходный/);
+  const q = AT.dataset.questions[0], original = Array.from(AT.keyApi.forQuestion(q).answers);
+  const other = [1,2,3,4,5].find(i => !original.includes(i));
+  AT.keyApi.set(q, [...original, other]); AT.save(true);
+  const loaded = app(storage, '1');
+  assert.equal(loaded.keyApi.forQuestion(q).source, 'local');
+  assert.ok(loaded.keyApi.forQuestion(q).answers.includes(other));
+  loaded.keyApi.clear(q); loaded.save(true);
+  assert.deepEqual(Array.from(app(storage, '1').keyApi.forQuestion(q).answers), original);
+});
+
+test('структура всех банков не содержит повторяющихся номеров и некорректных ключей', () => {
+  const storage = {};
+  for (const id of ['1','2','3','4','5','6','7','credit-1','credit-2','stom-2','stom-3']) {
+    const AT = app(storage, id), questions = AT.dataset.questions, numbers = new Set(), ids = new Set();
+    for (const q of questions) {
+      assert.ok(!ids.has(q.id), id + ': повтор ID ' + q.id); ids.add(q.id);
+      assert.ok(!numbers.has(String(q.num)), id + ': повтор номера ' + q.num); numbers.add(String(q.num));
+      const key = AT.keyApi.forQuestion(q);
+      if (id.startsWith('stom-')) { assert.equal(key, null); continue; }
+      assert.ok(key && key.answers.length, id + ': нет ключа ' + q.num);
+      assert.equal(new Set(key.answers).size, key.answers.length);
+      assert.ok(key.answers.every(n => Number.isInteger(n) && n >= 1 && n <= q.options.length));
+    }
+    for (const num of Object.keys(AT.colloquium.answers || {})) assert.ok(numbers.has(num), id + ': лишний ключ ' + num);
+  }
+});
+
+
+test('исправленные ключи одинаковых вопросов совпадают в коллоквиуме и зачёте', () => {
+  const storage = {}, first = app(storage, '1'), credit = app(storage, 'credit-1');
+  for (const [a, b, expected] of [['119', '100', [1,3,4]], ['41', '36', [1,3,5]]]) {
+    const q1 = first.dataset.byNum.get(a), q2 = credit.dataset.byNum.get(b);
+    assert.equal(q1.text, q2.text);
+    assert.deepEqual(Array.from(q1.options), Array.from(q2.options));
+    assert.deepEqual(Array.from(first.keyApi.forQuestion(q1).answers), expected);
+    assert.deepEqual(Array.from(credit.keyApi.forQuestion(q2).answers), expected);
+    assert.equal(first.gradeQuestion(q1, expected).correct, true);
+    assert.equal(credit.gradeQuestion(q2, expected).correct, true);
+  }
+});
+
+test('локальные ключи остаются приоритетными после исправления базовых ответов', () => {
+  for (const [id, number, override] of [['1','119',[1,2,4]], ['credit-1','36',[3,5]]]) {
+    const storage = {}, first = app(storage,id), q = first.dataset.byNum.get(number);
+    first.keyApi.set(q,override); first.save(true);
+    const next = app(storage,id), actual = next.keyApi.forQuestion(next.dataset.byNum.get(number));
+    assert.equal(actual.source,'local');
+    assert.deepEqual(Array.from(actual.answers),override);
+  }
+});

@@ -783,7 +783,27 @@
         else entry.selected.splice(pos, 1);
         entry.selected.sort((a, b) => a - b);
         AT.save(true);
-        renderInto(false);
+        // При выборе не пересоздаём вопрос: сохраняем фокус, прокрутку и анимации.
+        const host = document.getElementById('runnerHost');
+        if (!host) return;
+        const button = host.querySelector('[data-action="toggle-option"][data-index="' + idx + '"]');
+        if (button) {
+          const selected = entry.selected.includes(idx);
+          button.classList.toggle('is-selected', selected);
+          button.setAttribute('aria-pressed', String(selected));
+        }
+        const checkButton = host.querySelector('[data-action="check"]');
+        if (checkButton) checkButton.disabled = !entry.selected.length;
+        if (isExam) {
+          const dot = host.querySelector('[data-action="jump"][data-index="' + session.index + '"]');
+          if (dot) dot.classList.toggle('is-filled', entry.selected.length > 0);
+          const counter = host.querySelector('.question__actions--exam .question__kb');
+          if (counter) {
+            const count = Object.values(session.results).filter(r => r && r.selected && r.selected.length && r.correct !== undefined).length;
+            counter.textContent = 'Отвечено: ' + count + ' из ' + qs.length;
+          }
+        }
+        if (squad) squad.refresh();
       }
 
       function check() {

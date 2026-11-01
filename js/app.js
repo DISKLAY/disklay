@@ -48,9 +48,32 @@
     portfolio: 'portfolio',
     stats: 'stats',
     rewards: 'rewards',
+    dungeon: 'dungeon',
     key: 'key',
     settings: 'settings',
   };
+
+  // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
+  let dungeonLoad = null, dungeonCss = null, dungeonReady = false;
+  function loadDungeon() {
+    if (dungeonLoad) return dungeonLoad;
+    function resource(tag, url) {
+      return new Promise((resolve, reject) => {
+        const el = document.createElement(tag);
+        if (tag === 'link') { el.rel = 'stylesheet'; el.href = url; }
+        else { el.src = url; }
+        el.onload = resolve;
+        el.onerror = () => { el.remove(); reject(new Error('Не удалось загрузить ' + url)); };
+        document.head.appendChild(el);
+      });
+    }
+    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=11').catch(err => { dungeonCss = null; throw err; });
+    const css = dungeonCss;
+    const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=11'))
+      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=11'));
+    dungeonLoad = Promise.all([css, script]).then(() => { dungeonReady = true; }).catch(err => { dungeonLoad = null; throw err; });
+    return dungeonLoad;
+  }
 
   function render() {
     runCleanups();
@@ -63,6 +86,20 @@
       if (route.params.topic) AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];
       if (route.params.scope === 'favorites') AT.setup.train.scope = 'favorites';
       history.replaceState(null, '', '#/train');
+    }
+
+    if (viewName === 'dungeon' && !dungeonReady) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Подземелье</h1><p>Загружаем игру…</p></div></div>';
+      updateNav(route.name);
+      loadDungeon().then(() => {
+        if (parseHash().name === 'dungeon') render();
+      }).catch(err => {
+        console.error(err);
+        if (parseHash().name !== 'dungeon') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить игру</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="dungeonRetry">Повторить</button></div></div>';
+        root.querySelector('#dungeonRetry').addEventListener('click', render);
+      });
+      return;
     }
 
     const view = AT.views[viewName];

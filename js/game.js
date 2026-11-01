@@ -27,7 +27,7 @@
     { id: 'joints-100', title: 'Мастер соединений', description: 'Освоить 100 вопросов по соединениям костей', metric: 'joints', goal: 100, discipline: true },
     { id: 'organs-200', title: 'Знаток внутренних органов', description: 'Освоить 200 вопросов по спланхнологии', metric: 'organs', goal: 200, discipline: true },
     { id: 'nervous-200', title: 'Нейроанатом', description: 'Освоить 200 вопросов по нервной системе', metric: 'nervous', goal: 200, discipline: true },
-    { id: 'absolute-collector', title: 'Полная коллекция', description: 'Купить все платные оформления', metric: 'stylesOwned', goal: 'all-appearances', absolute: true },
+    { id: 'absolute-collector', title: 'Полная коллекция', description: 'Собрать все платные оформления', metric: 'stylesOwned', goal: 'all-appearances', absolute: true },
     { id: 'absolute-rating', title: 'Легенда курса', description: 'Набрать 50 000 общего рейтинга', metric: 'rating', goal: 50000, absolute: true },
     { id: 'absolute-mastery', title: 'Вся база покорена', description: 'Освоить каждый вопрос любой одной базы (включая самооценку)', metric: 'completeBank', goal: 1, absolute: true },
     { id: 'absolute-exam', title: 'Идеальный экзамен', description: 'Ответить верно на все 20 вопросов пробного экзамена без усилений', metric: 'perfectExam', goal: 1, absolute: true },
@@ -216,7 +216,7 @@
   }
   function selectAppearance(id) {
     readShared();
-    if (!Object.prototype.hasOwnProperty.call(APPEARANCES, id) || (id !== 'default' && !shared.appearances[id])) return { ok: false, message: 'Сначала купите оформление' };
+    if (!Object.prototype.hasOwnProperty.call(APPEARANCES, id) || (id !== 'default' && !shared.appearances[id])) return { ok: false, message: 'Сначала получите или купите оформление' };
     const previous = shared.appearance;
     shared.appearance = id;
     if (!saveShared()) { shared.appearance = previous; return { ok: false, message: 'Не удалось сохранить оформление' }; }

@@ -294,7 +294,7 @@
 
     let html = '<div class="view">';
     html += '<div class="page-head"><h1>Ключ ответов</h1>' +
-      '<p>' + (AT.colloquium.hasBaseKey === false ? 'Ключ ответов пока не предоставлен. Можно добавить свои ответы вручную или импортировать ключ; до этого доступна самооценка.' : 'Правильные варианты для каждого задания. Ключ уже заполнен по базе теста — при необходимости поправьте ответы вручную или импортируйте свой.') + '</p></div>';
+      '<p>' + (AT.colloquium.hasBaseKey === false ? 'Ключ ответов пока не предоставлен. Найдите вопрос ниже и отметьте правильные варианты нажатием; до этого доступна самооценка.' : 'Найдите вопрос ниже и нажмите на правильные варианты. Выбранные варианты выделены; изменения сохраняются для этой базы.') + '</p></div>';
 
     html += '<div class="key-status">' +
       ring(pct, 96, pct + '%', 'заполнено') +
@@ -308,9 +308,9 @@
           'Если ответ кажется спорным — снимите или поставьте галочку ниже, ваша правка будет главнее базы.' + (AT.colloquium.keyNote ? ' ' + esc(AT.colloquium.keyNote) : '') + '</span></p>'
         : '');
 
-    html += '<div class="split split--key">';
+    let advanced = '<details class="key-advanced"' + (uiState.keyAdvancedOpen ? ' open' : '') + '><summary>Импорт, экспорт и нумерация</summary><div class="split split--key">';
 
-    html += '<section class="card card--pad">' +
+    advanced += '<section class="card card--pad">' +
       '<h2 class="card__title">' + icon('upload') + 'Импорт</h2>' +
       '<p class="muted small">Вставьте ключ в любом удобном виде:</p>' +
       '<pre class="code-hint">1: 1, 2, 4\n2: 1 2 3 4\n3 — а, в, д\n4 = 135\n{"5": [1, 3]}</pre>' +
@@ -325,7 +325,7 @@
       '<div id="importResult">' + (uiState.lastImport || '') + '</div>' +
       '</section>';
 
-    html += '<section class="card card--pad">' +
+    advanced += '<section class="card card--pad">' +
       '<h2 class="card__title">' + icon('download') + 'Экспорт</h2>' +
       '<p class="muted small">Выгрузите текущий ключ, чтобы передать его или сохранить копию.</p>' +
       '<div class="card__actions card__actions--col">' +
@@ -337,10 +337,12 @@
       '<hr class="hr">' +
       '<h2 class="card__title">' + icon('info') + 'Про нумерацию</h2>' +
       '<p class="muted small">' + (AT.colloquium.renumbered ? 'В исходном PDF нумерация повторяется по разделам. Здесь вопросы пронумерованы по порядку; у каждого указаны страница и номер в PDF.' : AT.colloquium.id === '1' ? 'Номера совпадают с PDF. Вопрос № 58 встречается дважды — второй помечен «58а». Вопроса № 92 в файле нет.' : 'Номера вопросов совпадают с исходным PDF.') + '</p>' +
-      '</section></div>';
+      '</section></div></details>';
 
+    html += advanced;
     html += '<section class="section">' +
       '<div class="section__head"><h2>Задания</h2><span class="section__hint">' + list.length + ' из ' + total + '</span></div>' +
+      '<p class="key-edit-hint">Нажимайте на варианты, чтобы отметить или снять их. При замене единственного ответа сначала отметьте новый, затем снимите старый.</p>' +
       '<div class="toolbar toolbar--wrap">' +
       '<label class="search"><span class="search__icon">' + icon('search') + '</span>' +
       '<input type="search" placeholder="Поиск по номеру, тексту или варианту" value="' + esc(uiState.keySearch) + '" data-action="key-search"></label>' +
@@ -362,12 +364,12 @@
         '<span class="badge badge--soft">' + esc(topic.title) + '</span>' +
         (answer ? '<span class="badge badge--ok">' + (answer.source === 'local' ? 'мой ответ' : 'из базы') + '</span>'
           : '<span class="badge badge--muted">нет ответа</span>') +
-        '</div>' +
+        '<button type="button" class="key-reset" data-action="key-reset" data-qid="' + q.id + '"' + (answer && answer.source === 'local' ? '' : ' hidden') + '>Вернуть исходный</button></div>' +
         '<p class="key-item__text">' + esc(q.text) + '</p>' +
         '<div class="key-item__options">' +
         q.options.map((opt, i) => {
           const on = answer && answer.answers.indexOf(i + 1) !== -1;
-          return '<button type="button" class="opt-toggle' + (on ? ' is-on' : '') + '" data-action="key-toggle" data-qid="' + q.id + '" data-index="' + (i + 1) + '">' +
+          return '<button type="button" class="opt-toggle' + (on ? ' is-on' : '') + '" data-action="key-toggle" data-qid="' + q.id + '" data-index="' + (i + 1) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
             '<span class="opt-toggle__key">' + (i + 1) + '</span><span>' + esc(opt) + '</span></button>';
         }).join('') +
         '</div></article>';
@@ -375,25 +377,34 @@
     html += '</div></section></div>';
 
     const mount = (root) => {
+      const advancedPanel = root.querySelector('.key-advanced');
+      if (advancedPanel) advancedPanel.addEventListener('toggle', () => { uiState.keyAdvancedOpen = advancedPanel.open; });
       root.addEventListener('click', (e) => {
         const el = e.target.closest('[data-action]');
         if (!el) return;
         const action = el.getAttribute('data-action');
 
-        if (action === 'key-toggle') {
+        if (action === 'key-toggle' || action === 'key-reset') {
           const q = dataset.byId.get(el.getAttribute('data-qid'));
-          const idx = parseInt(el.getAttribute('data-index'), 10);
-          const current = keyApi.forQuestion(q);
-          const answers = current ? current.answers.slice() : [];
-          const pos = answers.indexOf(idx);
-          if (pos === -1) answers.push(idx);
-          else answers.splice(pos, 1);
-          keyApi.set(q, answers);
+          if (!q) return;
+          if (action === 'key-reset') keyApi.clear(q);
+          else {
+            const idx = parseInt(el.getAttribute('data-index'), 10);
+            const current = keyApi.forQuestion(q);
+            const answers = current ? current.answers.slice() : [];
+            const pos = answers.indexOf(idx);
+            if (pos === -1) answers.push(idx);
+            else answers.splice(pos, 1);
+            keyApi.set(q, answers);
+          }
+          if (!AT.save(true)) toast('Не удалось сохранить ключ на устройстве', 'warn');
           const item = el.closest('.key-item');
           const answer = keyApi.forQuestion(q);
           item.querySelectorAll('.opt-toggle').forEach((btn) => {
             const index = parseInt(btn.getAttribute('data-index'), 10);
-            btn.classList.toggle('is-on', !!answer && answer.answers.indexOf(index) !== -1);
+            const on = !!answer && answer.answers.indexOf(index) !== -1;
+            btn.classList.toggle('is-on', on);
+            btn.setAttribute('aria-pressed', String(on));
           });
           const badges = item.querySelector('.key-item__head');
           const old = badges.querySelector('.badge--ok, .badge--muted');
@@ -402,6 +413,8 @@
           span.className = 'badge ' + (answer ? 'badge--ok' : 'badge--muted');
           span.textContent = answer ? (answer.source === 'local' ? 'мой ответ' : 'из базы') : 'нет ответа';
           badges.appendChild(span);
+          const reset = badges.querySelector('[data-action="key-reset"]');
+          if (reset) reset.hidden = !(answer && answer.source === 'local');
           updateKeyStatus(root);
         } else if (action === 'key-filter') {
           uiState.keyFilter = el.getAttribute('data-filter');
@@ -529,6 +542,7 @@
       (parsed.problems.length ? '. Замечания: ' + esc(parsed.problems.slice(0, 3).join('; ')) : '') +
       '</span></div></div>';
     toast('Ключ импортирован: ' + applied);
+    uiState.keyAdvancedOpen = true;
     AT.rerender();
   }
 
