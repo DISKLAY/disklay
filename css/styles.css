@@ -5,6 +5,8 @@
 /* ------------------------------------------------------------- переменные */
 
 :root {
+  /* Keep browser auto-darkening from overriding the app's selected theme. */
+  color-scheme: only light;
   --bg: #f4f6fb;
   --bg-soft: #eef1f9;
   --surface: #ffffff;
@@ -53,6 +55,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #080b14;
   --bg-soft: #0d1220;
   --surface: #111728;
@@ -190,7 +193,7 @@ img, svg { display: block; }
 .brand__mark svg { width: 100%; height: 100%; border-radius: 11px; box-shadow: var(--shadow-sm); }
 .brand__text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand__text strong { display: flex; align-items: center; gap: 6px; font-size: 1rem; letter-spacing: -.01em; white-space: nowrap; }
-.brand__flag { width: 20px; height: 12px; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); }
+.brand__flag { color-scheme: only light; width: 20px; height: 12px; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); }
 .brand__text span { font-size: .72rem; color: var(--muted); letter-spacing: .01em; }
 .hero__module { color: var(--primary); font-weight: 650; margin-bottom: 8px; }
 
