@@ -1,7 +1,7 @@
 /* Optional browser layout audit. Start the static site first; see README. */
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core');
 const BASE_URL = process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/';
-const cases = [195, 240, 320, 375, 768, 1024].map(width => ({ width, zoom: 1 }));
+const cases = [195, 240, 320, 375, 768, 1001, 1024, 1100, 1101, 1280, 1600].map(width => ({ width, zoom: 1 }));
 cases.push({ width: 390, zoom: 2 });
 const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards', 'key', 'settings', 'dungeon'];
 
@@ -37,7 +37,7 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
             // These are deliberately scrollable, or use ellipsis/native input rendering.
             const helpPanel = el.closest('.dg-info-panel');
             if (helpPanel && !helpPanel.closest('details').open) continue;
-            if ((helpPanel && el !== helpPanel) || el.closest('.code-hint, .nav, .course-toggle__current') || el.tagName === 'INPUT') continue;
+            if ((helpPanel && el !== helpPanel) || el.closest('.code-hint, .course-toggle__current') || el.tagName === 'INPUT') continue;
             const name = `${el.tagName}.${String(el.className).replace(/\s+/g, '.')}`;
             const sidebar = el.closest('.course-sidebar');
             const sidebarRect = sidebar && sidebar.getBoundingClientRect();
@@ -107,6 +107,16 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
       });
       if (!sidebarFits) failures.push(`${width}px (zoom ${zoom}): боковая панель или её кнопка закрытия за экраном`);
       await page.locator('#courseClose').click();
+      if (width === 1024 && zoom === 1) {
+        for (const destination of ['dungeon', 'key', 'settings']) {
+          await page.locator('#courseToggle').click();
+          await page.locator(`[data-sidebar-route="${destination}"]`).click();
+          await page.waitForFunction(name => AT.route() === name, destination);
+          const active = await page.locator(`[data-sidebar-route="${destination}"]`).getAttribute('aria-current');
+          if (active !== 'page') failures.push(`Меню: не отмечен текущий раздел ${destination}`);
+          if (await page.locator('#courseSidebar').isVisible()) failures.push(`Меню не закрылось после перехода в ${destination}`);
+        }
+      }
       await page.evaluate(() => AT.ui.toast('Длинное уведомление с важной информацией для пользователя'));
       await scan('toast');
       await page.evaluate(() => { AT.ui.confirmDialog({ title: 'Подтверждение действия', text: 'Длинное сообщение для проверки размещения диалога на узком экране. '.repeat(3) }); });

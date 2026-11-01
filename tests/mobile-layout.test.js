@@ -25,3 +25,18 @@ test('мобильные сетки и длинный текст могут сж
   assert.match(dungeon, /\.dg-item \{ flex-wrap:wrap/);
   assert.match(dungeon, /\.dg-entry \{ grid-template-columns:minmax\(0,1fr\)/);
 });
+
+test('в верхней строке только основные разделы, остальные доступны в меню', () => {
+  const html = read('index.html'), css = read('css/styles.css');
+  const nav = html.match(/<nav class="nav" id="mainNav"[\s\S]*?<\/nav>/)[0];
+  const sidebar = html.match(/<nav class="course-sidebar__pages"[\s\S]*?<\/nav>/)[0];
+  for (const name of ['dashboard', 'train', 'exam', 'mistakes', 'stats', 'rewards']) {
+    assert.match(nav, new RegExp(`data-route="${name}"`));
+  }
+  for (const name of ['dungeon', 'key', 'settings']) {
+    assert.doesNotMatch(nav, new RegExp(`data-route="${name}"`));
+    assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
+  }
+  assert.match(css, /\.nav \{[^}]*flex-wrap: wrap/s);
+  assert.match(css, /@media \(max-width: 1100px\) \{\s*\.topbar__inner \{ flex-wrap: wrap/s);
+});
