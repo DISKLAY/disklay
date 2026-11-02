@@ -245,5 +245,5 @@ window.ANSWER_KEY = {
 window.ANSWER_KEY_META = {
   title: 'База теста 1 коллоквиум',
   source: 'База теста 1 коллоквиум.pdf — верные варианты отмечены подсветкой',
-  updatedAt: '2026-10-29',
+  updatedAt: '2026-11-01',
 };

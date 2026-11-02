@@ -29,7 +29,7 @@
       return '<article class="appearance-card' + (style.premium ? ' appearance-card--premium' : '') + (active ? ' is-active' : '') + '">' +
         '<div class="appearance-preview appearance-preview--' + esc(id) + '" aria-hidden="true" style="--preview-color:' + esc(style.color) + '"><span></span><span></span><span></span></div>' +
         '<div class="appearance-card__body"><h3>' + esc(style.title) + '</h3><p>' + esc(style.description) + '</p>' +
-        '<div class="appearance-card__footer"><span>' + (active ? 'Используется' : owned ? 'Куплено' : style.premium ? 'Особое · навсегда' : 'Навсегда') + '</span>' +
+        '<div class="appearance-card__footer"><span>' + (active ? 'Используется' : owned ? 'Открыто' : style.premium ? 'Особое · навсегда' : 'Навсегда') + '</span>' +
         '<button class="btn ' + (owned ? 'btn--ghost' : 'btn--primary') + ' btn--sm" data-action="' + action + '" data-appearance="' + esc(id) + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button></div></div></article>';
     }
     const styles = Object.entries(game.appearances);

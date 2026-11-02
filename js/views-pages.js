@@ -6,7 +6,7 @@
 
   const AT = window.AT;
   const { utils, dataset, keyApi, analytics } = AT;
-  const { icon, progressBar, ring, emptyState, toast, confirmDialog } = AT.ui;
+  const { icon, progressBar, ring, emptyState, toast, confirmDialog, keyWarning, keyWarningBadge } = AT.ui;
   const esc = utils.esc;
   const views = (AT.views = AT.views || {});
 
@@ -35,7 +35,7 @@
         html += '<div class="portfolio-list">';
         questions.forEach(({question:q, comment}) => {
           const topic = (module.topics || []).find(t => t.id === q.topic);
-          html += '<details class="portfolio-item"><summary><span class="badge">№ ' + esc(q.num) + '</span><span class="portfolio-item__text">' + esc(q.text) + '</span>' + icon('chevronDown') + '</summary>' +
+          html += '<details class="portfolio-item"><summary><span class="badge">№ ' + esc(q.num) + '</span><span class="portfolio-item__text">' + esc(q.text) + '</span>' + keyWarningBadge(q, module) + icon('chevronDown') + '</summary>' +
             '<div class="portfolio-item__body"><p class="muted small">' + esc(topic ? topic.title : '') + '</p>' +
             '<ol class="portfolio-options">' + q.options.map(opt => '<li>' + esc(opt) + '</li>').join('') + '</ol>' +
             (comment ? '<div class="portfolio-comment"><strong>Личный комментарий</strong><p>' + esc(comment) + '</p></div>' : '') +
@@ -101,7 +101,7 @@
       const topic = dataset.topic(item.topic);
       html += '<article class="mistake">' +
         '<div class="mistake__head"><span class="badge">№ ' + esc(item.num) + '</span>' +
-        '<span class="badge badge--soft">' + esc(topic.title) + '</span>' +
+        '<span class="badge badge--soft">' + esc(topic.title) + '</span>' + keyWarningBadge(item) +
         '<span class="mistake__stat">ошибок: ' + p.wrong + ' · попыток: ' + p.attempts + '</span></div>' +
         '<h3 class="mistake__text">' + esc(item.text) + '</h3>' +
         '<div class="mistake__answers">' +
@@ -268,10 +268,7 @@
 
   /* ----------------------------------------------------------- ключ ответов */
 
-  views.key = function () {
-    const total = dataset.total;
-    const keyed = keyApi.count();
-    const pct = utils.pct(keyed, total);
+  function findKeyItems() {
     const search = uiState.keySearch.trim().toLowerCase();
     const filter = uiState.keyFilter;
 
@@ -285,6 +282,7 @@
     }
     if (filter === 'empty') list = list.filter((q) => !keyApi.has(q));
     if (filter === 'filled') list = list.filter((q) => keyApi.has(q));
+    if (filter === 'flagged') list = list.filter((q) => !!keyWarning(q));
     if (filter === 'suspicious') {
       list = list.filter((q) => {
         const a = keyApi.forQuestion(q);
@@ -292,9 +290,47 @@
       });
     }
 
+    return list;
+  }
+
+  function renderKeyItems(list) {
+    let html = '';
+    if (!list.length) {
+      html += '<p class="muted center">Ничего не найдено.</p>';
+    }
+    list.forEach((q) => {
+      const answer = keyApi.forQuestion(q);
+      const topic = dataset.topic(q.topic);
+      html += '<article class="key-item" data-qid="' + q.id + '">' +
+        '<div class="key-item__head"><span class="badge">№ ' + esc(q.num) + '</span>' +
+        '<span class="badge badge--soft">' + esc(topic.title) + '</span>' +
+        keyWarningBadge(q) +
+        (answer ? '<span class="badge badge--ok">' + (answer.source === 'local' ? 'мой ответ' : 'из базы') + '</span>'
+          : '<span class="badge badge--muted">нет ответа</span>') +
+        '<button type="button" class="key-reset" data-action="key-reset" data-qid="' + q.id + '"' + (answer && answer.source === 'local' ? '' : ' hidden') + '>Вернуть исходный</button></div>' +
+        '<p class="key-item__text">' + esc(q.text) + '</p>' +
+        (keyWarning(q) ? '<p class="key-warning">' + esc(keyWarning(q)) + '</p>' : '') +
+        '<div class="key-item__options">' +
+        q.options.map((opt, i) => {
+          const on = answer && answer.answers.indexOf(i + 1) !== -1;
+          return '<button type="button" class="opt-toggle' + (on ? ' is-on' : '') + '" data-action="key-toggle" data-qid="' + q.id + '" data-index="' + (i + 1) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+            '<span class="opt-toggle__key">' + (i + 1) + '</span><span>' + esc(opt) + '</span></button>';
+        }).join('') +
+        '</div></article>';
+    });
+    return html;
+  }
+
+  views.key = function () {
+    const total = dataset.total;
+    const keyed = keyApi.count();
+    const pct = utils.pct(keyed, total);
+    const filter = uiState.keyFilter;
+    const list = findKeyItems();
+
     let html = '<div class="view">';
     html += '<div class="page-head"><h1>Ключ ответов</h1>' +
-      '<p>' + (AT.colloquium.hasBaseKey === false ? 'Ключ ответов пока не предоставлен. Можно добавить свои ответы вручную или импортировать ключ; до этого доступна самооценка.' : 'Правильные варианты для каждого задания. Ключ уже заполнен по базе теста — при необходимости поправьте ответы вручную или импортируйте свой.') + '</p></div>';
+      '<p>' + (AT.colloquium.hasBaseKey === false ? 'Ключ ответов пока не предоставлен. Найдите вопрос ниже и отметьте правильные варианты нажатием; до этого доступна самооценка.' : 'Найдите вопрос ниже и нажмите на правильные варианты. Выбранные варианты выделены; изменения сохраняются для этой базы.') + '</p></div>';
 
     html += '<div class="key-status">' +
       ring(pct, 96, pct + '%', 'заполнено') +
@@ -308,9 +344,9 @@
           'Если ответ кажется спорным — снимите или поставьте галочку ниже, ваша правка будет главнее базы.' + (AT.colloquium.keyNote ? ' ' + esc(AT.colloquium.keyNote) : '') + '</span></p>'
         : '');
 
-    html += '<div class="split split--key">';
+    let advanced = '<details class="key-advanced"' + (uiState.keyAdvancedOpen ? ' open' : '') + '><summary>Импорт, экспорт и нумерация</summary><div class="split split--key">';
 
-    html += '<section class="card card--pad">' +
+    advanced += '<section class="card card--pad">' +
       '<h2 class="card__title">' + icon('upload') + 'Импорт</h2>' +
       '<p class="muted small">Вставьте ключ в любом удобном виде:</p>' +
       '<pre class="code-hint">1: 1, 2, 4\n2: 1 2 3 4\n3 — а, в, д\n4 = 135\n{"5": [1, 3]}</pre>' +
@@ -325,7 +361,7 @@
       '<div id="importResult">' + (uiState.lastImport || '') + '</div>' +
       '</section>';
 
-    html += '<section class="card card--pad">' +
+    advanced += '<section class="card card--pad">' +
       '<h2 class="card__title">' + icon('download') + 'Экспорт</h2>' +
       '<p class="muted small">Выгрузите текущий ключ, чтобы передать его или сохранить копию.</p>' +
       '<div class="card__actions card__actions--col">' +
@@ -337,63 +373,52 @@
       '<hr class="hr">' +
       '<h2 class="card__title">' + icon('info') + 'Про нумерацию</h2>' +
       '<p class="muted small">' + (AT.colloquium.renumbered ? 'В исходном PDF нумерация повторяется по разделам. Здесь вопросы пронумерованы по порядку; у каждого указаны страница и номер в PDF.' : AT.colloquium.id === '1' ? 'Номера совпадают с PDF. Вопрос № 58 встречается дважды — второй помечен «58а». Вопроса № 92 в файле нет.' : 'Номера вопросов совпадают с исходным PDF.') + '</p>' +
-      '</section></div>';
+      '</section></div></details>';
 
+    html += advanced;
     html += '<section class="section">' +
-      '<div class="section__head"><h2>Задания</h2><span class="section__hint">' + list.length + ' из ' + total + '</span></div>' +
+      '<div class="section__head"><h2>Задания</h2><span class="section__hint key-list-count" aria-live="polite">' + list.length + ' из ' + total + '</span></div>' +
+      '<p class="key-edit-hint">Нажимайте на варианты, чтобы отметить или снять их. При замене единственного ответа сначала отметьте новый, затем снимите старый. Пометки описывают исходный ключ; ваши изменения имеют приоритет.</p>' +
       '<div class="toolbar toolbar--wrap">' +
       '<label class="search"><span class="search__icon">' + icon('search') + '</span>' +
       '<input type="search" placeholder="Поиск по номеру, тексту или варианту" value="' + esc(uiState.keySearch) + '" data-action="key-search"></label>' +
       '<div class="chips chips--sm">' +
-      ['all', 'empty', 'filled', 'suspicious'].map((f) =>
+      ['all', 'empty', 'filled', 'suspicious', 'flagged'].map((f) =>
         '<button class="chip' + (filter === f ? ' is-active' : '') + '" data-action="key-filter" data-filter="' + f + '">' +
-        ({ all: 'Все', empty: 'Без ответа', filled: 'С ответом', suspicious: 'Все варианты' })[f] + '</button>').join('') +
+        ({ all: 'Все', empty: 'Без ответа', filled: 'С ответом', suspicious: 'Все варианты', flagged: 'Проверьте ключ' })[f] + '</button>').join('') +
       '</div></div>';
 
-    html += '<div class="key-list">';
-    if (!list.length) {
-      html += '<p class="muted center">Ничего не найдено.</p>';
-    }
-    list.forEach((q) => {
-      const answer = keyApi.forQuestion(q);
-      const topic = dataset.topic(q.topic);
-      html += '<article class="key-item" data-qid="' + q.id + '">' +
-        '<div class="key-item__head"><span class="badge">№ ' + esc(q.num) + '</span>' +
-        '<span class="badge badge--soft">' + esc(topic.title) + '</span>' +
-        (answer ? '<span class="badge badge--ok">' + (answer.source === 'local' ? 'мой ответ' : 'из базы') + '</span>'
-          : '<span class="badge badge--muted">нет ответа</span>') +
-        '</div>' +
-        '<p class="key-item__text">' + esc(q.text) + '</p>' +
-        '<div class="key-item__options">' +
-        q.options.map((opt, i) => {
-          const on = answer && answer.answers.indexOf(i + 1) !== -1;
-          return '<button type="button" class="opt-toggle' + (on ? ' is-on' : '') + '" data-action="key-toggle" data-qid="' + q.id + '" data-index="' + (i + 1) + '">' +
-            '<span class="opt-toggle__key">' + (i + 1) + '</span><span>' + esc(opt) + '</span></button>';
-        }).join('') +
-        '</div></article>';
-    });
-    html += '</div></section></div>';
+    html += '<div class="key-list">' + renderKeyItems(list) + '</div></section></div>';
 
     const mount = (root) => {
-      root.addEventListener('click', (e) => {
+      const advancedPanel = root.querySelector('.key-advanced');
+      if (advancedPanel) advancedPanel.addEventListener('toggle', () => { uiState.keyAdvancedOpen = advancedPanel.open; });
+      root.querySelector('.view').addEventListener('click', (e) => {
         const el = e.target.closest('[data-action]');
         if (!el) return;
         const action = el.getAttribute('data-action');
 
-        if (action === 'key-toggle') {
+        if (action === 'key-toggle' || action === 'key-reset') {
           const q = dataset.byId.get(el.getAttribute('data-qid'));
-          const idx = parseInt(el.getAttribute('data-index'), 10);
-          const current = keyApi.forQuestion(q);
-          const answers = current ? current.answers.slice() : [];
-          const pos = answers.indexOf(idx);
-          if (pos === -1) answers.push(idx);
-          else answers.splice(pos, 1);
-          keyApi.set(q, answers);
+          if (!q) return;
+          if (action === 'key-reset') keyApi.clear(q);
+          else {
+            const idx = parseInt(el.getAttribute('data-index'), 10);
+            const current = keyApi.forQuestion(q);
+            const answers = current ? current.answers.slice() : [];
+            const pos = answers.indexOf(idx);
+            if (pos === -1) answers.push(idx);
+            else answers.splice(pos, 1);
+            keyApi.set(q, answers);
+          }
+          if (!AT.save(true)) toast('Не удалось сохранить ключ на устройстве', 'warn');
           const item = el.closest('.key-item');
           const answer = keyApi.forQuestion(q);
           item.querySelectorAll('.opt-toggle').forEach((btn) => {
             const index = parseInt(btn.getAttribute('data-index'), 10);
-            btn.classList.toggle('is-on', !!answer && answer.answers.indexOf(index) !== -1);
+            const on = !!answer && answer.answers.indexOf(index) !== -1;
+            btn.classList.toggle('is-on', on);
+            btn.setAttribute('aria-pressed', String(on));
           });
           const badges = item.querySelector('.key-item__head');
           const old = badges.querySelector('.badge--ok, .badge--muted');
@@ -402,6 +427,8 @@
           span.className = 'badge ' + (answer ? 'badge--ok' : 'badge--muted');
           span.textContent = answer ? (answer.source === 'local' ? 'мой ответ' : 'из базы') : 'нет ответа';
           badges.appendChild(span);
+          const reset = badges.querySelector('[data-action="key-reset"]');
+          if (reset) reset.hidden = !(answer && answer.source === 'local');
           updateKeyStatus(root);
         } else if (action === 'key-filter') {
           uiState.keyFilter = el.getAttribute('data-filter');
@@ -440,17 +467,28 @@
       });
 
       const search = root.querySelector('[data-action="key-search"]');
+      let searchTimer = null;
+      function scheduleSearch() {
+        uiState.keySearch = search.value;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          searchTimer = null;
+          const target = root.querySelector('.key-list');
+          if (!target) return;
+          const matches = findKeyItems();
+          target.innerHTML = renderKeyItems(matches);
+          const counter = root.querySelector('.key-list-count');
+          if (counter) counter.textContent = matches.length + ' из ' + total;
+        }, 150);
+      }
       if (search) {
-        search.addEventListener('input', () => {
+        search.addEventListener('input', (event) => {
           uiState.keySearch = search.value;
-          const pos = search.selectionStart;
-          AT.rerender();
-          const next = document.querySelector('[data-action="key-search"]');
-          if (next) {
-            next.focus();
-            try { next.setSelectionRange(pos, pos); } catch (err) { /* ignore */ }
-          }
+          if (!event.isComposing) scheduleSearch();
+          else clearTimeout(searchTimer);
         });
+        search.addEventListener('compositionend', scheduleSearch);
+        if (AT.onCleanup) AT.onCleanup(() => clearTimeout(searchTimer));
       }
 
       const posCheck = root.querySelector('[data-action="key-by-position"]');
@@ -529,6 +567,7 @@
       (parsed.problems.length ? '. Замечания: ' + esc(parsed.problems.slice(0, 3).join('; ')) : '') +
       '</span></div></div>';
     toast('Ключ импортирован: ' + applied);
+    uiState.keyAdvancedOpen = true;
     AT.rerender();
   }
 

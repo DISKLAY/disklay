@@ -8,10 +8,26 @@ const path = require('node:path');
 function loadApp() {
   const storage = {};
   const listeners = {};
-  const host = { innerHTML: '', addEventListener(type, fn) { listeners[type] = fn; } };
+  let markup = '', writes = 0;
+  function node() {
+    const classes = new Set(), attributes = {};
+    return {classes, attributes, disabled: false, textContent: '',
+      classList: {toggle(name, on) { if (on) classes.add(name); else classes.delete(name); }},
+      setAttribute(name, value) { attributes[name] = value; }};
+  }
+  const option = node(), check = node(), dot = node(), counter = node();
+  const host = { get innerHTML() { return markup; }, set innerHTML(value) { markup = value; writes++; },
+    get writes() { return writes; }, option, check, dot, counter,
+    querySelector(selector) {
+      if (selector.startsWith('[data-action="toggle-option"]')) return option;
+      if (selector === '[data-action="check"]') return check;
+      if (selector.startsWith('[data-action="jump"]')) return dot;
+      if (selector === '.question__actions--exam .question__kb') return counter;
+      return null;
+    }, addEventListener(type, fn) { listeners[type] = fn; } };
   const document = {
     createElement() { return host; },
-    getElementById() { return null; },
+    getElementById(id) { return id === 'runnerHost' ? host : null; },
     addEventListener(type, fn) { listeners['document-' + type] = fn; },
     removeEventListener() {},
   };
@@ -101,3 +117,39 @@ test('все 211 вопросов первого коллоквиума вход
   }
   assert.match(AT.views.examSetup().html, /В банке экзамена: 211 вопросов/);
 });
+
+for (const mode of ['train', 'exam']) {
+  test(mode + ': выбор и снятие ответа обновляют элементы без пересоздания вопроса', () => {
+    const {AT, host, listeners, cleanup} = loadApp();
+    const qs = AT.dataset.questions.slice(0, 2);
+    AT.getState().settings.shuffleAnswers = true;
+    const session = AT.startSession({mode, ids: qs.map(q => q.id)});
+    let germChoose;
+    AT.germSquad = {mount({onChooseWrong}) { germChoose = onChooseWrong; return {enter(){}, refresh(){}, leave(){}, dispose(){}}; }};
+    AT.views.run().mount({appendChild(){}});
+    const writes = host.writes;
+    const target = {disabled:false, closest(){return this;}, getAttribute(name){return name === 'data-action' ? 'toggle-option' : '2';}};
+    listeners.click({target});
+    assert.equal(host.writes, writes);
+    assert.equal(host.option.attributes['aria-pressed'], 'true');
+    assert.ok(host.option.classes.has('is-selected'));
+    assert.equal(host.check.disabled, false);
+    assert.deepEqual(Array.from(session.results[qs[0].id].selected), [2]);
+    if (mode === 'exam') {
+      assert.ok(host.dot.classes.has('is-filled'));
+      assert.equal(host.counter.textContent, 'Отвечено: 1 из 2');
+    }
+    listeners.click({target});
+    assert.equal(host.writes, writes);
+    assert.equal(host.option.attributes['aria-pressed'], 'false');
+    assert.equal(host.check.disabled, true);
+    if (mode === 'exam') {
+      assert.ok(!host.dot.classes.has('is-filled'));
+      assert.equal(host.counter.textContent, 'Отвечено: 0 из 2');
+    }
+    assert.equal(germChoose(2), true);
+    assert.equal(host.writes, writes);
+    assert.equal(host.option.attributes['aria-pressed'], 'true');
+    cleanup();
+  });
+}

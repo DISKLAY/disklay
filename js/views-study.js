@@ -6,7 +6,7 @@
 
   const AT = window.AT;
   const { utils, dataset, keyApi, analytics } = AT;
-  const { icon, progressBar, ring, emptyState, toast, confirmDialog } = AT.ui;
+  const { icon, progressBar, ring, emptyState, toast, confirmDialog, keyWarningBadge } = AT.ui;
   const esc = utils.esc;
   const views = (AT.views = AT.views || {});
 
@@ -569,7 +569,7 @@
       (q.sourcePage ? '<span class="badge">PDF: стр. ' + esc(q.sourcePage) + ', № ' + esc(q.sourceNumber) + '</span>' : '') +
       '<span class="badge badge--soft">' + esc(section || topic.title) + '</span>' +
       (hint ? '<span class="badge badge--accent">верных: ' + answer.answers.length + '</span>' : '') +
-      favoriteButton(q) + '</div>' +
+      keyWarningBadge(q) + favoriteButton(q) + '</div>' +
       '<h2 class="question__text">' + esc(q.text) + '</h2>' +
       '<p class="question__hint">' + (isExam ? 'Можно вернуться к вопросу позже' : 'Выберите все правильные варианты') + '</p>' +
       '<div class="options">';
@@ -783,7 +783,27 @@
         else entry.selected.splice(pos, 1);
         entry.selected.sort((a, b) => a - b);
         AT.save(true);
-        renderInto(false);
+        // При выборе не пересоздаём вопрос: сохраняем фокус, прокрутку и анимации.
+        const host = document.getElementById('runnerHost');
+        if (!host) return;
+        const button = host.querySelector('[data-action="toggle-option"][data-index="' + idx + '"]');
+        if (button) {
+          const selected = entry.selected.includes(idx);
+          button.classList.toggle('is-selected', selected);
+          button.setAttribute('aria-pressed', String(selected));
+        }
+        const checkButton = host.querySelector('[data-action="check"]');
+        if (checkButton) checkButton.disabled = !entry.selected.length;
+        if (isExam) {
+          const dot = host.querySelector('[data-action="jump"][data-index="' + session.index + '"]');
+          if (dot) dot.classList.toggle('is-filled', entry.selected.length > 0);
+          const counter = host.querySelector('.question__actions--exam .question__kb');
+          if (counter) {
+            const count = Object.values(session.results).filter(r => r && r.selected && r.selected.length && r.correct !== undefined).length;
+            counter.textContent = 'Отвечено: ' + count + ' из ' + qs.length;
+          }
+        }
+        if (squad) squad.refresh();
       }
 
       function check() {
@@ -995,7 +1015,7 @@
         '</summary>' +
         '<div class="review__body">' +
         '<div class="review__meta"><span class="badge badge--soft">' + esc((session.sectionOf && session.sectionOf[q.id]) || topic.title) + '</span>' +
-        '<span class="badge">№ ' + esc(q.num) + '</span>' + favoriteButton(q) + '</div>' +
+        '<span class="badge">№ ' + esc(q.num) + '</span>' + keyWarningBadge(q) + favoriteButton(q) + '</div>' +
         '<div class="review__cols">' +
         '<div><span class="feedback__label">Правильный ответ</span>' +
         (answer
