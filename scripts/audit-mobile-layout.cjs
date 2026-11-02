@@ -3,7 +3,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core')
 const BASE_URL = process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/';
 const cases = [195, 240, 320, 375, 768, 1001, 1024, 1100, 1101, 1280, 1600].map(width => ({ width, zoom: 1 }));
 cases.push({ width: 390, zoom: 2 });
-const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards', 'key', 'settings', 'dungeon'];
+const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards', 'key', 'settings', 'dungeon', 'histology'];
 
 (async () => {
   const browser = await chromium.launch({
@@ -24,6 +24,7 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
         await page.evaluate(name => { location.hash = '#/' + name; }, name);
         await page.waitForFunction(name => window.AT && AT.route() === (name || 'dashboard'), name);
         if (name === 'dungeon') await page.waitForSelector('.dg-tabs');
+        if (name === 'histology') await page.waitForSelector('.histo-setup');
       }
       async function scan(label) {
         await page.waitForTimeout(100);
@@ -61,6 +62,34 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
         if (name === 'key') {
           await page.locator('.key-advanced').evaluate(el => { el.open = true; });
           await scan('key-import');
+        }
+        if (name === 'histology') {
+          await page.locator('#courseToggle').click();
+          await scan('histology-sidebar');
+          await page.locator('#courseClose').click();
+          await page.locator('[data-histo="start"]').click();
+          await page.waitForSelector('.histo-image img');
+          await scan('histology-choice');
+          await page.locator('.histo-image__open').click();
+          await page.waitForSelector('.histo-image-dialog[open]');
+          await scan('histology-image-dialog');
+          await page.locator('[data-zoom-toggle]').click();
+          await page.locator('[data-zoom-close]').click();
+          await page.waitForSelector('.histo-image-dialog', {state: 'detached'});
+          await page.locator('[data-histo="select"]').first().click();
+          await page.locator('[data-histo="check"]').click();
+          await scan('histology-feedback');
+          if (await page.locator('.histo-review').count()) {
+            await page.locator('.histo-review summary').click();
+            await scan('histology-annotated');
+          }
+          await page.locator('[data-histo="setup"]').click();
+          await page.locator('[data-histo="mode"][data-value="text"]').click();
+          await page.locator('[data-histo="start"]').click();
+          await scan('histology-input');
+          await page.locator('#histoAnswer').fill('Неоднозначный ответ');
+          await page.locator('[data-histo-form] button[type="submit"]').click();
+          await scan('histology-self-check');
         }
         if (name === 'dungeon') {
           for (const tab of ['shop', 'bestiary', 'camp']) {

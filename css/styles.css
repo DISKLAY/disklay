@@ -1973,3 +1973,10 @@ kbd {
   .hero__module { font-size: .85rem; }
   .hero__actions .btn { font-size: .8rem; }
 }
+
+/* Предметы разделены в меню; для гистологии анатомические разделы не дублируются. */
+.subject-switch { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; padding: 8px 0 14px; border-bottom: 1px solid var(--border); }
+.subject-switch a { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 44px; padding: 9px; border-radius: var(--r-sm); color: var(--text-2); font-size: .8rem; font-weight: 700; overflow-wrap: anywhere; }
+.subject-switch a:hover, .subject-switch a[aria-current="page"] { color: var(--primary); background: var(--primary-soft); }
+.subject-switch a span { color: var(--muted); font-size: .65rem; font-weight: 600; }
+body[data-subject="histology"] #mainNav, body[data-subject="histology"] #anatomySidebar { display: none; }

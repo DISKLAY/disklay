@@ -29,7 +29,7 @@
     closeButton.addEventListener('click', () => close(true));
     backdrop.addEventListener('click', () => close(true));
     panel.addEventListener('click', (event) => {
-      if (event.target.closest('[data-sidebar-route], .course-sidebar__item')) close(true);
+      if (event.target.closest('[data-sidebar-route], [data-subject-link], .course-sidebar__item')) close(true);
     });
     document.addEventListener('keydown', (event) => {
       if (panel.hidden) return;

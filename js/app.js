@@ -51,13 +51,12 @@
     dungeon: 'dungeon',
     key: 'key',
     settings: 'settings',
+    histology: 'histology',
   };
 
   // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
   let dungeonLoad = null, dungeonCss = null, dungeonReady = false;
-  function loadDungeon() {
-    if (dungeonLoad) return dungeonLoad;
-    function resource(tag, url) {
+  function resource(tag, url) {
       return new Promise((resolve, reject) => {
         const el = document.createElement(tag);
         if (tag === 'link') { el.rel = 'stylesheet'; el.href = url; }
@@ -66,7 +65,9 @@
         el.onerror = () => { el.remove(); reject(new Error('Не удалось загрузить ' + url)); };
         document.head.appendChild(el);
       });
-    }
+  }
+  function loadDungeon() {
+    if (dungeonLoad) return dungeonLoad;
     if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=12').catch(err => { dungeonCss = null; throw err; });
     const css = dungeonCss;
     const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=11'))
@@ -75,17 +76,67 @@
     return dungeonLoad;
   }
 
+  let histologyLoad = null, histologyCss = null, histologyReady = false;
+  function loadHistology() {
+    if (histologyLoad) return histologyLoad;
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=2').catch(err => { histologyCss = null; throw err; });
+    const script = (window.HistologyPrototype ? Promise.resolve() : resource('script', 'js/histology.js?v=3'))
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=4'));
+    histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
+    return histologyLoad;
+  }
+  function syncSubject(histology) {
+    document.body.dataset.subject = histology ? 'histology' : 'anatomy';
+    const brand = document.getElementById('subjectBrand');
+    const brandLabel = document.getElementById('subjectBrandLabel');
+    const sidebarLabel = document.getElementById('subjectSidebarLabel');
+    const current = document.getElementById('courseToggleCurrent');
+    const sidebarCurrent = document.getElementById('courseSidebarCurrent');
+    const toggle = document.getElementById('courseToggle');
+    const select = document.getElementById('colloquiumSelect');
+    if (brand) brand.setAttribute('href', histology ? '#/histology' : '#/');
+    if (brandLabel) brandLabel.textContent = histology ? 'Гистология' : 'Анатомия';
+    if (sidebarLabel) sidebarLabel.textContent = histology ? 'Гистология' : 'Анатомия';
+    if (histology) {
+      if (current) current.textContent = 'Гистология · проба';
+      if (sidebarCurrent) sidebarCurrent.textContent = 'Пробная база препаратов';
+      if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Гистология');
+    } else if (select && select.options[select.selectedIndex]) {
+      const option = select.options[select.selectedIndex];
+      if (current) current.textContent = option.textContent;
+      if (sidebarCurrent) sidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
+      if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
+    }
+    document.querySelectorAll('[data-subject-link]').forEach(link => {
+      if (link.getAttribute('data-subject-link') === (histology ? 'histology' : 'anatomy')) link.setAttribute('aria-current','page');
+      else link.removeAttribute('aria-current');
+    });
+  }
+
   function render() {
     runCleanups();
     lastRenderedHash = location.hash;
     const route = parseHash();
     currentRoute = route;
     const viewName = ROUTES[route.name] || 'notFound';
+    syncSubject(viewName === 'histology');
 
     if (viewName === 'trainSetup' && (route.params.topic || route.params.scope === 'favorites')) {
       if (route.params.topic) AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];
       if (route.params.scope === 'favorites') AT.setup.train.scope = 'favorites';
       history.replaceState(null, '', '#/train');
+    }
+
+    if (viewName === 'histology' && !histologyReady) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Гистология</h1><p>Загружаем тренажёр…</p></div></div>';
+      updateNav(route.name);
+      loadHistology().then(() => { if (parseHash().name === 'histology') render(); }).catch(err => {
+        console.error(err);
+        if (parseHash().name !== 'histology') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить гистологию</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="histologyRetry">Повторить</button></div></div>';
+        root.querySelector('#histologyRetry').addEventListener('click', render);
+      });
+      return;
     }
 
     if (viewName === 'dungeon' && !dungeonReady) {
@@ -119,7 +170,7 @@
         console.error(err);
       }
     }
-    document.title = (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум');
+    document.title = viewName === 'histology' ? 'Гистология · АРМ РНИМУ' : (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум');
     updateNav(route.name);
     const routeKey = route.name + ':' + JSON.stringify(route.params);
     if (routeKey !== lastRouteKey) {
