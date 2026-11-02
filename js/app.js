@@ -67,10 +67,10 @@
         document.head.appendChild(el);
       });
     }
-    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=11').catch(err => { dungeonCss = null; throw err; });
+    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=12').catch(err => { dungeonCss = null; throw err; });
     const css = dungeonCss;
     const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=11'))
-      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=11'));
+      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=12'));
     dungeonLoad = Promise.all([css, script]).then(() => { dungeonReady = true; }).catch(err => { dungeonLoad = null; throw err; });
     return dungeonLoad;
   }

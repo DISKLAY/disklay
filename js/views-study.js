@@ -6,7 +6,7 @@
 
   const AT = window.AT;
   const { utils, dataset, keyApi, analytics } = AT;
-  const { icon, progressBar, ring, emptyState, toast, confirmDialog } = AT.ui;
+  const { icon, progressBar, ring, emptyState, toast, confirmDialog, keyWarningBadge } = AT.ui;
   const esc = utils.esc;
   const views = (AT.views = AT.views || {});
 
@@ -569,7 +569,7 @@
       (q.sourcePage ? '<span class="badge">PDF: стр. ' + esc(q.sourcePage) + ', № ' + esc(q.sourceNumber) + '</span>' : '') +
       '<span class="badge badge--soft">' + esc(section || topic.title) + '</span>' +
       (hint ? '<span class="badge badge--accent">верных: ' + answer.answers.length + '</span>' : '') +
-      favoriteButton(q) + '</div>' +
+      keyWarningBadge(q) + favoriteButton(q) + '</div>' +
       '<h2 class="question__text">' + esc(q.text) + '</h2>' +
       '<p class="question__hint">' + (isExam ? 'Можно вернуться к вопросу позже' : 'Выберите все правильные варианты') + '</p>' +
       '<div class="options">';
@@ -1015,7 +1015,7 @@
         '</summary>' +
         '<div class="review__body">' +
         '<div class="review__meta"><span class="badge badge--soft">' + esc((session.sectionOf && session.sectionOf[q.id]) || topic.title) + '</span>' +
-        '<span class="badge">№ ' + esc(q.num) + '</span>' + favoriteButton(q) + '</div>' +
+        '<span class="badge">№ ' + esc(q.num) + '</span>' + keyWarningBadge(q) + favoriteButton(q) + '</div>' +
         '<div class="review__cols">' +
         '<div><span class="feedback__label">Правильный ответ</span>' +
         (answer

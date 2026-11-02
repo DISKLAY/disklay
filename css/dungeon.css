@@ -256,3 +256,5 @@
   .dg-entry-sprite { width:70px; max-width:100%; }
 }
 @media (max-width:220px) { .dg-lobby h1 { font-size:1.15rem; } }
+
+.dg-question .badge--warning { margin:0 0 8px; }

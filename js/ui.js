@@ -194,8 +194,21 @@
     });
   }
 
+  // Метки хранятся в метаданных базы и не меняют ключ или результаты.
+  function keyWarning(q, module) {
+    const bank = module || window.AT.colloquium;
+    return q && bank && bank.questionWarnings ? bank.questionWarnings[String(q.num)] || '' : '';
+  }
+  function keyWarningBadge(q, module) {
+    return keyWarning(q, module)
+      ? '<span class="badge badge--warning" title="Возможное расхождение с ключом или неоднозначная формулировка. Подробнее в разделе «Ключ».">⚠ Проверьте ключ</span>'
+      : '';
+  }
+
   window.AT.ui = {
     icon,
+    keyWarning,
+    keyWarningBadge,
     toast,
     applyTheme,
     getThemePref,

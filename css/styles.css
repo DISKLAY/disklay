@@ -425,6 +425,8 @@ img, svg { display: block; }
 .badge--ok { background: var(--ok-soft); color: var(--ok); }
 .badge--muted { background: transparent; color: var(--muted); border: 1px dashed var(--border-strong); }
 .badge--accent { background: var(--teal-soft); color: var(--teal); }
+.badge--warning { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border); }
+.key-warning { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--warn-border); border-radius: var(--r-md); background: var(--warn-soft); color: var(--text); font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 
 /* -------------------------------------------------------------- прогресс */
 
