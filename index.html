@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=20261102-subject1">
+  <link rel="stylesheet" href="css/styles.css?v=20261105-nav1">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -89,7 +89,7 @@
       <div class="course-sidebar__section-title">Предмет</div>
       <nav class="subject-switch" aria-label="Выбрать предмет">
         <a href="#/" data-subject-link="anatomy">Анатомия</a>
-        <a href="#/histology" data-subject-link="histology">Гистология <span>проба</span></a>
+        <a href="#/histology" data-subject-link="histology">Гистология</a>
       </nav>
       <div id="anatomySidebar">
       <div class="course-sidebar__section-title">Навигация</div>
@@ -108,6 +108,18 @@
       <div class="course-sidebar__section-title">Выбрать базу</div>
       <p class="course-sidebar__note">Прогресс хранится отдельно. Таймер экзамена при переключении продолжает идти.</p>
       <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
+      </div>
+      <div id="histologySidebar">
+      <div class="course-sidebar__section-title">Гистология</div>
+      <nav class="course-sidebar__pages" aria-label="Разделы гистологии">
+        <a href="#/histology?section=setup" data-histo-sidebar="setup">Препараты</a>
+        <a href="#/histology?section=atlas" data-histo-sidebar="atlas">Атлас</a>
+        <a href="#/histology?section=structures" data-histo-sidebar="structures">Структуры</a>
+        <a href="#/histology?section=theory" data-histo-sidebar="theory">Тесты по теории</a>
+        <a href="#/histology?section=errors" data-histo-sidebar="errors">Ошибки</a>
+        <a href="#/histology?section=stats" data-histo-sidebar="stats">Статистика</a>
+      </nav>
+      <p class="course-sidebar__note">Сессии сохраняются при переходе между разделами.</p>
       </div>
     </aside>
     <main id="app" class="main" tabindex="-1"></main>
@@ -147,7 +159,7 @@
   <script src="js/views-pages.js?v=20261102-keysearch1"></script>
   <script src="js/views-rewards.js?v=20261101-dungeon9"></script>
   <script src="js/module-picker.js"></script>
-  <script src="js/course-drawer.js?v=20261102-subject1"></script>
-  <script src="js/app.js?v=20261102-histology4"></script>
+  <script src="js/course-drawer.js?v=20261105-nav1"></script>
+  <script src="js/app.js?v=20261106-histology7"></script>
 </body>
 </html>

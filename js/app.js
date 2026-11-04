@@ -79,13 +79,14 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=2').catch(err => { histologyCss = null; throw err; });
-    const script = (window.HistologyPrototype ? Promise.resolve() : resource('script', 'js/histology.js?v=3'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=4'));
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=5').catch(err => { histologyCss = null; throw err; });
+    const script = (window.HistologyPrototype ? Promise.resolve() : resource('script', 'js/histology.js?v=5'))
+      .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=7'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
-  function syncSubject(histology) {
+  function syncSubject(histology, section) {
     document.body.dataset.subject = histology ? 'histology' : 'anatomy';
     const brand = document.getElementById('subjectBrand');
     const brandLabel = document.getElementById('subjectBrandLabel');
@@ -98,8 +99,8 @@
     if (brandLabel) brandLabel.textContent = histology ? 'Гистология' : 'Анатомия';
     if (sidebarLabel) sidebarLabel.textContent = histology ? 'Гистология' : 'Анатомия';
     if (histology) {
-      if (current) current.textContent = 'Гистология · проба';
-      if (sidebarCurrent) sidebarCurrent.textContent = 'Пробная база препаратов';
+      if (current) current.textContent = 'Гистология';
+      if (sidebarCurrent) sidebarCurrent.textContent = 'Препараты, атлас и тренировки';
       if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Гистология');
     } else if (select && select.options[select.selectedIndex]) {
       const option = select.options[select.selectedIndex];
@@ -107,6 +108,11 @@
       if (sidebarCurrent) sidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
       if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
     }
+    document.querySelectorAll('[data-histo-sidebar]').forEach(link => {
+      const active = histology && link.getAttribute('data-histo-sidebar') === (section || 'setup');
+      link.classList.toggle('is-active', active);
+      if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    });
     document.querySelectorAll('[data-subject-link]').forEach(link => {
       if (link.getAttribute('data-subject-link') === (histology ? 'histology' : 'anatomy')) link.setAttribute('aria-current','page');
       else link.removeAttribute('aria-current');
@@ -119,7 +125,8 @@
     const route = parseHash();
     currentRoute = route;
     const viewName = ROUTES[route.name] || 'notFound';
-    syncSubject(viewName === 'histology');
+    if (viewName !== 'histology' && AT.views.histology && AT.views.histology.onLeave) AT.views.histology.onLeave();
+    syncSubject(viewName === 'histology', route.params.section);
 
     if (viewName === 'trainSetup' && (route.params.topic || route.params.scope === 'favorites')) {
       if (route.params.topic) AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];

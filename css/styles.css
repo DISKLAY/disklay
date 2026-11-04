@@ -1980,3 +1980,5 @@ kbd {
 .subject-switch a:hover, .subject-switch a[aria-current="page"] { color: var(--primary); background: var(--primary-soft); }
 .subject-switch a span { color: var(--muted); font-size: .65rem; font-weight: 600; }
 body[data-subject="histology"] #mainNav, body[data-subject="histology"] #anatomySidebar { display: none; }
+
+body:not([data-subject="histology"]) #histologySidebar { display: none; }

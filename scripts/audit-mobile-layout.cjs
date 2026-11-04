@@ -90,6 +90,47 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
           await page.locator('#histoAnswer').fill('Неоднозначный ответ');
           await page.locator('[data-histo-form] button[type="submit"]').click();
           await scan('histology-self-check');
+          await page.locator('[data-histo="setup"]').click();
+          for (const tab of ['errors', 'stats', 'atlas', 'structures']) {
+            await page.locator(`[data-histo="section"][data-value="${tab}"]`).click();
+            await scan('histology-' + tab);
+            if (tab === 'atlas') {
+              await page.locator('#atlasSearch').fill('трахея');
+              await page.locator('[data-atlas-item]:visible > summary').click();
+              await scan('histology-atlas-open');
+              await page.locator('[data-histo="atlas-photo"]:visible').first().click();
+              await page.waitForSelector('.histo-image-dialog[open]');
+              await scan('histology-atlas-viewer');
+              await page.locator('[data-zoom-close]').click();
+              await page.waitForSelector('.histo-image-dialog', {state: 'detached'});
+            }
+          }
+          await page.locator('[data-histo="structure-start"]').click();
+          await page.waitForSelector('.histo-structure-image img');
+          await scan('histology-structure-point');
+          await page.locator('[data-histo="structure-zoom"]').click();
+          await page.waitForSelector('.histo-image-dialog[open]');
+          await scan('histology-structure-viewer');
+          await page.locator('[data-zoom-close]').click();
+          await page.waitForSelector('.histo-image-dialog', {state: 'detached'});
+          await page.locator('.histo-marker-choice').first().click();
+          await page.locator('[data-histo="structure-check"]').click();
+          await scan('histology-structure-feedback');
+          await page.locator('[data-histo="structure-setup"]').click();
+          await page.locator('[data-histo="structure-mode"][data-value="name"]').click();
+          await page.locator('[data-histo="structure-start"]').click();
+          await scan('histology-structure-name');
+          await page.locator('#structureAnswer').fill('Неоднозначный ответ');
+          await page.locator('[data-structure-form] button[type="submit"]').click();
+          await scan('histology-structure-self-check');
+          await page.locator('[data-histo="section"][data-value="theory"]').click();
+          await page.waitForSelector('[data-theory-filter]');
+          await scan('histology-theory-setup');
+          await page.locator('[data-histo="theory-start"]').click();
+          await scan('histology-theory-question');
+          await page.locator('[data-histo="theory-select"]').first().click();
+          await page.locator('[data-histo="theory-check"]').click();
+          await scan('histology-theory-feedback');
         }
         if (name === 'dungeon') {
           for (const tab of ['shop', 'bestiary', 'camp']) {
