@@ -104,7 +104,7 @@ test('проверенная попытка в тренировке записы
 test('в шапке флаг, подпись АРМ РНИМУ и выбор коллоквиума', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   assert.match(html, /class="brand__flag"/);
-  assert.match(html, /АРМ РНИМУ<\/strong>\s*<span>Анатомия<\/span>/);
+  assert.match(html, /АРМ РНИМУ<\/strong>\s*<span id="subjectBrandLabel">Анатомия<\/span>/);
   assert.match(html, /<select id="colloquiumSelect"/);
   for (const [id, name] of [['1', 'Остеология'], ['2', 'Миология'], ['3', 'Спланхнология']]) {
     assert.match(html, new RegExp('<option value="' + id + '">' + id + ' · ' + name + '</option>'));

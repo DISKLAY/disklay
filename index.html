@@ -8,14 +8,14 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=20261102-keysearch1">
+  <link rel="stylesheet" href="css/styles.css?v=20261102-subject1">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
 
   <header class="topbar">
     <div class="topbar__inner">
-      <a class="brand" href="#/" aria-label="АРМ РНИМУ — на главную">
+      <a class="brand" id="subjectBrand" href="#/" aria-label="АРМ РНИМУ — на главную">
         <span class="brand__mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="9" fill="url(#bg)"/>
@@ -31,7 +31,7 @@
         </span>
         <span class="brand__text">
           <strong><svg class="brand__flag" viewBox="0 0 30 18" aria-hidden="true" focusable="false"><path fill="#d90012" d="M0 0h30v6H0z"/><path fill="#0033a0" d="M0 6h30v6H0z"/><path fill="#f2a800" d="M0 12h30v6H0z"/></svg>АРМ РНИМУ</strong>
-          <span>Анатомия</span>
+          <span id="subjectBrandLabel">Анатомия</span>
         </span>
       </a>
 
@@ -85,7 +85,13 @@
   <div class="app-layout">
     <button type="button" class="course-backdrop" id="courseBackdrop" aria-label="Закрыть навигацию" tabindex="-1" hidden></button>
     <aside class="course-sidebar" id="courseSidebar" role="dialog" aria-modal="true" aria-labelledby="courseSidebarTitle" hidden>
-      <div class="course-sidebar__heading"><div><span>Анатомия</span><strong id="courseSidebarTitle">Меню</strong><p class="course-sidebar__current" id="courseSidebarCurrent"></p></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
+      <div class="course-sidebar__heading"><div><span id="subjectSidebarLabel">Анатомия</span><strong id="courseSidebarTitle">Меню</strong><p class="course-sidebar__current" id="courseSidebarCurrent"></p></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
+      <div class="course-sidebar__section-title">Предмет</div>
+      <nav class="subject-switch" aria-label="Выбрать предмет">
+        <a href="#/" data-subject-link="anatomy">Анатомия</a>
+        <a href="#/histology" data-subject-link="histology">Гистология <span>проба</span></a>
+      </nav>
+      <div id="anatomySidebar">
       <div class="course-sidebar__section-title">Навигация</div>
       <nav class="course-sidebar__pages" aria-label="Разделы приложения">
         <a href="#/" data-sidebar-route="dashboard">Главная</a>
@@ -102,12 +108,13 @@
       <div class="course-sidebar__section-title">Выбрать базу</div>
       <p class="course-sidebar__note">Прогресс хранится отдельно. Таймер экзамена при переключении продолжает идти.</p>
       <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
+      </div>
     </aside>
     <main id="app" class="main" tabindex="-1"></main>
   </div>
 
   <footer class="footer">
-    <p>Тренажёр по анатомии человека · АРМ РНИМУ</p>
+    <p>Тренажёр по медицине · АРМ РНИМУ</p>
     <p class="footer__muted">Данные хранятся локально в браузере. Работает офлайн.</p>
     <p class="footer__contact">Нашли ошибку? Напишите в Telegram <a href="https://t.me/D1sklay">@D1sklay</a> или на почту <a href="mailto:davidka.khachatryan.00@gmail.com">davidka.khachatryan.00@gmail.com</a>.</p>
   </footer>
@@ -140,7 +147,7 @@
   <script src="js/views-pages.js?v=20261102-keysearch1"></script>
   <script src="js/views-rewards.js?v=20261101-dungeon9"></script>
   <script src="js/module-picker.js"></script>
-  <script src="js/course-drawer.js"></script>
-  <script src="js/app.js?v=20261102-dungeonnotes1"></script>
+  <script src="js/course-drawer.js?v=20261102-subject1"></script>
+  <script src="js/app.js?v=20261102-histology4"></script>
 </body>
 </html>
