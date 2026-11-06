@@ -1,4 +1,4 @@
-/* Telegram webhook and explicit, service-role-only installation. */
+/* Telegram webhook and explicit, temporary-secret installation. */
 const WELCOME = `Привет! Это Medzo — бесплатный помощник для подготовки по анатомии и гистологии. 🩺
 
 Мы создали Medzo, чтобы повторять учебный материал было удобнее: в своём темпе, на сайте или прямо в Telegram. Сервис абсолютно бесплатный.
@@ -23,7 +23,10 @@ async function webhookSecret(bot) {
 }
 function equal(a,b) { if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let n=0;for(let i=0;i<a.length;i++)n|=a.charCodeAt(i)^b.charCodeAt(i);return n===0; }
 function createHandler(env,fetchFn=fetch) { return async request=>{
-  const respond=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
+  const origin=request.headers.get('origin');
+  const cors=origin==='https://supabase.com'?{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization, content-type, apikey, x-client-info, x-medzo-install-key','Vary':'Origin'}:{};
+  const respond=(status,body)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
+  if(request.method==='OPTIONS')return origin==='https://supabase.com'?new Response(null,{status:204,headers:cors}):respond(403,{error:'forbidden'});
   if(request.method!=='POST')return respond(405,{error:'method'});
   const bot=env.get('TELEGRAM_BOT_TOKEN')||'',service=env.get('SUPABASE_SERVICE_ROLE_KEY')||'',base=env.get('SUPABASE_URL')||'';
   if(!bot||!service||!base)return respond(503,{error:'not_configured'});
@@ -33,7 +36,8 @@ function createHandler(env,fetchFn=fetch) { return async request=>{
     const raw=await request.text();if(raw.length>65536)return respond(413,{error:'too_large'});
     const data=JSON.parse(raw||'{}');
     if(data.action==='install') {
-      if(!equal(request.headers.get('authorization')||'','Bearer '+service))return respond(401,{error:'unauthorized'});
+      const installKey=env.get('MEDZO_BOT_INSTALL_KEY')||'';
+      if(installKey.length<32 || !equal(request.headers.get('x-medzo-install-key')||'',installKey))return respond(401,{error:'unauthorized'});
       const url=base+'/functions/v1/medzo-bot',current=await telegram('getWebhookInfo',{});
       if(current.url && current.url!==url)return respond(409,{error:'existing_webhook'});
       await telegram('setWebhook',{url,secret_token:await webhookSecret(bot),allowed_updates:['message'],drop_pending_updates:false});
