@@ -6,7 +6,7 @@ from pathlib import Path
 from io import BytesIO
 import json,sys
 import pymupdf as pdf
-from PIL import Image
+from PIL import Image,ImageDraw
 root=Path(__file__).resolve().parents[1];folder=Path(sys.argv[1]) if len(sys.argv)>1 else Path('/tmp/arena-coding-uploads');out=root/'assets/histology/electron/individual';out.mkdir(parents=True,exist_ok=True)
 files=['strukturno-funkcionalnaja_organizacija_kletki_4.pdf','specializacija_kletochnoi_poverkhnosti.pdf','elertron_mikrofotofraf_2k.pdf','elertron_mikrofotofraf_3k.pdf']
 docs=[pdf.open(folder/f) for f in files]
@@ -66,10 +66,25 @@ for sid,pages in {
    'title':'Мазок крови: исходные обозначения','source':f'2-й коллоквиум · preparati_tkani_vnutr_sredi 2.pdf, стр. {n}',
    'note':'Световая микроскопия: на снимке отмечены несколько клеток.'})
 # For training use only verified individual cell images. Never render the labelled page as a question.
+# These small letter/number labels are embedded in the raster itself, not PDF
+# text. Cover them only on the training copies; retain the originals in atlas.
+label_boxes={
+ 'recmbaso':[(278,23,306,49),(293,269,320,294)],
+ 'recmeos':[(137,48,166,68),(219,262,238,279),(336,252,354,271)],
+ 'recmmmono':[(89,66,107,87),(173,26,190,47),(164,106,184,128),(320,70,342,91),(394,50,413,71),(348,130,370,151),(460,132,482,155),(213,157,232,178),(307,497,329,518)],
+ 'recmmlymph':[(342,221,382,252),(338,327,361,355),(558,176,584,205),(586,242,615,271),(590,331,618,361)],
+ 'recmmast':[(310,408,326,426)],
+ 'recmplasma':[(141,141,162,164),(195,277,217,301)]
+}
 slides=[]
 for sid,name,xref,n,note,aliases in cells:
  image=export(3,n,xref)
- slides.append(dict(id=sid,name=name,number='ЭМ',stain='Электронная микроскопия',image=image,review=f'assets/histology/electron/e3-{n:03}.webp',source=f'2-й коллоквиум · {files[2]}, стр. {n}',note=note,aliases=aliases))
+ if sid in label_boxes:
+  im=Image.open(root/image).convert('RGB');draw=ImageDraw.Draw(im)
+  for box in label_boxes[sid]:draw.rectangle(box,fill=(110,110,110))
+  namefile='masked-'+sid+'.webp';im.save(out/namefile,'WEBP',quality=90,method=6)
+  image='assets/histology/electron/individual/'+namefile
+ slides.append(dict(id=sid,name=name,number='ЭМ',stain='Электронная микроскопия',image=image,masked=sid in label_boxes,review=f'assets/histology/electron/e3-{n:03}.webp',source=f'2-й коллоквиум · {files[2]}, стр. {n}',note=note,aliases=aliases))
 reference=[
  ('emcellnucleus','Ядро и ядрышко клетки','Ядерная оболочка, хроматин и компоненты ядрышка.'),
  ('emcellerg','Эндоплазматическая сеть клетки','Сопоставьте гранулярную и гладкую эндоплазматическую сеть.'),
