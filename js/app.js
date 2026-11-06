@@ -84,9 +84,10 @@
     const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
       .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=1'))
       .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))
+      .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=1'))
       .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=11'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=14'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=15'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
