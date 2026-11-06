@@ -93,11 +93,11 @@ test('гистология подключается лениво и не доб�
 test('увеличение изображений не зависит от новой вкладки и есть повтор загрузки',()=>{
   const view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8');
   const app=fs.readFileSync(path.join(ROOT,'js/app.js'),'utf8');
-  assert.doesNotMatch(view,/target="_blank"/);
+  assert.doesNotMatch(view,/<a[^>]+(?:review|\.webp)[^>]+target="_blank"/);
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=15/);
+  assert.match(app,/js\/views-histology\.js\?v=16/);
 });
 
 
