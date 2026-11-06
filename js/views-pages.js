@@ -700,7 +700,7 @@
         if (button.disabled) return;
         button.disabled = true;
         try {
-          const redeem = () => window.MedzoPromoCodes.redeem(input.value, AT.game);
+          const redeem = () => window.MedzoPromoCodes.redeemWithServer(input.value, AT.game, fetch);
           const result = navigator.locks && navigator.locks.request
             ? await navigator.locks.request('anatomy-cosmetic-purchase', redeem) : redeem();
           status.textContent = result.message;
