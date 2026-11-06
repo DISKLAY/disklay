@@ -162,7 +162,7 @@ test('вариант восстанавливает правильное наз�
 });
 
 test('атлас содержит тексты с источниками и структуры с привязкой к существующим снимкам',()=>{
-  const {H}=load();assert.equal(Object.keys(H.atlasTheory).length,61);assert.equal(H.structureSlides.length,6);assert.equal(Object.keys(H.structureTasks).length,34);
+  const {H}=load();assert.equal(Object.keys(H.atlasTheory).length,61);assert.equal(H.structureSlides.length,14);assert.equal(Object.keys(H.structureTasks).length,172);
   for(const [id,theory] of Object.entries(H.atlasTheory)){assert.ok(H.byId[id]);assert.ok(theory.text.length>30);assert.match(theory.source,/часть [1-4], страница \d+/);}
   for(const g of H.structureSlides){assert.ok(H.byId[g.slideId].review);assert.ok(g.points.length>=2);assert.equal(new Set(g.points.map(p=>p.id)).size,g.points.length);
     for(const p of g.points){assert.ok(p.x>0&&p.x<100&&p.y>0&&p.y<100);assert.ok(p.name && p.aliases.length && p.aliases.every(x=>H.normalize(x)));for(const mode of ['point','name'])assert.ok(H.structureTasks[`${g.slideId}.${p.id}.${mode}`]);}}
