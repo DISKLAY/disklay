@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=23/);
+  assert.match(app,/js\/views-histology\.js\?v=24/);
 });
 
 
@@ -220,7 +220,7 @@ test('гистологические ссылки доступны из меню
   const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8'),drawer=fs.readFileSync(path.join(ROOT,'js/course-drawer.js'),'utf8');
   for(const section of ['setup','atlas','structures','theory','errors','stats'])assert.ok(html.includes(`data-histo-sidebar="${section}"`));
   assert.match(view,/href="#\/histology\?section=/);assert.match(view,/lastSectionHash/);assert.match(view,/histology\.openSection/);assert.match(drawer,/histology\.openSection/);
-  assert.match(view,/data-atlas-group/);assert.match(view,/data-theory-filter/);assert.match(view,/Замечание к источнику/);
+  assert.match(view,/data-atlas-group/);assert.match(view,/theory-filter-slide/);assert.match(view,/Замечание к источнику/);
 });
 
 test('галерея охватывает все препараты, страницы существуют и имеют точные ссылки на источник',()=>{

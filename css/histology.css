@@ -278,3 +278,27 @@
 .histo-atlas-sources summary { cursor:pointer; font-weight:700; }
 .histo-atlas-sources ul { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr)); gap:8px 18px; padding-left:20px; }
 .histo-atlas-sources a { color:var(--primary); overflow-wrap:anywhere; }
+
+/* Компактные тематические списки тестов. */
+.histo-picker { position:relative; min-width:0; width:min(100%,320px); z-index:2; }
+.histo-picker[open] { z-index:12; }
+.histo-picker summary { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:14px; list-style:none; cursor:pointer; padding:11px 14px; border:1px solid var(--border); border-radius:12px; background:var(--surface); color:var(--text); font-size:.83rem; font-weight:650; line-height:1.35; transition:border-color .15s,box-shadow .15s; }
+.histo-picker summary::-webkit-details-marker { display:none; }
+.histo-picker summary span { min-width:0; overflow-wrap:anywhere; }
+.histo-picker summary:hover,.histo-picker[open] summary { border-color:var(--primary-border); box-shadow:0 0 0 3px var(--primary-soft); }
+.histo-picker summary:focus-visible,.histo-picker__option:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.histo-picker summary i { width:9px; height:9px; flex:none; border-right:2px solid var(--primary); border-bottom:2px solid var(--primary); transform:rotate(45deg) translateY(-2px); transition:transform .15s; }
+.histo-picker[open] summary i { transform:rotate(225deg) translate(-2px,-2px); }
+.histo-picker__menu { position:absolute; top:calc(100% + 7px); left:0; right:0; max-height:min(310px,45vh); overflow:auto; overscroll-behavior:contain; padding:6px; border:1px solid var(--border); border-radius:14px; background:var(--surface); box-shadow:0 14px 36px #10132b33; }
+.histo-picker__option { width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:40px; padding:9px 11px; border:0; border-radius:9px; color:var(--text); background:transparent; text-align:left; font-size:.8rem; line-height:1.35; cursor:pointer; }
+.histo-picker__option span { min-width:0; overflow-wrap:anywhere; }
+.histo-picker__option:hover { background:var(--surface-2); }
+.histo-picker__option.is-selected { background:var(--primary-soft); color:var(--primary); font-weight:750; }
+.histo-picker__option b { font-size:.85rem; }
+/* У протяжённой структуры отображаем только отрезок и его номер. */
+.histo-marker.histo-marker--extent { width:24px; height:24px; transform:translate(7px,-50%); border:0; border-radius:7px; background:#4338a3; box-shadow:0 1px 4px #0009; }
+.histo-marker.histo-marker--extent::after { inset:0; width:auto; height:auto; border:1px solid #fff; border-radius:7px; box-shadow:none; }
+.histo-marker.histo-marker--extent:hover,.histo-marker.histo-marker--extent.is-selected { background:#4338a3; outline:2px solid #fff; }
+.histo-marker.histo-marker--extent.is-correct { background:#13794d; }
+.histo-marker.histo-marker--extent.is-correct::after { background:#13794d; }
+.histo-marker.histo-marker--extent.histo-marker--label-left { transform:translate(calc(-100% - 7px),-50%); }

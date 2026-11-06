@@ -124,9 +124,9 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
           await page.locator('[data-histo="structure-mode"][data-value="name"]').click();
           await page.locator('[data-histo="structure-start"]').click();
           await scan('histology-structure-name');
-          await page.locator('#structureAnswer').fill('Неоднозначный ответ');
-          await page.locator('[data-structure-form] button[type="submit"]').click();
-          await scan('histology-structure-self-check');
+          await page.locator('[data-histo="structure-option"]').first().click();
+          await page.locator('[data-histo="structure-check"]').click();
+          await scan('histology-structure-name-feedback');
           await page.locator('[data-histo="section"][data-value="theory"]').click();
           await page.waitForSelector('[data-theory-filter]');
           await scan('histology-theory-setup');

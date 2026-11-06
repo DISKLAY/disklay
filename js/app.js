@@ -80,7 +80,7 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=14').catch(err => { histologyCss = null; throw err; });
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=15').catch(err => { histologyCss = null; throw err; });
     const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
       .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=1'))
       .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))
@@ -90,9 +90,11 @@
       .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=1'))
       .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=2'))
       .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=1'))
-      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=20'))
+      .then(() => window.HistologyStructureExtra ? undefined : resource('script', 'js/histology-structure-extra.js?v=1'))
+      .then(() => window.HistologyTheoryHard ? undefined : resource('script', 'js/histology-theory-hard.js?v=1'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=21'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=23'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=24'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
