@@ -1033,7 +1033,8 @@
   }
   const first = window.HistologyFirstData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
   const tissues = window.HistologyTissueData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
-  slides.push(...first.slides,...tissues.slides);
+  const electrons = window.HistologyElectronIndividual || {slides:[],references:[],groups:{},distractors:{},atlas:{},structures:[]};
+  slides.push(...first.slides,...tissues.slides,...electrons.slides);
   for (const slide of slides) {
     Object.assign(slide,maskPracticePhoto(slide));
     slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || []), ...(tissues.variants[slide.id] || [])].map(maskPracticePhoto);
@@ -1446,7 +1447,7 @@
 });
   for (const [id, similar] of Object.entries({"h04": ["p69"], "h02": ["p69"], "p68": ["p69"], "p117": ["p125", "p112"], "p118": ["p125"], "p119": ["p125"], "p137": ["p135", "p136", "p157"], "p129": ["p127", "p129a"], "p130": ["p129a"], "h06": ["p127"], "p147": ["p148", "p154"], "p102": ["p101", "p103a", "p89"]})) distractors[id].push(...similar);
   // Тексты разделов теории из присланного сборника; страницы сопоставлены вручную.
-  Object.assign(distractors, first.distractors, tissues.distractors);
+  Object.assign(distractors, first.distractors, tissues.distractors, electrons.distractors);
 
   const atlasTheory = {
   "h01": {
@@ -1821,7 +1822,7 @@
       {id:'muscle',name:'Мышечная оболочка',aliases:['мышечная оболочка','мышечный слой'],x:35,y:69}
     ]}
   ];
-  structureSlides.push(...first.structures,...tissues.structures);
+  structureSlides.push(...first.structures,...tissues.structures,...electrons.structures);
   // Положения вручную перенесены с подписанных страниц сборника.
   // Добавляются в конец: существующие индексы и идентификаторы не меняются.
   const restoredPoints = {
@@ -1932,6 +1933,10 @@
     const group=atlasGroups.find(g=>g.id===id);
     if(group)group.ids.push(...ids);
   }
+  const atlasReferences = Object.fromEntries(electrons.references.map(s=>[s.id,s]));
+  for (const [id,ids] of Object.entries(electrons.groups)) {
+    const group=atlasGroups.find(g=>g.id===id); if(group)group.ids.push(...ids);
+  }
   // Вопросы составлены по указанной странице сборника. Это пробная подборка, а не вузовский ключ.
   // В каждом наборе первый вариант является правильным; порядок в тренировке перемешивается.
   const theoryQuestions = [
@@ -1986,5 +1991,5 @@
     return {state,current,entry,start,select,check,dontKnow,navigate,finish,storageFailed:()=>failed};
   }
 
-  window.HistologyPrototype = { slides, byId, distractors, atlasTheory, atlasGroups, theoryQuestions, theoryById, createTheory, THEORY_KEY, structureSlides, structureTasks, visibleStructurePoints, createStructures, STRUCTURE_KEY, normalize, matches, create, STORAGE_KEY };
+  window.HistologyPrototype = { slides, byId, atlasReferences, distractors, atlasTheory, atlasGroups, theoryQuestions, theoryById, createTheory, THEORY_KEY, structureSlides, structureTasks, visibleStructurePoints, createStructures, STRUCTURE_KEY, normalize, matches, create, STORAGE_KEY };
 })();
