@@ -400,7 +400,8 @@ test('неверный или несовместимый файл оформле
     assert.equal(AT.game.importAppearances(file).ok, false);
     assert.equal(!!AT.game.profile().appearances.anime, false);
   }
-  assert.match(AT.views.settings().html, /Импортировать оформления/);
+  assert.doesNotMatch(AT.views.settings().html, /Импортировать оформления/);
+  assert.match(AT.views.settings().html, /Промокод на оформление/);
 });
 
 test('порядок вариантов сохраняется на всю сессию и меняется только для новых сессий', () => {

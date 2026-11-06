@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),promo=require('../js/promo-codes');
+function game(){const state={appearances:{},coins:123};return {appearances:{default:{},ocean:{title:'Океан'}},profile:()=>state,importAppearances(file){Object.assign(state.appearances,file.sharedRewards.appearances);return {ok:true,message:'Добавлено'};},state};}
+const entries=[{code:'MEDZO',appearance:'ocean'}];
+test('shared code opens an existing local appearance without touching the wallet',()=>{const g=game();assert.equal(promo.redeem(' medzo ',g,entries).ok,true);assert.equal(g.state.appearances.ocean,true);assert.equal(g.state.coins,123);assert.match(promo.redeem('MEDZO',g,entries).message,/уже открыто/);});
+test('unknown, invalid, hidden or unavailable codes cannot unlock arbitrary appearances',()=>{const g=game();assert.equal(promo.redeem('MEDZO',g).ok,false);assert.equal(promo.redeem('bad code!',g,entries).ok,false);assert.equal(promo.redeem('XXX',g,[{code:'XXX',appearance:'meme'}]).ok,false);assert.equal(promo.redeem('XXX',g,[{code:'XXX',appearance:'default'}]).ok,false);assert.deepEqual(g.state.appearances,{});});

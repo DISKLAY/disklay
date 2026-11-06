@@ -631,15 +631,18 @@
     html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Синхронизация учёбы</h2>' +
       '<p class="muted small">Не синхронизируются: игра, кошелёк, награды, оформление, настройки и текущие сессии.</p>' +
       '<p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
-      '<div class="card__actions card__actions--col"><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
+      '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
       '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
+
+    html += '<section class="card card--pad"><h2 class="card__title">Промокод</h2>' +
+      '<form id="promoForm" class="promo-form"><label for="promoCode">Промокод на оформление</label>' +
+      '<div class="promo-form__row"><input id="promoCode" name="promoCode" type="text" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Введите промокод">' +
+      '<button class="btn btn--primary" type="submit">Применить</button></div><p class="muted small" role="status" aria-live="polite" id="promoStatus"></p></form></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
       '<p class="muted small">Сброс относится к текущей базе; избранное, комментарии, общий кошелёк, достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
-      '<button class="btn btn--ghost" data-action="export-progress">' + icon('download') + 'Скачать прогресс</button>' +
-      '<label class="btn btn--ghost btn--file">' + icon('upload') + 'Импортировать оформления<input type="file" accept=".json,application/json" data-action="appearance-file"></label>' +
-      '<p class="muted small">Из файла добавляются только оформления, без изменения прогресса и валюты.</p>' +
+      '<button class="btn btn--ghost" data-action="export-progress" data-if-signed-out>' + icon('download') + 'Скачать прогресс</button>' +
       '<button class="btn btn--ghost btn--danger" data-action="reset-all">' + icon('trash') + 'Сбросить прогресс</button>' +
       '</div></section>';
 
@@ -689,33 +692,24 @@
         }
       });
 
+      const promoForm = view.querySelector('#promoForm');
+      promoForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const input = view.querySelector('#promoCode'), status = view.querySelector('#promoStatus');
+        const button = promoForm.querySelector('button');
+        if (button.disabled) return;
+        button.disabled = true;
+        try {
+          const redeem = () => window.MedzoPromoCodes.redeem(input.value, AT.game);
+          const result = navigator.locks && navigator.locks.request
+            ? await navigator.locks.request('anatomy-cosmetic-purchase', redeem) : redeem();
+          status.textContent = result.message;
+          if (result.ok) input.value = '';
+        } catch (_) { status.textContent = 'Не удалось применить промокод.'; }
+        finally { button.disabled = false; }
+      });
+
       view.addEventListener('change', async (e) => {
-        const fileInput = e.target.closest('[data-action="appearance-file"]');
-        if (fileInput) {
-          const file = fileInput.files && fileInput.files[0];
-          fileInput.value = '';
-          if (!file) return;
-          if (file.size > 1024 * 1024) { toast('Файл слишком большой'); return; }
-          let data;
-          try { data = JSON.parse(await file.text()); }
-          catch (err) { toast('Не удалось прочитать JSON-файл'); return; }
-          const check = AT.game.inspectAppearanceImport(data);
-          if (!check.ok) { toast(check.message); return; }
-          const ok = await confirmDialog({
-            title: 'Добавить оформления?',
-            text: 'Из файла будут добавлены: ' + check.titles.join(', ') + '. Валюта, прогресс и текущая тема не изменятся. Полная коллекция откроет достижение.',
-            confirm: 'Добавить',
-          });
-          if (!ok) return;
-          let result;
-          try {
-            result = navigator.locks && navigator.locks.request
-              ? await navigator.locks.request('anatomy-cosmetic-purchase', () => AT.game.importAppearances(data))
-              : AT.game.importAppearances(data);
-          } catch (err) { result = { ok: false, message: 'Не удалось импортировать оформления' }; }
-          toast(result.message);
-          return;
-        }
         const input = e.target.closest('[data-setting]');
         if (!input) return;
         const key = input.getAttribute('data-setting');

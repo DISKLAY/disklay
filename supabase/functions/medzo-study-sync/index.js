@@ -12,7 +12,7 @@ async function signObject(payload,key){const data=b64u(enc.encode(JSON.stringify
 async function verifyObject(token,key,kind,now){
   if(typeof token!=='string'||token.length>4096)throw new Error('token');
   const parts=token.split('.');if(parts.length!==2||!equal(await hmac(key,parts[0]),unb64(parts[1])))throw new Error('signature');
-  const data=parse(parts[0]);if(data.kind!==kind||!Number.isSafeInteger(data.exp)||data.exp<now||data.exp>now+(kind==='challenge'?180:28800))throw new Error('expired');return data;
+  const data=parse(parts[0]);if(data.kind!==kind||!Number.isSafeInteger(data.exp)||data.exp<now||data.exp>now+(kind==='challenge'?180:(data.sid?90*86400:28800)))throw new Error('expired');return data;
 }
 function userId(value){const id=String(value);if(!/^[1-9][0-9]{0,19}$/.test(id))throw new Error('user');return id;}
 async function verifyInitData(init,botToken,now){
@@ -59,10 +59,21 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       let id;
       if(body.initData)id=await verifyInitData(body.initData,bot,now);
       else{const challenge=await verifyObject(body.nonce,signing,'challenge',now);id=await verifyOidc(body.idToken,body.nonce,match[1],fetchFn,now);const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(body.nonce))),x=>x.toString(16).padStart(2,'0')).join('');const claimed=await db('rpc/medzo_study_claim_nonce',{method:'POST',body:JSON.stringify({p_hash:digest,p_expires:challenge.exp})});if(claimed!==true)throw new Error('nonce_used');}
-      return response(200,{session:await signObject({kind:'session',id,exp:now+28800},signing),userId:id,expiresAt:now+28800});
+      const sid=b64u(crypto.getRandomValues(new Uint8Array(32))),expiresAt=now+90*86400;
+      const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(sid))),x=>x.toString(16).padStart(2,'0')).join('');
+      await db('medzo_study_sessions',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({session_hash:hash,user_id:id,expires_at:new Date(expiresAt*1000).toISOString()})});
+      return response(200,{session:await signObject({kind:'session',id,sid,exp:expiresAt},signing),userId:id,expiresAt});
     }
     const auth=req.headers.get('authorization')||'';if(!auth.startsWith('Bearer '))return response(401,{error:'unauthorized'});
     const session=await verifyObject(auth.slice(7),signing,'session',now);const id=userId(session.id);
+    if(session.sid){
+      if(typeof session.sid!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(session.sid))throw Error('session');
+      const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(session.sid))),x=>x.toString(16).padStart(2,'0')).join('');
+      const path='medzo_study_sessions?session_hash=eq.'+hash+'&user_id=eq.'+encodeURIComponent(id);
+      if(body.action==='logout'){await db(path,{method:'DELETE',headers:{Prefer:'return=representation'}});return response(200,{ok:true});}
+      const rows=await db(path+'&select=expires_at');
+      if(!rows.length || Date.parse(rows[0].expires_at)<=Date.now())throw Error('revoked');
+    } else if(body.action==='logout') return response(200,{ok:true});
     if(body.action==='get'){
       const rows=await db('medzo_study_sync?user_id=eq.'+encodeURIComponent(id)+'&select=revision,snapshot,updated_at');
       return response(200,rows.length?{revision:rows[0].revision,snapshot:rows[0].snapshot,updatedAt:rows[0].updated_at}:{revision:0,snapshot:{schema:1,records:{}}});
@@ -72,7 +83,7 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       const result=await db('rpc/medzo_study_sync_put',{method:'POST',body:JSON.stringify({p_user_id:id,p_expected:body.revision,p_snapshot:body.snapshot})});return response(result.conflict?409:200,result);
     }
     return response(400,{error:'invalid_action'});
-  }catch(_){return response(401,{error:'request_failed'});}
+  }catch(error){return error && error.message==='database'?response(503,{error:'unavailable'}):response(401,{error:'request_failed'});}
 };}
 if(typeof Deno!=='undefined')Deno.serve(createHandler(Deno.env));
 if(typeof module!=='undefined'&&module.exports)module.exports={hmac,b64u,unb64,verifyInitData,verifyOidc,signObject,verifyObject,validSnapshot,createHandler};
