@@ -42,6 +42,7 @@
       '<div class="ps-progress" role="progressbar" aria-label="Позиция в подборке" aria-valuemin="1" aria-valuemax="'+s.order.length+'" aria-valuenow="'+(s.index+1)+'"><span style="width:'+((s.index+1)/s.order.length*100)+'%"></span></div>'+
       '<article class="ps-card"><div class="ps-card-head"><span class="ps-eyebrow">НАВЫК № '+item.id+'</span><button class="ps-favorite'+(fav?' is-active':'')+'" data-ps="favorite" data-id="'+item.id+'" aria-label="'+(fav?'Убрать из избранного':'Добавить в избранное')+'" aria-pressed="'+fav+'" type="button">'+(fav?'★':'☆')+'</button></div>'+
       '<h1 tabindex="-1" class="ps-term" lang="la">'+esc(item.latin)+'</h1>'+(s.index===0?'<p class="ps-prompt">Переведите и покажите структуру, затем сверьте себя с атласом.</p>':'')+
+      '<p class="ps-prompt">Клавиатура: 1 — знаю, 2 — повторить, H — подсказка, ← / → — назад / далее, Enter — далее.</p>'+
       '<div class="ps-hint">'+(showHint?'<strong tabindex="-1" data-ps-hint-result>Ориентир:</strong> '+esc(item.hint):'<button type="button" class="ps-hint__button" data-ps="hint"><span aria-hidden="true">✧</span> Подсказка</button>')+'</div>'+
       '<div class="ps-review"><h2>Как получилось?</h2><div class="ps-review-actions"><button type="button" class="btn '+(status==='known'?'btn--success':'btn--ghost')+'" data-ps="mark" data-value="known" aria-pressed="'+(status==='known')+'">Знаю и покажу</button><button type="button" class="btn '+(status==='again'?'btn--danger':'btn--ghost')+'" data-ps="mark" data-value="again" aria-pressed="'+(status==='again')+'">Повторить</button></div>'+(status?'<p class="ps-status" role="status">'+statusLabel(status)+'</p>':'')+'</div>'+
       '<details class="ps-notes"><summary>Моя заметка</summary><label for="ps-note">Запись после сверки</label><textarea id="ps-note" data-ps-note maxlength="2000" placeholder="Личная заметка…">'+esc(game.state.notes[item.id]||'')+'</textarea><small>Заметка сохраняется на устройстве.</small></details>'+
@@ -115,6 +116,21 @@
       });
       view.addEventListener('focusout',e=>{const picker=e.target.closest('[data-picker]');if(picker)setTimeout(()=>{if(view.isConnected&&!picker.contains(document.activeElement))closePicker(picker);},0);});
       const outside=e=>{if(!view.contains(e.target)||!e.target.closest('[data-picker]'))closeMenus();};document.addEventListener('click',outside);if(AT.onCleanup)AT.onCleanup(()=>document.removeEventListener('click',outside));
+      const hotkeys=e=>{
+        if(!view.isConnected||screen!=='run'||e.defaultPrevented||e.repeat||e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||Array.from(document.querySelectorAll('dialog[open], [role="dialog"][aria-modal="true"]')).some(el=>el.getClientRects().length))return;
+        const target=e.target;if(target instanceof Element&&(target.isContentEditable||target.closest('input,textarea,select,[contenteditable],[data-picker]')))return;
+        let button;
+        if(e.code==='Digit1'||e.code==='Numpad1'||e.key==='1')button=view.querySelector('[data-ps="mark"][data-value="known"]');
+        else if(e.code==='Digit2'||e.code==='Numpad2'||e.key==='2')button=view.querySelector('[data-ps="mark"][data-value="again"]');
+        else if(e.code==='KeyH')button=view.querySelector('[data-ps="hint"]');
+        else if(e.key==='ArrowLeft')button=view.querySelector('[data-ps="prev"]');
+        else if(e.key==='ArrowRight'||e.key==='Enter'){
+          if(e.key==='Enter'&&target instanceof Element&&target.closest('button,a,summary,[role="button"]'))return;
+          button=view.querySelector('[data-ps="next"], [data-ps="finish"]');
+        }
+        if(button&&!button.disabled){e.preventDefault();button.click();if(['mark','hint'].includes(button.dataset.ps))root.querySelector('.ps-term')?.focus({preventScroll:true});}
+      };
+      document.addEventListener('keydown',hotkeys);if(AT.onCleanup)AT.onCleanup(()=>document.removeEventListener('keydown',hotkeys));
       view.addEventListener('input',e=>{
         if(e.target.matches('[data-ps-note]')){game.note(game.current()?.id,e.target.value);warn();}
         if(e.target.matches('[data-ps-search]')){search=e.target.value;syncSearch(view);}

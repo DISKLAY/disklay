@@ -80,11 +80,22 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=10').catch(err => { histologyCss = null; throw err; });
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=15').catch(err => { histologyCss = null; throw err; });
     const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
-      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=7'))
+      .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=1'))
+      .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))
+      .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=1'))
+      .then(() => window.HistologyElectronIndividual ? undefined : resource('script', 'js/histology-electron-individual-data.js?v=4'))
+      .then(() => window.HistologyAdditionalPhotos ? undefined : resource('script', 'js/histology-additional-data.js?v=1'))
+      .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=1'))
+      .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=2'))
+      .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=1'))
+      .then(() => window.HistologyStructureExtra ? undefined : resource('script', 'js/histology-structure-extra.js?v=1'))
+      .then(() => window.HistologyTheoryHard ? undefined : resource('script', 'js/histology-theory-hard.js?v=1'))
+      .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=1'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=22'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=12'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=25'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
@@ -94,7 +105,7 @@
     if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=3').catch(err => { anatomySkillsCss = null; throw err; });
     const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
       .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=3'))
-      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=3'));
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=4'));
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }
@@ -201,7 +212,7 @@
         console.error(err);
       }
     }
-    document.title = viewName === 'histology' ? 'Гистология · АРМ РНИМУ' : (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум');
+    document.title = viewName === 'histology' ? 'Гистология · Medzo' : (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум') + ' · Medzo';
     updateNav(route.name);
     const routeKey = route.name + ':' + JSON.stringify(route.params);
     if (routeKey !== lastRouteKey) {

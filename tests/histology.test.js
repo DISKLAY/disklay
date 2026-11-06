@@ -34,7 +34,7 @@ test('сравнение ввода учитывает пробелы, реги�
 test('варианты перемешаны, ответ записывается один раз, анатомия не изменяется',()=>{
   const storage={'anatomy-colloquium-v1':'{"sentinel":123}', 'anatomy-colloquium-rewards-shared-v1':'{"appearance":"ocean"}'};
   const {H,g}=load(storage); assert.ok(g.start());
-  const q=g.current(), e=g.entry(); assert.equal(e.options.length,4);assert.equal(new Set(e.options).size,4);assert.ok(e.options.includes(q.id));
+  const q=g.current(), e=g.entry(); assert.equal(e.options.length,5);assert.equal(new Set(e.options).size,5);assert.ok(e.options.includes(q.id));
   assert.equal(g.check(),false);g.select(q.id);assert.equal(g.check(),true);
   assert.equal(g.entry().status,'correct');assert.equal(g.state.stats[q.id].attempts,1);
   assert.equal(g.check(),false);assert.equal(g.dontKnow(),false);assert.equal(g.state.stats[q.id].attempts,1);
@@ -93,11 +93,11 @@ test('гистология подключается лениво и не доб�
 test('увеличение изображений не зависит от новой вкладки и есть повтор загрузки',()=>{
   const view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8');
   const app=fs.readFileSync(path.join(ROOT,'js/app.js'),'utf8');
-  assert.doesNotMatch(view,/target="_blank"/);
+  assert.doesNotMatch(view,/<a[^>]+(?:review|\.webp)[^>]+target="_blank"/);
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=12/);
+  assert.match(app,/js\/views-histology\.js\?v=25/);
 });
 
 
@@ -162,7 +162,7 @@ test('вариант восстанавливает правильное наз�
 });
 
 test('атлас содержит тексты с источниками и структуры с привязкой к существующим снимкам',()=>{
-  const {H}=load();assert.equal(Object.keys(H.atlasTheory).length,61);assert.equal(H.structureSlides.length,6);assert.equal(Object.keys(H.structureTasks).length,34);
+  const {H}=load();assert.equal(Object.keys(H.atlasTheory).length,61);assert.equal(H.structureSlides.length,14);assert.equal(Object.keys(H.structureTasks).length,172);
   for(const [id,theory] of Object.entries(H.atlasTheory)){assert.ok(H.byId[id]);assert.ok(theory.text.length>30);assert.match(theory.source,/часть [1-4], страница \d+/);}
   for(const g of H.structureSlides){assert.ok(H.byId[g.slideId].review);assert.ok(g.points.length>=2);assert.equal(new Set(g.points.map(p=>p.id)).size,g.points.length);
     for(const p of g.points){assert.ok(p.x>0&&p.x<100&&p.y>0&&p.y<100);assert.ok(p.name && p.aliases.length && p.aliases.every(x=>H.normalize(x)));for(const mode of ['point','name'])assert.ok(H.structureTasks[`${g.slideId}.${p.id}.${mode}`]);}}
@@ -175,10 +175,17 @@ test('тренировка структур сохраняется отдель�
   assert.equal(data['histology-prototype-v1'],'{"favorites":{"h01":true}}');assert.equal(data['anatomy-colloquium-v1'],'sentinel');
 });
 
-test('ответ по структуре распознаётся точно, неоднозначный ждёт оценки и восстанавливается',()=>{
+test('выбор названия структуры сохраняется и проверяется автоматически',()=>{
   const data={}, {H,store}=load(data);let g=H.createStructures(store,()=>0.42);g.setMode('name');g.start();const id=g.current().id;
-  g.setText('необычное название');g=H.createStructures(store,()=>0.42);assert.equal(g.entry().text,'необычное название');assert.equal(g.check(''),false);assert.equal(g.check('необычное название'),true);assert.equal(g.entry().status,'review');assert.equal(g.state.stats[id],undefined);
-  g=H.createStructures(store,()=>0.42);assert.equal(g.entry().status,'review');assert.equal(g.self(true),true);assert.equal(g.self(false),false);assert.equal(g.state.stats[id].attempts,1);g.navigate(1);const answer=g.target().aliases[0].toUpperCase();assert.equal(g.check('  '+answer+'! '),true);assert.equal(g.entry().status,'correct');
+  assert.equal(g.entry().options.length,5);assert.equal(g.check(),false);assert.equal(g.select('несуществующий вариант'),false);
+  const wrong=g.entry().options.find(x=>x!==g.target().name);assert.ok(g.select(wrong));g=H.createStructures(store,()=>0.42);assert.equal(g.entry().selected,wrong);assert.ok(g.check());assert.equal(g.entry().status,'wrong');assert.equal(g.state.stats[id].attempts,1);
+  g.navigate(1);const answer=g.target().name;assert.ok(g.select(answer));assert.ok(g.check());assert.equal(g.entry().status,'correct');
+});
+
+test('старое незавершённое задание с ручной самопроверкой сохраняется',()=>{
+  const {H,store}=load();let g=H.createStructures(store,()=>0.42);g.setMode('name');g.start();const id=g.current().id;
+  const saved=JSON.parse(store.getItem(H.STRUCTURE_KEY));saved.session.entries[id]={status:'review',selected:null,text:'старый ответ'};store.setItem(H.STRUCTURE_KEY,JSON.stringify(saved));
+  g=H.createStructures(store,()=>0.42);assert.equal(g.current().id,id);assert.equal(g.entry().status,'review');assert.equal(g.entry().text,'старый ответ');assert.ok(g.self(true));assert.equal(g.state.stats[id].last,true);
 });
 
 test('повреждённая или недоступная запись структур безопасна',()=>{
@@ -213,7 +220,7 @@ test('гистологические ссылки доступны из меню
   const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8'),drawer=fs.readFileSync(path.join(ROOT,'js/course-drawer.js'),'utf8');
   for(const section of ['setup','atlas','structures','theory','errors','stats'])assert.ok(html.includes(`data-histo-sidebar="${section}"`));
   assert.match(view,/href="#\/histology\?section=/);assert.match(view,/lastSectionHash/);assert.match(view,/histology\.openSection/);assert.match(drawer,/histology\.openSection/);
-  assert.match(view,/data-atlas-group/);assert.match(view,/data-theory-filter/);assert.match(view,/Замечание к источнику/);
+  assert.match(view,/data-atlas-group/);assert.match(view,/theory-filter-slide/);assert.match(view,/Замечание к источнику/);
 });
 
 test('галерея охватывает все препараты, страницы существуют и имеют точные ссылки на источник',()=>{
@@ -322,7 +329,15 @@ test('центр структурных меток остаётся прозра
   const css=fs.readFileSync(path.join(ROOT,'css/histology.css'),'utf8');
   assert.match(css,/\.histo-marker \{[^}]*background:transparent/);
   assert.match(css,/\.histo-marker::after \{[^}]*content:attr\(data-number\)/);
-  assert.match(view,/data-number="'\+\(i\+1\)\+'/);
-  assert.match(view,/button\.dataset\.number=String\(i\+1\)/);
+  assert.match(view,/data-number="'\+\(number\+1\)\+'/);
+  assert.match(view,/button\.dataset\.number=String\(number\+1\)/);
   assert.match(view,/histo-marker--label-left/);
+});
+
+test('при восстановлении сохраняется исходная копия ранее записанных сессий',()=>{
+ const data={};
+ for(const key of ['histology-prototype-v1','histology-structures-v1','histology-theory-v1'])data[key]=JSON.stringify({stats:{missing:{attempts:5,correct:3,last:true}},session:{order:['missing']}});
+ const original={...data}, {H,store}=load(data);
+ H.create(store,()=>0.5).setMode('text');H.createStructures(store,()=>0.5).setMode('name');H.createTheory(store,()=>0.5).start('all');
+ for(const key of Object.keys(original))assert.equal(data[key+'-pre-recovery-backup'],original[key]);
 });

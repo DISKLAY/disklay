@@ -1031,9 +1031,13 @@
     }
     return item;
   }
+  const first = window.HistologyFirstData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
+  const tissues = window.HistologyTissueData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
+  const electrons = window.HistologyElectronIndividual || {slides:[],references:[],groups:{},distractors:{},atlas:{},structures:[]};
+  slides.push(...first.slides,...tissues.slides,...electrons.slides);
   for (const slide of slides) {
     Object.assign(slide,maskPracticePhoto(slide));
-    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || [])].map(maskPracticePhoto);
+    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || []), ...(tissues.variants[slide.id] || []), ...((window.HistologyAdditionalPhotos || {})[slide.id] || [])].map(maskPracticePhoto);
   }
   const byId = Object.fromEntries(slides.map(s => [s.id,s]));
   // Для каждого препарата вручную задан пул похожих изображений/органов.
@@ -1443,6 +1447,11 @@
 });
   for (const [id, similar] of Object.entries({"h04": ["p69"], "h02": ["p69"], "p68": ["p69"], "p117": ["p125", "p112"], "p118": ["p125"], "p119": ["p125"], "p137": ["p135", "p136", "p157"], "p129": ["p127", "p129a"], "p130": ["p129a"], "h06": ["p127"], "p147": ["p148", "p154"], "p102": ["p101", "p103a", "p89"]})) distractors[id].push(...similar);
   // Тексты разделов теории из присланного сборника; страницы сопоставлены вручную.
+  Object.assign(distractors, first.distractors, tissues.distractors, electrons.distractors);
+  // Четвёртый тематический дистрактор для ранних наборов с тремя.
+  for(const [id,extra] of Object.entries({h01:'p115',p40:'a38',a2:'m71',a12:'a22',a13:'a21',a14:'a22',a21:'a12',a22:'a13',a37:'p40',a38:'p40',a42:'a43',a43:'a46',a44:'a46',a45:'a46',a46:'a45',a47:'a42',a50:'p136',a51:'p136',a52:'p135'}))if(byId[id]&&byId[extra]&&distractors[id]&&!distractors[id].includes(extra))distractors[id].push(extra);
+
+
   const atlasTheory = {
   "h01": {
     "text": "5. Мазок крови человека\nЭритроциты: Розовые безъядерные диски с просветлением в центре. Преобладают.\nЛейкоциты:\nНейтрофилы – с сегментированным ядром (3-5 долей), мелкая светлая зернистость.\n•Эозинофилы – ядро из 2 долей, цитоплазма заполнена крупной ярко-розовой зернистостью.\n•Базофилы – крупная фиолетовая зернистость, скрывающая ядро (редки).\n•Лимфоциты – крупное круглое фиолетовое ядро, узкий ободок голубой цитоплазмы.\n•Моноциты – самые крупные, бобовидное светлое ядро, серая \"пыльная\" цитоплазма.\nТромбоциты: Мелкие фиолетовые скопления гранул, часто группами.",
@@ -1698,7 +1707,15 @@
     for (let i=out.length-1;i>0;i--) { const j=Math.floor(random()*(i+1)); [out[i],out[j]]=[out[j],out[i]]; }
     return out;
   }
+  // Сохранить исходные данные восстановленной версии до их возможной записи
+  // более ограниченной базой; отдельный ключ не используется игровым движком.
+  function backupRecoveryState(storage,key) {
+    try { const raw=storage.getItem(key),backup=key+'-pre-recovery-backup';
+      if(raw!==null && storage.getItem(backup)===null) storage.setItem(backup,raw);
+    } catch (_) { /* основная обработка недоступного хранилища остаётся прежней */ }
+  }
   function create(storage, random) {
+    backupRecoveryState(storage,STORAGE_KEY);
     random = random || Math.random;
     let data = {};
     try { const parsed=JSON.parse(storage.getItem(STORAGE_KEY) || '{}'); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) data=parsed; } catch (_) { /* испорченное или недоступное хранилище */ }
@@ -1725,10 +1742,12 @@
       const entries={}; let valid=true;
       for (const key of saved.order) {
         const parsed=parseKey(key), id=parsed.id, e=saved.entries[key];
-        if (!e || !Array.isArray(e.options) || e.options.length !== 4 || new Set(e.options).size !== 4 || !e.options.includes(id) || !e.options.every(x=>byId[x]) || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected != null && !e.options.includes(e.selected))) {valid=false; break;}
+        if (!e || !Array.isArray(e.options) || ![4,5].includes(e.options.length) || new Set(e.options).size !== e.options.length || !e.options.includes(id) || !e.options.every(x=>byId[x]) || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected != null && !e.options.includes(e.selected))) {valid=false; break;}
+        const options=e.options.slice();
+        if(options.length===4){const extra=distractors[id].find(x=>!options.includes(x));if(extra)options.push(extra);}
         const variant = e.variant === undefined ? 0 : e.variant;
         if (!Number.isInteger(variant) || variant < 0 || variant >= byId[id].variants.length || (parsed.variant !== null && parsed.variant !== variant)) {valid=false; break;}
-        entries[key]={options:e.options.slice(), selected:e.selected || null, text:typeof e.text === 'string' ? e.text.slice(0,300) : '', status:e.status, variant};
+        entries[key]={options, selected:e.selected || null, text:typeof e.text === 'string' ? e.text.slice(0,300) : '', status:e.status, variant};
       }
       if (valid) state.session={order:saved.order.slice(),index:saved.index,mode:saved.mode,entries};
     }
@@ -1755,7 +1774,7 @@
     }
     function start() {
       const order=shuffle(candidates(),random); if (!order.length) return false;
-      const entries={}; order.forEach(key => { const parsed=parseKey(key), id=parsed.id; const wrong=shuffle(distractors[id],random).slice(0,3); const variant=parsed.variant===null ? Math.floor(random()*byId[id].variants.length) : parsed.variant; entries[key]={options:shuffle([id,...wrong],random),selected:null,text:'',status:'unanswered',variant}; });
+      const entries={}; order.forEach(key => { const parsed=parseKey(key), id=parsed.id; const wrong=shuffle(distractors[id],random).slice(0,4); const variant=parsed.variant===null ? Math.floor(random()*byId[id].variants.length) : parsed.variant; entries[key]={options:shuffle([id,...wrong],random),selected:null,text:'',status:'unanswered',variant}; });
       state.session={order,index:0,mode:state.mode,entries}; save(); return true;
     }
     function select(id) { const e=entry(); if (!e || e.status!=='unanswered' || !e.options.includes(id) || state.session.mode!=='choice') return false; e.selected=id; save(); return true; }
@@ -1808,13 +1827,155 @@
       {id:'muscle',name:'Мышечная оболочка',aliases:['мышечная оболочка','мышечный слой'],x:35,y:69}
     ]}
   ];
+  const bloodFields=window.HistologyBloodFields || {structures:[],atlas:{}};
+  structureSlides.push(...first.structures,...tissues.structures,...electrons.structures,...bloodFields.structures,...(window.HistologyStructureExtra?.structures||[]));
+  // Положения вручную перенесены с подписанных страниц сборника.
+  // Добавляются в конец: существующие индексы и идентификаторы не меняются.
+  const restoredPoints = {
+    h05:[['pia','Мягкая мозговая оболочка',40.4,66.5,'мягкая оболочка'],['vessels','Кровеносные сосуды субарахноидального пространства',74,18.4,'кровеносные сосуды'],['sulcus','Борозда мозжечка',77.8,13.7,'борозда'],['folium','Извилина коры мозжечка',70.1,6.9,'извилина коры']],
+    p117:[['capsule','Капсула тимуса',77.5,9.6,'капсула'],['lobule','Долька тимуса',47.5,28.5,'долька']],
+    p118:[['paracortex','Паракортикальная зона лимфоузла',65,29,'паракортикальная зона']],
+    p141:[['mucosa','Слизистая оболочка трахеи',12,13,'слизистая оболочка'],['lamina','Собственная пластинка слизистой',80,24,'собственная пластинка'],['submucosa','Подслизистая оболочка',12,34,'подслизистая'],['perichondrium','Надхрящница',75,75,'перихондрий'],['adventitia','Адвентициальная оболочка',23,92,'адвентиция']],
+    p130:[['mucosa','Слизистая оболочка двенадцатиперстной кишки',20,25,'слизистая оболочка'],['crypt','Кишечные крипты',61,49,'крипты'],['epithelium','Однослойный цилиндрический каёмчатый эпителий',12,6,'каемчатый эпителий'],['submucosa','Подслизистая оболочка',13,49,'подслизистая'],['muscularis-mucosae','Мышечная пластинка слизистой',68,58,'мышечная пластинка'],['serosa','Серозная оболочка',8,85,'сероза'],['plexus','Межмышечное нервное сплетение',54,94,'межмышечное сплетение']],
+    p40:[['tube','Нервная трубка',55,20,'нервная трубка'],['crest','Нервный гребень',50,23,'нервный гребень'],['dermatome','Дерматом',45,31,'дерматом'],['myotome','Миотом',65,28,'миотом'],['sclerotome','Склеротом',51,40,'склеротом'],['nephrotome','Нефрогонотом',75,46,'нефротом'],['somatopleura','Париетальный листок спланхнотома',27,50,'соматоплевра'],['splanchnopleura','Висцеральный листок спланхнотома',44,62,'спланхноплевра'],['endoderm','Кишечная энтодерма',58,56,'энтодерма'],['fold','Туловищная складка',30,67,'туловищная складка']],
+    p85:[['neuron','Псевдоуниполярный нейрон',50.3,48.6,'псевдоуниполярные нейроны'],['satellite','Мантийные глиоциты',63,28,'мантийные глиоциты'],['fibres','Нервные волокна',51,8,'нервные волокна'],['connective','Прослойки рыхлой волокнистой соединительной ткани',27,49,'рыхлая соединительная ткань']],
+    p86a:[['root','Задний корешок спинного мозга',19,12,'задний корешок'],['gray','Серое вещество спинного мозга',22,58,'серое вещество'],['central','Центральный канал спинного мозга',50,50,'центральный канал'],['posterior-horn','Задний рог серого вещества',68,35,'задний рог'],['anterior-horn','Передний рог серого вещества',71,58,'передний рог'],['posterior-column','Задний канатик спинного мозга',39,22,'задний канатик'],['lateral-column','Боковой канатик спинного мозга',9,42,'боковой канатик'],['anterior-column','Передний канатик спинного мозга',58,65,'передний канатик'],['anterior-fissure','Передняя срединная щель',50,74,'передняя срединная щель'],['posterior-sulcus','Задняя срединная борозда',48,28,'задняя срединная борозда']],
+    p102:[['artery','Артерия мышечного типа',25,30,'артерия'],['vein','Вена мышечного типа',73,75,'вена'],['nerve','Пучок нервных волокон',58,40,'нерв'],['connective','Рыхлая волокнистая соединительная ткань',53,58,'рвст']],
+    p119:[['white','Белая пульпа селезёнки',56,52,'белая пульпа'],['red','Красная пульпа селезёнки',34,40,'красная пульпа'],['capsule','Капсула селезёнки',18,49,'капсула'],['vein','Трабекулярная вена',42,64,'трабекулярная вена'],['trabecula','Трабекула селезёнки',23,92,'трабекула']],
+    p137:[['lobule','Долька поджелудочной железы',68,36,'долька железы'],['septum','Междольковая соединительная ткань',87,40,'междольковая соединительная ткань'],['duct','Междольковый проток',11,32,'междольковые протоки'],['islet','Панкреатический островок',73,84,'островок лангерганса']],
+    p143:[['epidermis','Эпидермис',16,39,'эпидермис'],['papillary','Сосочковый слой дермы',82,12,'сосочковый слой'],['reticular','Сетчатый слой дермы',57,46,'сетчатый слой'],['duct','Проток эккриновой потовой железы',42,75,'проток потовой железы'],['gland','Эккриновая потовая железа',95,55,'потовая железа']],
+    p144:[['epidermis','Эпидермис',10,7,'эпидермис'],['dermis','Дерма',14,27,'дерма'],['root','Корень волоса',18,52,'корень волоса'],['muscle','Мышца, поднимающая волос',32,54,'мышца поднимающая волос'],['funnel','Воронка волоса',86,11,'волосяная воронка'],['sebaceous','Сальная железа',84,83,'сальная железа'],['sweat','Потовая железа',28,88,'потовая железа'],['fat','Подкожная жировая клетчатка',53,95,'подкожная клетчатка']]
+  };
+  for(const [slideId,points] of Object.entries(restoredPoints)) {
+    if(!byId[slideId])continue;
+    let g=structureSlides.find(x=>x.slideId===slideId&&(!x.id||x.id===slideId));
+    if(!g){g={slideId,points:[]};structureSlides.push(g);}
+    for(const [id,name,x,y,alias] of points) if(!g.points.some(p=>p.id===id))g.points.push({id,name,x,y,aliases:[name,alias]});
+  }
+  const restoredExtents={p130:{mucosa:[[23.5,4.9],[23.5,46]]},p141:{mucosa:[[12,6],[12,17]],submucosa:[[12,17],[12,44]],cartilage:[[53,48],[53,83]]},p137:{lobule:[[54.2,30.6],[82,46.2]]}};
+  for(const group of structureSlides)for(const point of group.points){const extent=restoredExtents[group.slideId]?.[point.id];if(extent){point.extent=extent;point.x=(extent[0][0]+extent[1][0])/2;point.y=(extent[0][1]+extent[1][1])/2;}}
   const STRUCTURE_KEY='histology-structures-v1';
   const structureTasks={};
-  for (const group of structureSlides) for (const point of group.points) for (const mode of ['point','name']) {
-    const id=group.slideId+'.'+point.id+'.'+mode;
-    structureTasks[id]={id, slideId:group.slideId, pointId:point.id, mode};
+  for (const group of structureSlides) for (const point of group.points) for (const mode of (group.modes || ['point','name'])) {
+    const groupId=group.id||group.slideId, id=groupId+'.'+point.id+'.'+mode;
+    structureTasks[id]={id, groupId, slideId:group.slideId, pointId:point.id, mode};
+  }
+  function visibleStructurePoints(group,task,selectedId) {
+    const indexed=group.points.map((point,index)=>({point,index}));
+    const target=indexed.find(x=>x.point.id===task.pointId); if(!target)return [];
+    const chosen=[target],selected=indexed.find(x=>x.point.id===selectedId);
+    let seed=0;for(const c of task.id)seed=(Math.imul(seed,31)+c.charCodeAt(0))>>>0;
+    const candidates=indexed.filter(x=>!chosen.includes(x)).sort((a,b)=>(((Math.imul(a.index+1,2654435761)^seed)>>>0)-((Math.imul(b.index+1,2654435761)^seed)>>>0)));
+    // Помимо центров учитываем всю длину отрезка: соседняя метка не должна
+    // оказываться на линии, даже если центры разнесены достаточно далеко.
+    function nearLine(point,line) {
+      if(!line.extent)return false;
+      const [[ax,ay],[bx,by]]=line.extent, dx=(bx-ax)/12,dy=(by-ay)/14,px=(point.x-ax)/12,py=(point.y-ay)/14;
+      const t=Math.max(0,Math.min(1,(px*dx+py*dy)/(dx*dx+dy*dy||1)));
+      return Math.hypot(px-t*dx,py-t*dy)<.7;
+    }
+    function separate(a,b) {return (Math.abs(a.x-b.x)>=12||Math.abs(a.y-b.y)>=14)&&!nearLine(a,b)&&!nearLine(b,a);}
+    for(const item of candidates) {if(chosen.length>=5)break;if(chosen.every(x=>separate(x.point,item.point)))chosen.push(item);}
+    if(selected&&!chosen.includes(selected)){if(chosen.length>=5)chosen.pop();chosen.push(selected);}
+    return chosen.sort((a,b)=>a.index-b.index);
+  }
+  // Близкие альтернативы для небольших наборов меток. Для мазков сравниваем
+  // именно клетки крови, а не случайные ткани или органеллы.
+  const bloodNames=['Сегментоядерный нейтрофил','Палочкоядерный нейтрофил','Эозинофил','Базофил','Моноцит','Лимфоцит','Тромбоциты','Эритроцит'];
+  const structureRelated={
+    h02:['Надхрящница','Зона молодого хряща','Зона зрелого хряща','Изогенная группа хондроцитов','Хрящевой матрикс'],
+    h05:['Белое вещество мозжечка','Кора мозжечка','Мягкая мозговая оболочка','Молекулярный слой коры','Зернистый слой коры'],
+    p117:['Корковое вещество тимуса','Мозговое вещество тимуса','Трабекула','Капсула тимуса','Тельце Гассаля','Кровеносный сосуд','Рыхлая соединительная ткань'],
+    p118:['Корковое вещество лимфоузла','Мозговое вещество лимфоузла','Капсула лимфоузла','Паракортикальная зона лимфоузла','Мозговые синусы лимфоузла'],
+    p141:['Многорядный реснитчатый эпителий','Смешанные белково-слизистые железы','Гиалиновый хрящ','Слизистая оболочка трахеи','Подслизистая оболочка','Надхрящница','Адвентициальная оболочка'],
+    p130:['Кишечные ворсинки','Кишечные крипты','Дуоденальные железы','Мышечная оболочка','Подслизистая оболочка','Серозная оболочка'],
+    c55:['Фиброцит','Фибробласт','Эластические волокна','Коллагеновые волокна','Аморфное межклеточное вещество'],
+    c61:['Фиброцит','Коллагеновые волокна: поперечный срез','Коллагеновые волокна: косой срез','Коллагеновые волокна: продольный срез','Эластические волокна'],
+    c60:['Белая жировая ткань','Адипоцит','Рыхлая волокнистая соединительная ткань','Плотная неоформленная соединительная ткань','Бурая жировая ткань'],
+    c59:['Ретикулярные клетки','Лимфоциты','Основное аморфное вещество','Ретикулярная ткань','Коллагеновые волокна','Жировая ткань','Плотная соединительная ткань','Рыхлая соединительная ткань'],
+    m71:['Кардиомиоцит','Ядро кардиомиоцита','Вставочный диск','Боковой анастомоз кардиомиоцитов','Рыхлая волокнистая соединительная ткань','Саркомер','Гладкий миоцит','Скелетное мышечное волокно'],
+    m72:['Ядро гладкого миоцита','Рыхлая волокнистая соединительная ткань','Продольные срезы гладких миоцитов','Поперечные срезы гладких миоцитов','Гладкий миоцит','Кровеносный капилляр','Кардиомиоцит','Фиброцит'],
+    n76:['Отростки нейрона','Ядро нейрона','Перикарион','Нейрофибриллы','Миелиновое волокно','Клетки глии'],
+    n77:['Базофильное вещество','Дендриты','Аксональный холмик','Перикарион','Ядра клеток глии','Цитолемма','Кровеносный капилляр'],
+    n79:['Нейролемма','Миелиновое волокно','Узловой перехват Ранвье','Осевой цилиндр','Ядра шванновских клеток','Миелиновая оболочка','Безмиелиновые волокна'],
+    n79a:['Периневрий','Поперечные срезы миелиновых волокон','Поперечные срезы безмиелиновых волокон','Эпиневрий','Ядро нейролеммоцита'],
+    recmneutro:['Сегменты ядра нейтрофила','Специфические гранулы нейтрофила','Первичные гранулы','Митохондрии','Цитолемма'],
+    recmeos:['Специфические гранулы эозинофила','Первичные гранулы','Сегменты ядра эозинофила','Отростки цитоплазмы','Митохондрии'],
+    recmmast:['Лимфоцит','Гранулы тучной клетки','Коллагеновые волокна','Ядро тучной клетки','Фибробласт'],
+    recmplasma:['Комплекс Гольджи','Гранулярная эндоплазматическая сеть','Ядро плазмоцита','Митохондрии','Секреторные пузырьки'],
+    p40:['Нервная трубка','Нервный гребень','Дерматом','Миотом','Склеротом','Нефрогонотом','Кишечная энтодерма','Туловищная складка'],
+    p85:['Псевдоуниполярный нейрон','Мантийные глиоциты','Нервные волокна','Прослойки рыхлой волокнистой соединительной ткани','Кровеносный капилляр'],
+    p86a:['Задний корешок спинного мозга','Серое вещество спинного мозга','Центральный канал спинного мозга','Задний рог серого вещества','Передний рог серого вещества','Задний канатик спинного мозга','Передний канатик спинного мозга'],
+    p102:['Артерия мышечного типа','Вена мышечного типа','Пучок нервных волокон','Рыхлая волокнистая соединительная ткань','Кровеносный капилляр'],
+    p119:['Белая пульпа селезёнки','Красная пульпа селезёнки','Капсула селезёнки','Трабекулярная вена','Трабекула селезёнки'],
+    p137:['Долька поджелудочной железы','Междольковая соединительная ткань','Междольковый проток','Панкреатический островок','Секреторный ацинус','Кровеносный сосуд','Капсула железы'],
+    p143:['Эпидермис','Сосочковый слой дермы','Сетчатый слой дермы','Проток эккриновой потовой железы','Эккриновая потовая железа'],
+    p144:['Эпидермис','Дерма','Корень волоса','Мышца, поднимающая волос','Воронка волоса','Сальная железа','Потовая железа','Подкожная жировая клетчатка']
+  };
+  // Исключаем пары «целое и его часть» и синонимичные обозначения на одном
+  // поле: обе формулировки могли бы описывать одну и ту же метку.
+  const structureConflicts={
+    h05:[['cortex','folium']],
+    p117:[['lobule','cortex'],['lobule','medulla']],
+    p137:[['lobule','islet']],
+    p86a:[['gray','posterior-horn'],['gray','anterior-horn'],['gray','central']],
+    c60:[['fat','adipocyte']],c59:[['tissue','reticular'],['tissue','lymphocytes'],['tissue','ground']],
+    m71:[['cell','nucleus'],['cell','disc'],['cell','anastomosis'],['cell','longitudinal'],['longitudinal','nucleus'],['longitudinal','disc'],['longitudinal','anastomosis']],
+    m72:[['cell','nucleus'],['cell','longitudinal'],['cell','cross'],['longitudinal','nucleus'],['cross','nucleus']],
+    n76:[['perikaryon','nucleus'],['perikaryon','neurofibrils'],['process','myelin']],
+    n77:[['perikaryon','nissl'],['perikaryon','hillock'],['perikaryon','membrane']],
+    n79:[['myelinated','axon'],['myelinated','sheath'],['myelinated','neurilemma'],['unmyelinated','axon']],
+    p141:[['mucosa','epithelium'],['mucosa','lamina'],['submucosa','glands']],
+    p130:[['mucosa','villi'],['mucosa','crypt'],['mucosa','epithelium'],['mucosa','muscularis-mucosae'],['villi','epithelium'],['submucosa','glands'],['muscle','plexus']],
+    p143:[['gland','duct']],p144:[['dermis','sebaceous'],['dermis','sweat'],['root','funnel']]
+  };
+  Object.assign(structureRelated,window.HistologyStructureExtra?.related||{});
+  Object.assign(structureConflicts,window.HistologyStructureExtra?.conflicts||{});
+  // Дополнительные альтернативы того же предметного ряда; не части отмеченного объекта.
+  for(const [id,names] of Object.entries({
+    c60:['Ретикулярная соединительная ткань'],c59:['Слизистая соединительная ткань'],m71:['Адипоцит'],
+    n76:['Кровеносный капилляр'],n77:['Тело астроцита'],n79:['Коллагеновый пучок эндоневрия'],
+    a42:['Однослойный кубический эпителий почечного канальца'],a43:['Стенка пищевода'],a44:['Стенка гортани'],
+    a46:['Эпителий слизистой оболочки пищевода'],a50:['Просвет кровеносного сосуда','Шеечная железа матки'],
+    a52:['Просвет кровеносного сосуда'], 'sp65-054':['Эластический хрящ'],
+    'sm71-039':['Гладкомышечная оболочка сосуда'],'sm71-045':['Эритроцит'],
+    'sp85-014':['Симпатический нервный узел'],p143:['Волосяной фолликул']
+  }))if(structureRelated[id])structureRelated[id].push(...names);
+
+  function structureNameChoices(group,task,random,existing) {
+    const target=group.points.find(p=>p.id===task.pointId),blood=group.id?.startsWith('bloodfield')||(group.slideId==='recmmast'&&task.pointId==='lymphocyte');
+    if(!target)return [];
+    const aliases=new Set([target.name,...target.aliases].map(normalize));
+    const conflicts=structureConflicts[group.id||group.slideId]||[];
+    const forbidden=new Set();
+    for(const pair of conflicts)if(pair.includes(target.id))for(const id of pair)if(id!==target.id){const p=group.points.find(x=>x.id===id);if(p)forbidden.add(normalize(p.name));}
+    if(group.slideId==='a14'&&target.id==='cell')forbidden.add(normalize('Пигментные гранулы'));
+    if(group.slideId==='a42'&&target.id==='mesothelium')forbidden.add(normalize('Ядро мезотелиоцита'));
+    if(group.slideId==='a43'&&target.id==='wall')forbidden.add(normalize('Мышечная оболочка'));
+    if(group.slideId==='a44'&&target.id==='wall'){forbidden.add(normalize('Гиалиновый хрящ'));forbidden.add(normalize('Адвентициальная оболочка'));}
+    if(group.slideId==='m71'&&target.id==='cell')forbidden.add(normalize('Саркомер'));
+    if(group.slideId==='p117'&&target.id==='lobule')forbidden.add(normalize('Тельце Гассаля'));
+    if(group.slideId==='p137'&&target.id==='lobule')forbidden.add(normalize('Секреторный ацинус'));
+    if(group.slideId==='c59'&&target.id==='tissue')forbidden.add(normalize('Коллагеновые волокна'));
+    const same=blood?[]:group.points.filter(p=>p.id!==target.id&&!forbidden.has(normalize(p.name))).map(p=>p.name);
+    const related=blood?bloodNames:(structureRelated[group.id||group.slideId]||[]);
+    const unique=[],used=new Set(aliases),saved=existing||[];
+    function equivalents(name){const key=normalize(name),terms=new Set([key]);for(const p of group.points){const aliases=[p.name,...p.aliases].map(normalize);if(aliases.includes(key))for(const term of aliases)terms.add(term);}return terms;}
+    for(const name of saved)if(name!==target.name)for(const term of equivalents(name))used.add(term);
+    for(const name of [...shuffle(same,random),...shuffle(related,random)]) {
+      if(typeof name!=='string')continue;
+      const key=normalize(name),equiv=equivalents(name);
+      if(!key||forbidden.has(key)||Array.from(equiv).some(term=>used.has(term)))continue;
+      unique.push(name);for(const term of equiv)used.add(term);
+    }
+    return existing?[...saved,...unique.slice(0,5-saved.length)]:shuffle([target.name,...unique.slice(0,4)],random);
+  }
+  function structureChoiceSeed(id) {
+    let seed=2166136261;for(const c of id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
+    return ()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   }
   function createStructures(storage, random) {
+    backupRecoveryState(storage,STRUCTURE_KEY);
     random=random||Math.random; let data={};
     try {const parsed=JSON.parse(storage.getItem(STRUCTURE_KEY)||'{}');if(parsed && typeof parsed==='object'&&!Array.isArray(parsed))data=parsed;}catch(_){}
     const state={stats:{},session:null,mode:data.mode==='name'?'name':'point'};
@@ -1826,9 +1987,19 @@
     if(s && Array.isArray(s.order) && s.order.length && new Set(s.order).size===s.order.length && s.order.every(id=>structureTasks[id] && structureTasks[id].mode===s.mode) && Number.isInteger(s.index) && s.index>=0 && s.index<s.order.length && ['point','name'].includes(s.mode) && s.entries && typeof s.entries==='object') {
       const entries={};let valid=true;
       for(const id of s.order) {
-        const e=s.entries[id], task=structureTasks[id], group=structureSlides.find(g=>g.slideId===task.slideId);
-        if(!e || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected!=null&&!group.points.some(p=>p.id===e.selected))) {valid=false;break;}
-        entries[id]={status:e.status,selected:e.selected||null,text:typeof e.text==='string'?e.text.slice(0,300):''};
+        const e=s.entries[id], task=structureTasks[id], group=structureSlides.find(g=>(g.id||g.slideId)===task.groupId);
+        if(!e || !['unanswered','review','correct','wrong'].includes(e.status) || (task.mode==='point'&&e.selected!=null&&!group.points.some(p=>p.id===e.selected))) {valid=false;break;}
+        let options=null,selected=e.selected||null;
+        if(task.mode==='name') {
+          const target=group.points.find(p=>p.id===task.pointId);
+          const blood=group.id?.startsWith('bloodfield')||(group.slideId==='recmmast'&&task.pointId==='lymphocyte');
+          const allowed=new Set([target.name,...(blood?bloodNames:[...group.points.map(p=>p.name),...(structureRelated[group.id||group.slideId]||[])])]);
+          const aliases=new Set([target.name,...target.aliases].map(normalize));
+          const validOptions=Array.isArray(e.options)&&[4,5].includes(e.options.length)&&new Set(e.options.map(normalize)).size===e.options.length&&e.options.includes(target.name)&&e.options.every(x=>typeof x==='string'&&allowed.has(x)&&(x===target.name||!aliases.has(normalize(x))));
+          options=validOptions?structureNameChoices(group,task,structureChoiceSeed(id),e.options):structureNameChoices(group,task,structureChoiceSeed(id));
+          if(!options.includes(selected))selected=null;
+        }
+        entries[id]={status:e.status,selected,text:typeof e.text==='string'?e.text.slice(0,300):'',...(options?{options}:{})};
       }
       if(valid)state.session={mode:s.mode,order:s.order.slice(),index:s.index,entries};
     }
@@ -1836,30 +2007,29 @@
     function save(){try{storage.setItem(STRUCTURE_KEY,JSON.stringify(state));failed=false;return true;}catch(_){failed=true;return false;}}
     function current(){const s=state.session;return s && structureTasks[s.order[s.index]];}
     function entry(){const s=state.session;return s && s.entries[s.order[s.index]];}
-    function group(){const t=current();return t && structureSlides.find(g=>g.slideId===t.slideId);}
+    function group(){const t=current();return t && structureSlides.find(g=>(g.id||g.slideId)===t.groupId);}
     function target(){const t=current(),g=group();return t&&g.points.find(p=>p.id===t.pointId);}
     function setMode(mode){if(!['point','name'].includes(mode))return;state.mode=mode;save();}
     function start(scope){
       const order=shuffle(Object.keys(structureTasks).filter(id=>structureTasks[id].mode===state.mode&&(scope!=='mistakes'||state.stats[id]&&state.stats[id].last===false)),random);
       if(!order.length)return false;
-      const entries={};for(const id of order)entries[id]={status:'unanswered',selected:null,text:''};
+      const entries={};for(const id of order){const task=structureTasks[id],g=structureSlides.find(x=>(x.id||x.slideId)===task.groupId);entries[id]={status:'unanswered',selected:null,text:'',...(task.mode==='name'?{options:structureNameChoices(g,task,random)}:{})};}
       state.session={mode:state.mode,order,index:0,entries};save();return true;
     }
-    function select(id){const e=entry(),g=group();if(!e||e.status!=='unanswered'||state.session.mode!=='point'||!g.points.some(p=>p.id===id))return false;e.selected=id;save();return true;}
-    function setText(value){const e=entry();if(e&&e.status==='unanswered'&&state.session.mode==='name'){e.text=String(value||'').slice(0,300);save();}}
+    function select(id){const e=entry(),g=group(),mode=state.session?.mode;if(!e||e.status!=='unanswered'||(mode==='point'?!g.points.some(p=>p.id===id):mode==='name'?!e.options.includes(id):true))return false;e.selected=id;save();return true;}
     function record(correct){const e=entry(),t=current();if(!e||!['unanswered','review'].includes(e.status))return false;e.status=correct?'correct':'wrong';const p=state.stats[t.id]||{attempts:0,correct:0,last:null};p.attempts++;if(correct)p.correct++;p.last=correct;state.stats[t.id]=p;save();return true;}
-    function check(value){const e=entry(),t=current();if(!e||e.status!=='unanswered')return false;if(t.mode==='point'){if(!e.selected)return false;return record(e.selected===t.pointId);}const text=String(value||'').trim().slice(0,300);if(!text)return false;e.text=text;if(target().aliases.some(a=>normalize(a)===normalize(text)))return record(true);e.status='review';save();return true;}
+    function check(){const e=entry(),t=current();if(!e||e.status!=='unanswered'||!e.selected)return false;return record(t.mode==='point'?e.selected===t.pointId:e.selected===target().name);}
     function self(correct){const e=entry();return !!e&&e.status==='review'&&typeof correct==='boolean'&&record(correct);}
     function dontKnow(){const e=entry();return !!e&&e.status==='unanswered'&&record(false);}
     function navigate(delta){const s=state.session;if(!s)return;const index=s.index+delta;if(index>=0&&index<s.order.length){s.index=index;save();}}
     function finish(){state.session=null;save();}
-    return {state,current,entry,group,target,setMode,start,select,setText,check,self,dontKnow,navigate,finish,storageFailed:()=>failed};
+    return {state,current,entry,group,target,setMode,start,select,check,self,dontKnow,navigate,finish,storageFailed:()=>failed};
   }
 
   // Учебные разделы атласа; каждому препарату соответствует ровно одна группа.
   const atlasGroups = [
     {id:'embryology',name:'Эмбриология и развитие зуба',ids:['p40','p122','p123']},
-    {id:'tissues',name:'Кровь и соединительные ткани',ids:['h01','p62','p62a','h02','h03','p65','h04','p68','p69']},
+    {id:'tissues',name:'Кровь, иммунные клетки и соединительные ткани',ids:['h01','p62','p62a','h02','h03','p65','h04','p68','p69']},
     {id:'nervous',name:'Нервная система',ids:['p85','p86a','p89','h05','p92']},
     {id:'senses',name:'Органы чувств',ids:['p93','p95','p96']},
     {id:'circulation',name:'Сердце и сосуды',ids:['p101','p102','p103a','p107']},
@@ -1871,6 +2041,20 @@
     {id:'urinary',name:'Мочевыделительная система',ids:['p146','p147','p148']},
     {id:'reproductive',name:'Половая система и плацента',ids:['p149','p150','p151','p152','p153','p154','p155','p157','p158','p159']}
   ];
+  if(first.slides.length) {
+    atlasGroups.unshift({id:'cell',name:'Клетка и клеточный цикл',ids:first.groups.cell || []});
+    atlasGroups.splice(2,0,{id:'epithelium',name:'Эпителиальные ткани и железы',ids:first.groups.epithelium || []});
+    atlasGroups.splice(4,0,{id:'muscle',name:'Мышечные ткани',ids:first.groups.muscle || []});
+    atlasGroups.find(g=>g.id==='embryology').ids.push(...(first.groups.development || []));
+  }
+  for (const [id,ids] of Object.entries(tissues.groups)) {
+    const group=atlasGroups.find(g=>g.id===id);
+    if(group)group.ids.push(...ids);
+  }
+  const atlasReferences = Object.fromEntries(electrons.references.map(s=>[s.id,s]));
+  for (const [id,ids] of Object.entries(electrons.groups)) {
+    const group=atlasGroups.find(g=>g.id===id); if(group)group.ids.push(...ids);
+  }
   // Вопросы составлены по указанной странице сборника. Это пробная подборка, а не вузовский ключ.
   // В каждом наборе первый вариант является правильным; порядок в тренировке перемешивается.
   const theoryQuestions = [
@@ -1894,8 +2078,14 @@
     {id:'corpus-luteum',slideId:'p153',question:'Из какой структуры формируется жёлтое тело после овуляции?',answers:['Из фолликула яичника','Из маточной железы','Из первичного ооцита','Из мозгового вещества яичника'],explanation:'Жёлтое тело образуется из овулировавшего фолликула и состоит из лютеиновых клеток.'}
   ];
   const THEORY_KEY='histology-theory-v1';
+  // Восстановленные авторские вопросы имеют новые ID: не переиспользуем
+  // идентификаторы утраченных вопросов с неизвестным исходным содержанием.
+  for(const q of [...(window.HistologyRecoveryTheory||[]),...(window.HistologyExpandedTheory||[])]) if(byId[q.slideId])theoryQuestions.push(q);
+  for(const q of theoryQuestions)if(!q.topic){const g=atlasGroups.find(x=>x.ids.includes(q.slideId));q.topic=g?g.name:'Общая гистология';}
   const theoryById=Object.fromEntries(theoryQuestions.map(q=>[q.id,q]));
+  const harderTheory=window.HistologyTheoryHard||{},fifthTheory=window.HistologyFifthAnswer||{};
   function createTheory(storage, random) {
+    backupRecoveryState(storage,THEORY_KEY);
     random=random||Math.random;let data={};
     try {const parsed=JSON.parse(storage.getItem(THEORY_KEY)||'{}');if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))data=parsed;}catch(_){}
     const state={stats:{},session:null};
@@ -1903,14 +2093,14 @@
     const s=data.session;
     if(s&&Array.isArray(s.order)&&s.order.length&&new Set(s.order).size===s.order.length&&s.order.every(id=>theoryById[id])&&Number.isInteger(s.index)&&s.index>=0&&s.index<s.order.length&&s.entries&&typeof s.entries==='object'){
       const entries={};let valid=true;
-      for(const id of s.order){const e=s.entries[id];if(!e||!['unanswered','correct','wrong'].includes(e.status)||!Array.isArray(e.options)||e.options.length!==4||new Set(e.options).size!==4||!e.options.every(i=>Number.isInteger(i)&&i>=0&&i<4)||(e.selected!=null&&!e.options.includes(e.selected))){valid=false;break;}entries[id]={status:e.status,options:e.options.slice(),selected:e.selected==null?null:e.selected};}
+      for(const id of s.order){const e=s.entries[id],q=theoryById[id];if(!e||!['unanswered','correct','wrong'].includes(e.status)||!Array.isArray(e.options)||![4,5].includes(e.options.length)||new Set(e.options).size!==e.options.length||!e.options.every(i=>Number.isInteger(i)&&i>=0&&i<e.options.length)||(e.selected!=null&&!e.options.includes(e.selected))){valid=false;break;}const answers=Array.isArray(e.answers)&&e.answers.length===e.options.length&&e.answers[0]===q.answers[0]&&e.answers.every(x=>typeof x==='string'&&x.length<=500)&&new Set(e.answers).size===e.options.length?e.answers.slice():q.answers.slice();if(e.options.length===5&&answers.length!==5){valid=false;break;}const options=e.options.slice();if(answers.length===4&&options.length===4&&fifthTheory[id]){answers.push(fifthTheory[id]);options.push(4);}entries[id]={status:e.status,options,selected:e.selected==null?null:e.selected,answers};}
       if(valid)state.session={order:s.order.slice(),index:s.index,entries};
     }
     let failed=false;
     function save(){try{storage.setItem(THEORY_KEY,JSON.stringify(state));failed=false;}catch(_){failed=true;}}
     function current(){const s=state.session;return s&&theoryById[s.order[s.index]];}
     function entry(){const s=state.session;return s&&s.entries[s.order[s.index]];}
-    function start(scope,slideId){const pool=theoryQuestions.filter(q=>(scope!=='mistakes'||state.stats[q.id]&&state.stats[q.id].last===false)&&(!slideId||q.slideId===slideId));if(!pool.length)return false;const order=shuffle(pool.map(q=>q.id),random),entries={};for(const id of order)entries[id]={status:'unanswered',selected:null,options:shuffle([0,1,2,3],random)};state.session={order,index:0,entries};save();return true;}
+    function start(scope,slideId,topic){const pool=theoryQuestions.filter(q=>(scope!=='mistakes'||state.stats[q.id]&&state.stats[q.id].last===false)&&(!slideId||q.slideId===slideId)&&(!topic||q.topic===topic));if(!pool.length)return false;const order=shuffle(pool.map(q=>q.id),random),entries={};for(const id of order){const q=theoryById[id],hard=harderTheory[id],answers=Array.isArray(hard)&&hard.length===3?[q.answers[0],...hard]:q.answers.slice();if(fifthTheory[id])answers.push(fifthTheory[id]);entries[id]={status:'unanswered',selected:null,options:shuffle(answers.map((_,i)=>i),random),answers};}state.session={order,index:0,entries};save();return true;}
     function select(i){const e=entry();if(!e||e.status!=='unanswered'||!e.options.includes(i))return false;e.selected=i;save();return true;}
     function record(correct){const q=current(),e=entry();if(!q||!e||e.status!=='unanswered')return false;e.status=correct?'correct':'wrong';const p=state.stats[q.id]||{attempts:0,correct:0,last:null};p.attempts++;if(correct)p.correct++;p.last=correct;state.stats[q.id]=p;save();return true;}
     function check(){const e=entry();return !!e&&e.selected!=null&&record(e.selected===0);}
@@ -1920,5 +2110,5 @@
     return {state,current,entry,start,select,check,dontKnow,navigate,finish,storageFailed:()=>failed};
   }
 
-  window.HistologyPrototype = { slides, byId, distractors, atlasTheory, atlasGroups, theoryQuestions, theoryById, createTheory, THEORY_KEY, structureSlides, structureTasks, createStructures, STRUCTURE_KEY, normalize, matches, create, STORAGE_KEY };
+  window.HistologyPrototype = { slides, byId, atlasReferences, distractors, atlasTheory, atlasGroups, theoryQuestions, theoryById, createTheory, THEORY_KEY, structureSlides, structureTasks, visibleStructurePoints, structureNameChoices, createStructures, STRUCTURE_KEY, normalize, matches, create, STORAGE_KEY };
 })();
