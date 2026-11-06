@@ -170,6 +170,7 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
+      (AT.colloquium.id === '1' ? modeCard('Практические навыки', 'Перевести и показать · 330 навыков', 'book', '#/anatomy-skills', 'teal') : '') +
       modeCard(AT.colloquium.kind === 'credit' ? 'Пробный зачёт' : 'Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +

@@ -52,6 +52,7 @@
     key: 'key',
     settings: 'settings',
     histology: 'histology',
+    'anatomy-skills': 'anatomySkills',
   };
 
   // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
@@ -79,13 +80,25 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=2').catch(err => { histologyCss = null; throw err; });
-    const script = (window.HistologyPrototype ? Promise.resolve() : resource('script', 'js/histology.js?v=3'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=4'));
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=10').catch(err => { histologyCss = null; throw err; });
+    const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=7'))
+      .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=12'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
-  function syncSubject(histology) {
+  let anatomySkillsLoad = null, anatomySkillsCss = null, anatomySkillsReady = false;
+  function loadAnatomySkills() {
+    if (anatomySkillsLoad) return anatomySkillsLoad;
+    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=3').catch(err => { anatomySkillsCss = null; throw err; });
+    const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
+      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=3'))
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=3'));
+    anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
+    return anatomySkillsLoad;
+  }
+  function syncSubject(histology, section) {
     document.body.dataset.subject = histology ? 'histology' : 'anatomy';
     const brand = document.getElementById('subjectBrand');
     const brandLabel = document.getElementById('subjectBrandLabel');
@@ -98,8 +111,8 @@
     if (brandLabel) brandLabel.textContent = histology ? 'Гистология' : 'Анатомия';
     if (sidebarLabel) sidebarLabel.textContent = histology ? 'Гистология' : 'Анатомия';
     if (histology) {
-      if (current) current.textContent = 'Гистология · проба';
-      if (sidebarCurrent) sidebarCurrent.textContent = 'Пробная база препаратов';
+      if (current) current.textContent = 'Гистология';
+      if (sidebarCurrent) sidebarCurrent.textContent = 'Препараты, атлас и тренировки';
       if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Гистология');
     } else if (select && select.options[select.selectedIndex]) {
       const option = select.options[select.selectedIndex];
@@ -107,6 +120,11 @@
       if (sidebarCurrent) sidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
       if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
     }
+    document.querySelectorAll('[data-histo-sidebar]').forEach(link => {
+      const active = histology && link.getAttribute('data-histo-sidebar') === (section || 'setup');
+      link.classList.toggle('is-active', active);
+      if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    });
     document.querySelectorAll('[data-subject-link]').forEach(link => {
       if (link.getAttribute('data-subject-link') === (histology ? 'histology' : 'anatomy')) link.setAttribute('aria-current','page');
       else link.removeAttribute('aria-current');
@@ -119,7 +137,8 @@
     const route = parseHash();
     currentRoute = route;
     const viewName = ROUTES[route.name] || 'notFound';
-    syncSubject(viewName === 'histology');
+    if (viewName !== 'histology' && AT.views.histology && AT.views.histology.onLeave) AT.views.histology.onLeave();
+    syncSubject(viewName === 'histology', route.params.section);
 
     if (viewName === 'trainSetup' && (route.params.topic || route.params.scope === 'favorites')) {
       if (route.params.topic) AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];
@@ -135,6 +154,18 @@
         if (parseHash().name !== 'histology') return;
         root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить гистологию</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="histologyRetry">Повторить</button></div></div>';
         root.querySelector('#histologyRetry').addEventListener('click', render);
+      });
+      return;
+    }
+
+    if (viewName === 'anatomySkills' && !anatomySkillsReady) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Практические навыки</h1><p>Загружаем список…</p></div></div>';
+      updateNav(route.name);
+      loadAnatomySkills().then(() => { if (parseHash().name === 'anatomy-skills') render(); }).catch(err => {
+        console.error(err);
+        if (parseHash().name !== 'anatomy-skills') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить навыки</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="skillsRetry">Повторить</button></div></div>';
+        root.querySelector('#skillsRetry').addEventListener('click', render);
       });
       return;
     }

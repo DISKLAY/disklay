@@ -89,3 +89,176 @@
 .histo-image-dialog.is-zoomed .histo-image-dialog__viewport img { width: 200%; max-width: none; max-height: none; flex: 0 0 200%; }
 .histo-image-dialog > p { margin-top: 8px; color: var(--muted); font-size: .72rem; }
 @media (max-width: 400px) { .histo-image-dialog { padding: 10px; } }
+
+/* Навигация и справочные разделы остаются внутри пространства гистологии. */
+.histo-nav { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 16px; padding:7px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.histo-nav button { min-width:0; padding:9px 12px; border:0; border-radius:9px; color:var(--text-2); background:transparent; font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
+.histo-nav button:hover, .histo-nav button.is-active { color:var(--primary); background:var(--primary-soft); }
+.histo-panel { min-width:0; padding:clamp(18px,4vw,34px); border:1px solid var(--border); border-radius:var(--r-lg); background:var(--surface); box-shadow:var(--shadow-sm); overflow-wrap:anywhere; }
+.histo-panel h1 { margin:5px 0 10px; font-size:clamp(1.55rem,4vw,2.2rem); letter-spacing:-.04em; }
+.histo-panel h2 { margin:25px 0 12px; font-size:1.05rem; }
+.histo-panel > p { color:var(--text-2); font-size:.86rem; line-height:1.6; }
+.histo-panel > .histo-answer-label { margin-top:20px; }
+.histo-list { display:grid; gap:8px; margin:16px 0; padding:0; list-style:none; }
+.histo-list li { min-width:0; display:flex; flex-wrap:wrap; justify-content:space-between; gap:7px; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); font-size:.84rem; }
+.histo-list small { color:var(--muted); font-size:.75rem; }
+.histo-empty { padding:14px; border-radius:10px; background:var(--surface-2); color:var(--muted)!important; }
+.histo-empty[hidden], .histo-atlas-item[hidden] { display:none; }
+.histo-stats--inner { margin:0; box-shadow:none; }
+.histo-atlas-search { display:block; width:100%; }
+.histo-atlas-list { display:grid; gap:9px; margin-top:16px; }
+.histo-atlas-item { min-width:0; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
+.histo-atlas-item > summary { cursor:pointer; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:15px; font-weight:750; }
+.histo-atlas-item > summary small { color:var(--muted); font-size:.73rem; }
+.histo-atlas-item[open] > summary { border-bottom:1px solid var(--border); }
+.histo-atlas-body { min-width:0; padding:15px; font-size:.85rem; line-height:1.6; color:var(--text-2); }
+.histo-atlas-body h3 { margin:18px 0 8px; color:var(--text); font-size:.9rem; }
+.histo-atlas-body .histo-theory { white-space:pre-line; }
+.histo-atlas-body .histo-source { margin-top:8px; color:var(--muted); font-size:.73rem; }
+.histo-atlas-image { margin-top:18px; padding-top:3px; border-top:1px solid var(--border); }
+.histo-atlas-image img { display:block; max-width:100%; max-height:550px; width:auto; height:auto; margin:10px auto; border-radius:8px; }
+.histo-atlas-image details { margin-top:12px; }
+.histo-atlas-image details summary { cursor:pointer; color:var(--primary); font-weight:700; }
+.histo-structure-image { position:relative; display:table; width:auto; max-width:100%; margin:auto; background:#f8f8f8; line-height:0; }
+.histo-structure-image img { display:block; width:auto; max-width:100%; max-height:550px; height:auto; }
+.histo-markers { position:absolute; inset:0; }
+.histo-marker { position:absolute; transform:translate(-50%,-50%); width:30px; height:30px; padding:0; border:2px solid #fff; border-radius:50%; background:transparent; box-shadow:0 0 0 2px #4338a3, 0 1px 5px #0009; cursor:pointer; }
+/* Номер вынесен за кольцо: точка в его центре остаётся полностью видимой. */
+.histo-marker::after { content:attr(data-number); position:absolute; left:calc(100% + 3px); top:-5px; display:grid; place-items:center; width:18px; height:18px; border:1px solid #fff; border-radius:50%; background:#4338a3; color:#fff; box-shadow:0 1px 4px #0009; font-size:.68rem; font-weight:800; line-height:1; pointer-events:none; }
+.histo-marker--label-left::after { left:auto; right:calc(100% + 3px); }
+.histo-marker:hover, .histo-marker.is-selected { background:rgba(163,53,101,.12); outline:2px solid #fff; }
+.histo-marker.is-correct { background:rgba(19,121,77,.12); }
+.histo-marker:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+.histo-marker:disabled { opacity:1; cursor:default; }
+.histo-marker-legend { display:grid; gap:5px; padding-left:0; margin:15px 0 0; list-style:none; font-size:.82rem; }
+@media(max-width:400px) { .histo-nav { gap:3px; } .histo-nav button { padding:8px; font-size:.75rem; } .histo-marker { width:26px; height:26px; } }
+.histo-marker-choices { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+.histo-marker-choice { min-height:42px; padding:8px 13px; border:1px solid var(--border); border-radius:9px; background:var(--surface-2); color:var(--text); font-size:.8rem; font-weight:700; }
+.histo-marker-choice.is-selected { border-color:var(--primary); background:var(--primary-soft); color:var(--primary); }
+
+/* Разделы доступны в любой тренировке и в общем меню, с обычной историей браузера. */
+.histo-nav a { min-width:0; padding:10px 12px; border-radius:9px; color:var(--text-2); font-size:.8rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere; text-decoration:none; }
+.histo-nav a:hover, .histo-nav a.is-active { color:var(--primary); background:var(--primary-soft); }
+.histo-nav a:focus-visible, .histo-atlas-group summary:focus-visible, .histo-atlas-item summary:focus-visible { outline:3px solid var(--primary); outline-offset:2px; }
+.histo-atlas-searchbox { margin:22px 0 18px; padding:16px; border:1px solid var(--border); border-radius:14px; background:var(--surface-2); }
+.histo-atlas-searchbox .histo-answer-label { margin-top:0; }
+.histo-atlas-searchbox .histo-help { margin-bottom:0; }
+.histo-atlas-groups { display:grid; gap:10px; container-type:inline-size; }
+.histo-atlas-group { min-width:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.histo-atlas-group[hidden] { display:none; }
+.histo-atlas-group > summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:16px; cursor:pointer; font-weight:800; font-size:.9rem; }
+.histo-atlas-group > summary::before { content:'+'; display:grid; place-items:center; width:26px; height:26px; flex:none; border-radius:8px; background:var(--primary-soft); color:var(--primary); font-size:1rem; }
+.histo-atlas-group[open] > summary::before { content:'−'; }
+.histo-atlas-group > summary small { margin-left:auto; color:var(--muted); font-size:.72rem; font-weight:600; }
+.histo-atlas-group .histo-atlas-list { margin:0; padding:0 10px 10px; }
+.histo-atlas-item { background:var(--surface); }
+.histo-atlas-item[open] { background:var(--surface-2); }
+.histo-atlas-note { padding:15px 17px; border-left:3px solid var(--primary); border-radius:4px 12px 12px 4px; background:var(--primary-soft); }
+.histo-atlas-note span { color:var(--primary); font-size:.65rem; font-weight:800; letter-spacing:.08em; }
+.histo-atlas-note p { margin:6px 0 0; color:var(--text); line-height:1.6; }
+.histo-theory-card { margin-top:18px; padding:clamp(15px,3vw,24px); border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.histo-theory-head { display:flex; flex-wrap:wrap; align-items:start; justify-content:space-between; gap:8px; padding-bottom:13px; border-bottom:1px solid var(--border); }
+.histo-theory-head h3 { margin:4px 0 0; font-size:1.05rem; }
+.histo-theory-source { padding:5px 9px; border-radius:999px; background:var(--surface-2); color:var(--muted); font-size:.7rem; font-weight:700; }
+.histo-atlas-body .histo-theory { max-width:75ch; white-space:normal; color:var(--text-2); line-height:1.7; }
+.histo-theory h4 { margin:20px 0 8px; color:var(--text); font-size:.9rem; line-height:1.45; }
+.histo-theory p { margin:5px 0; }
+.histo-theory ul { margin:8px 0; padding-left:1.3em; }
+.histo-theory li { margin:5px 0; padding-left:3px; }
+.histo-theory li::marker { color:var(--primary); }
+.histo-atlas-test { margin-top:16px; }
+.histo-theory-select { min-width:0; width:min(100%,320px); }
+.histo-theory-select select { width:100%; max-width:100%; min-height:44px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; font-size:.82rem; }
+@media(max-width:400px) { .histo-nav a { padding:8px; font-size:.75rem; } }
+.histo-source-warning { margin:15px 0; padding:12px 14px; border-left:3px solid #c9892c; border-radius:4px 10px 10px 4px; background:color-mix(in srgb, #c9892c 12%, var(--surface)); color:var(--text); font-size:.8rem; line-height:1.55; }
+
+/* Галерея и просмотрщик — размеры не зависят от положения страницы. */
+.histo-gallery { margin-top:24px; padding-top:20px; border-top:1px solid var(--border); }
+.histo-gallery__head { display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:flex-start; }
+.histo-gallery__head h3 { margin:5px 0; font-size:1.05rem; }
+.histo-gallery__head p { max-width:56ch; margin:0; color:var(--muted); font-size:.77rem; line-height:1.5; }
+.histo-gallery__grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(180px,100%),1fr)); gap:10px; margin-top:16px; }
+.histo-photo { min-width:0; padding:0; overflow:hidden; border:1px solid var(--border); border-radius:12px; background:var(--surface); color:var(--text); text-align:left; }
+.histo-photo:hover { border-color:var(--primary); box-shadow:var(--shadow-sm); }
+.histo-photo:focus-visible { outline:3px solid var(--primary); outline-offset:2px; }
+.histo-photo__frame { display:flex; align-items:center; justify-content:center; height:145px; padding:6px; background:#f5f5f6; }
+.histo-photo__frame img { display:block; width:100%; height:100%; object-fit:contain; }
+.histo-photo__info { display:grid; gap:3px; padding:10px; overflow-wrap:anywhere; line-height:1.4; }
+.histo-photo__info strong { font-size:.76rem; }
+.histo-photo__info small { color:var(--muted); font-size:.7rem; }
+.histo-structure-zoom { display:block; margin:8px auto 0; }
+.histo-image-dialog { box-sizing:border-box; min-width:0; }
+.histo-image-dialog__head { flex:none; align-items:flex-start; }
+.histo-viewer__heading { display:flex; flex-direction:column; flex:1 1 120px; min-width:0; gap:3px; overflow-wrap:anywhere; line-height:1.25; }
+.histo-viewer__heading strong { font-size:.85rem; }
+.histo-viewer__heading span { color:var(--muted); font-size:.7rem; }
+.histo-viewer__toolbar { display:flex; flex:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:7px; margin:0 0 10px; }
+.histo-viewer__paging, .histo-viewer__zoom { display:flex; align-items:center; gap:5px; }
+.histo-viewer__paging[hidden] { display:none; }
+.histo-viewer__toolbar button { min-width:36px; min-height:36px; padding:5px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); color:var(--text); font-weight:800; }
+.histo-viewer__toolbar button:disabled { opacity:.4; }
+.histo-viewer__toolbar span { min-width:42px; text-align:center; color:var(--text-2); font-size:.75rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.histo-image-dialog__viewport { position:relative; justify-content:initial; align-items:initial; touch-action:none; cursor:default; }
+.histo-image-dialog__viewport.is-zoomed { cursor:grab; }
+.histo-image-dialog__viewport.is-zoomed:active { cursor:grabbing; }
+.histo-viewer__stage { position:relative; flex:0 0 auto; margin:auto; }
+.histo-image-dialog__viewport .histo-viewer__stage img { display:block; width:100%; height:100%; max-width:none; max-height:none; object-fit:contain; user-select:none; -webkit-user-drag:none; }
+.histo-viewer__markers { position:absolute; inset:0; }
+.histo-viewer__note, .histo-viewer__hint, .histo-viewer__error { flex:none; margin:7px 0 0; color:var(--muted); font-size:.72rem; line-height:1.35; overflow-wrap:anywhere; }
+.histo-viewer__note:empty { display:none; }
+.histo-viewer__error { color:var(--warn); }
+.histo-viewer__error[hidden] { display:none; }
+.histo-viewer__error button { padding:0; border:0; background:none; color:inherit; font:inherit; text-decoration:underline; }
+@media(max-width:400px) { .histo-gallery__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .histo-photo__frame { height:110px; } .histo-image-dialog { inset:8px; padding:8px; } .histo-viewer__toolbar { gap:4px; } .histo-viewer__toolbar button { min-width:32px; min-height:32px; padding:4px 7px; } .histo-viewer__hint { font-size:.67rem; } }
+@media(max-width:240px) { .histo-gallery__grid { grid-template-columns:minmax(0,1fr); } .histo-viewer__heading { flex-basis:70px; } }
+.histo-photo__frame img[hidden], .histo-photo__missing[hidden] { display:none; }
+.histo-photo__missing { padding:8px; color:#555; font-size:.73rem; text-align:center; }
+.histo-viewer__paging, .histo-viewer__zoom { min-width:0; max-width:100%; flex-wrap:wrap; }
+
+/* Одни и те же цвета тем в атласе и при разборе, без подсказок до ответа. */
+[data-histo-group="embryology"] { --histo-topic-color:#42a565; }
+[data-histo-group="tissues"] { --histo-topic-color:#d05794; }
+[data-histo-group="nervous"] { --histo-topic-color:#8156cd; }
+[data-histo-group="senses"] { --histo-topic-color:#4274d4; }
+[data-histo-group="circulation"] { --histo-topic-color:#d33f4a; }
+[data-histo-group="endocrine"] { --histo-topic-color:#cb961d; }
+[data-histo-group="immune"] { --histo-topic-color:#81a328; }
+[data-histo-group="digestive"] { --histo-topic-color:#dc7624; }
+[data-histo-group="respiratory"] { --histo-topic-color:#20aeb5; }
+[data-histo-group="skin"] { --histo-topic-color:#aa7052; }
+[data-histo-group="urinary"] { --histo-topic-color:#1b92d2; }
+[data-histo-group="reproductive"] { --histo-topic-color:#ca4bb9; }
+.histo-atlas-group[data-histo-group] { border-color:color-mix(in srgb, var(--histo-topic-color) 55%, var(--border)); }
+.histo-atlas-group[data-histo-group] > summary {
+  border-radius:13px; border-left:4px solid var(--histo-topic-color); background:color-mix(in srgb, var(--histo-topic-color) 18%, var(--surface));
+}
+.histo-atlas-group[data-histo-group] > summary::before {
+  background:color-mix(in srgb, var(--histo-topic-color) 30%, var(--surface)); color:var(--text);
+}
+.histo-atlas-group[data-histo-group] > summary > span { flex:1 1 100px; min-width:0; overflow-wrap:anywhere; }
+@container (min-width:240px) { .histo-atlas-group[data-histo-group] > summary > span { min-width:min-content; overflow-wrap:normal; } }
+.histo-atlas-group[data-histo-group] .histo-atlas-note {
+  border-left-color:var(--histo-topic-color); background:color-mix(in srgb, var(--histo-topic-color) 10%, var(--surface));
+}
+.histo-atlas-group[data-histo-group] .histo-atlas-note span {
+  color:color-mix(in srgb, var(--text) 72%, var(--histo-topic-color));
+}
+.histo-topic-badge {
+  display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:5px 9px; border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--histo-topic-color) 45%, var(--border));
+  background:color-mix(in srgb, var(--histo-topic-color) 13%, var(--surface));
+  color:var(--text); font-size:.73rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere;
+}
+.histo-topic-badge::before { content:''; flex:none; width:8px; height:8px; border-radius:50%; background:var(--histo-topic-color); }
+
+/* Возврат всегда под шапкой и в потоке атласа, а не поверх нижней части страницы. */
+.histo-atlas-return {
+  position:sticky; top:var(--histo-return-top, 72px); z-index:30; display:flex; justify-content:center; align-items:center;
+  width:100%; min-width:0; min-height:48px; margin:0 0 12px; padding:11px 16px; border:1px solid #2a2478;
+  border-radius:12px; background:#3730a3; color:#fff; box-shadow:0 5px 16px #16134555;
+  font-size:.9rem; font-weight:800; line-height:1.3; overflow-wrap:anywhere; cursor:pointer;
+}
+.histo-atlas-return:hover { background:#292477; }
+.histo-atlas-return:focus-visible { outline:3px solid var(--text); outline-offset:3px; }
+.histo-atlas-item { scroll-margin-top:var(--histo-atlas-scroll-offset, 80px); }
+@media (max-width:240px) { .histo-atlas-return { padding:9px; font-size:.78rem; } }

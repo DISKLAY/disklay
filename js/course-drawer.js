@@ -29,7 +29,12 @@
     closeButton.addEventListener('click', () => close(true));
     backdrop.addEventListener('click', () => close(true));
     panel.addEventListener('click', (event) => {
-      if (event.target.closest('[data-sidebar-route], [data-subject-link], .course-sidebar__item')) close(true);
+      const histologyLink=event.target.closest('[data-histo-sidebar]');
+      // Открыть настройки текущего раздела даже если тренировка использует тот же URL.
+      if (histologyLink && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button===0 && location.hash===histologyLink.getAttribute('href') && window.AT && AT.views.histology && AT.views.histology.openSection) {
+        event.preventDefault(); AT.views.histology.openSection(histologyLink.dataset.histoSidebar);
+      }
+      if (event.target.closest('[data-sidebar-route], [data-histo-sidebar], [data-subject-link], .course-sidebar__item')) close(true);
     });
     document.addEventListener('keydown', (event) => {
       if (panel.hidden) return;
