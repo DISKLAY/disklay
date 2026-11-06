@@ -1963,7 +1963,7 @@
   const THEORY_KEY='histology-theory-v1';
   // Восстановленные авторские вопросы имеют новые ID: не переиспользуем
   // идентификаторы утраченных вопросов с неизвестным исходным содержанием.
-  for(const q of (window.HistologyRecoveryTheory||[])) if(byId[q.slideId])theoryQuestions.push(q);
+  for(const q of [...(window.HistologyRecoveryTheory||[]),...(window.HistologyExpandedTheory||[])]) if(byId[q.slideId])theoryQuestions.push(q);
   for(const q of theoryQuestions)if(!q.topic){const g=atlasGroups.find(x=>x.ids.includes(q.slideId));q.topic=g?g.name:'Общая гистология';}
   const theoryById=Object.fromEntries(theoryQuestions.map(q=>[q.id,q]));
   function createTheory(storage, random) {
