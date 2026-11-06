@@ -2000,3 +2000,12 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
  .course-toggle { width:40px; padding:7px; }
  .course-toggle__text { display:none; }
 }
+
+/* Промокоды и резервные копии в настройках. */
+[data-if-signed-out][hidden] { display: none !important; }
+.promo-form { display: grid; gap: 10px; }
+.promo-form label { font-weight: 600; }
+.promo-form__row { display: flex; gap: 10px; flex-wrap: wrap; }
+.promo-form__row input { min-width: 0; flex: 1 1 180px; padding: 10px 14px; border: 1px solid var(--border, #d7d0e2); border-radius: 12px; color: inherit; background: transparent; font: inherit; }
+.promo-form__row .btn { flex: 0 0 auto; }
+.promo-form [role="status"]:empty { display: none; }

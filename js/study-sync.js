@@ -120,6 +120,8 @@
     listener=()=>{
       if(!node.isConnected){listener=null;return;}
       const status=node.querySelector('[data-sync-status]'),actions=node.querySelector('[data-sync-actions]');
+      const view=node.closest('.view');
+      if(view)view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});
       let text=message;
       if(!text && busy)text='Проверяем…';
       if(!text && !auth)text='Войдите через Telegram.';
