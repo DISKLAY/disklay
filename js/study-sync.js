@@ -122,7 +122,7 @@
       const status=node.querySelector('[data-sync-status]'),actions=node.querySelector('[data-sync-actions]');
       let text=message;
       if(!text && busy)text='Проверяем…';
-      if(!text && !auth)text='Войдите в тот же Telegram-аккаунт на сайте и в приложении. До входа данные остаются только на устройстве.';
+      if(!text && !auth)text='Войдите через Telegram.';
       if(!text && auth && !plan)text='Нажмите «Проверить», чтобы сравнить данные.';
       if(!text && plan)text=({equal:'Учебные данные совпадают.',initial:'В облаке пока нет данных. Можно сохранить учебные данные этого устройства.', 'local-changed':'На устройстве есть новые учебные данные.','remote-changed':'В облаке есть обновления. Загрузите их, когда будете готовы.','conflict':'На устройстве и в облаке разные учебные данные. Выберите, какую версию сохранить; автоматической перезаписи не будет.'})[plan.state];
       status.textContent=text;

@@ -629,25 +629,24 @@
       '</section>';
 
     html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Синхронизация учёбы</h2>' +
-      '<p class="muted small">Прогресс, ошибки, избранное, заметки, история и ключи анатомии и гистологии. Игра, кошелёк, награды, оформление и текущие сессии не синхронизируются.</p>' +
+      '<p class="muted small">Не синхронизируются: игра, кошелёк, награды, оформление, настройки и текущие сессии.</p>' +
       '<p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
-      '<p class="muted small">Для надёжности не редактируйте данные одновременно в нескольких вкладках. При разных изменениях на устройствах приложение попросит выбрать версию.</p>' +
       '<div class="card__actions card__actions--col"><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
       '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
-      '<p class="muted small">Прогресс, история, избранное, комментарии и ключ хранятся локально в этом браузере. Сброс относится к текущей базе; избранное, комментарии, общий кошелёк, достижения и оформления сохраняются.</p>' +
+      '<p class="muted small">Сброс относится к текущей базе; избранное, комментарии, общий кошелёк, достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
       '<button class="btn btn--ghost" data-action="export-progress">' + icon('download') + 'Скачать прогресс</button>' +
       '<label class="btn btn--ghost btn--file">' + icon('upload') + 'Импортировать оформления<input type="file" accept=".json,application/json" data-action="appearance-file"></label>' +
-      '<p class="muted small">Из файла добавляются только оформления, без изменения прогресса и валюты. Полное восстановление прогресса пока недоступно.</p>' +
+      '<p class="muted small">Из файла добавляются только оформления, без изменения прогресса и валюты.</p>' +
       '<button class="btn btn--ghost btn--danger" data-action="reset-all">' + icon('trash') + 'Сбросить прогресс</button>' +
       '</div></section>';
 
     html += '<section class="card card--pad"><h2 class="card__title">О тренажёре</h2>' +
       '<p class="muted small">' + (AT.colloquium.semester ? esc(AT.colloquium.semester) + ' семестр · ' : '') + (AT.colloquium.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id)) + ' · ' + esc(AT.colloquium.name) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + ' — ' + dataset.total + ' заданий. ' +
       (AT.colloquium.renumbered ? 'Вопросы пронумерованы по порядку; страница и исходный номер указаны в задании. ' : 'Нумерация сохранена как в PDF. ') +
-      'Приложением можно пользоваться офлайн. Учебные данные отправляются в облако только после входа и включения синхронизации.</p>' +
+      'Приложением можно пользоваться офлайн.</p>' +
       '<p class="muted small">' + (AT.colloquium.hasBaseKey === false ? 'База «' + esc(AT.colloquium.source) + '» предоставлена без ключа ответов. До его добавления используется самооценка.' : 'Ключ ответов взят из «' + esc(AT.colloquium.source) + '» — варианты, отмеченные в PDF ' + (AT.colloquium.keyMark === 'галочками' ? 'галочками' : 'подсветкой') + '. Спорные ответы можно поправить на странице «Ключ»: приоритет всегда у вашей правки.') + '</p>' +
       '</section></div>';
 
