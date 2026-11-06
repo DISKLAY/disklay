@@ -52,6 +52,7 @@
     key: 'key',
     settings: 'settings',
     histology: 'histology',
+    'anatomy-skills': 'anatomySkills',
   };
 
   // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
@@ -79,12 +80,23 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=5').catch(err => { histologyCss = null; throw err; });
-    const script = (window.HistologyPrototype ? Promise.resolve() : resource('script', 'js/histology.js?v=5'))
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=10').catch(err => { histologyCss = null; throw err; });
+    const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=7'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=7'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=12'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
+  }
+  let anatomySkillsLoad = null, anatomySkillsCss = null, anatomySkillsReady = false;
+  function loadAnatomySkills() {
+    if (anatomySkillsLoad) return anatomySkillsLoad;
+    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=3').catch(err => { anatomySkillsCss = null; throw err; });
+    const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
+      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=3'))
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=3'));
+    anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
+    return anatomySkillsLoad;
   }
   function syncSubject(histology, section) {
     document.body.dataset.subject = histology ? 'histology' : 'anatomy';
@@ -142,6 +154,18 @@
         if (parseHash().name !== 'histology') return;
         root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить гистологию</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="histologyRetry">Повторить</button></div></div>';
         root.querySelector('#histologyRetry').addEventListener('click', render);
+      });
+      return;
+    }
+
+    if (viewName === 'anatomySkills' && !anatomySkillsReady) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Практические навыки</h1><p>Загружаем список…</p></div></div>';
+      updateNav(route.name);
+      loadAnatomySkills().then(() => { if (parseHash().name === 'anatomy-skills') render(); }).catch(err => {
+        console.error(err);
+        if (parseHash().name !== 'anatomy-skills') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить навыки</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="skillsRetry">Повторить</button></div></div>';
+        root.querySelector('#skillsRetry').addEventListener('click', render);
       });
       return;
     }

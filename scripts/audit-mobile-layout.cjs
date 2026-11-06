@@ -46,7 +46,11 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
             if ((rect.left < -1 || rect.right > viewport + 1 || clippedBySidebar) && !seen.has('x' + name)) {
               seen.add('x' + name); found.push(`${name}: за границей экрана`);
             }
-            if (el.clientWidth && el.scrollWidth > el.clientWidth + 2 &&
+            // In the image viewer the stage and its overlay may contain markers that
+            // protrude past the picture; the viewport deliberately scrolls/clips them.
+            const viewerStage = el.matches('.histo-viewer__stage, .histo-viewer__markers');
+            // Marker numbers intentionally sit outside their rings; page overflow is checked separately.
+            if (!viewerStage && !el.classList.contains('histo-marker') && el.clientWidth && el.scrollWidth > el.clientWidth + 2 &&
                 style.overflowX !== 'auto' && style.overflowX !== 'scroll' &&
                 !['HTML', 'BODY'].includes(el.tagName) && !seen.has('s' + name)) {
               seen.add('s' + name); found.push(`${name}: содержимое шире блока`);

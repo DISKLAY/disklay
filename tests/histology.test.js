@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=7/);
+  assert.match(app,/js\/views-histology\.js\?v=12/);
 });
 
 
@@ -226,4 +226,103 @@ test('галерея охватывает все препараты, стран�
 test('просмотрщик поддерживает галерею и не открывает картинки разбора до ответа',()=>{
   const view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8'),app=fs.readFileSync(path.join(ROOT,'js/app.js'),'utf8');
   assert.match(view,/function openImageViewer/);assert.match(view,/data-viewer-prev/);assert.match(view,/data-viewer-next/);assert.match(view,/data-zoom-fit/);assert.match(view,/pointermove/);assert.match(view,/data-viewer-retry/);assert.match(view,/game\.entry\(\)\.status!==['"]unanswered['"]&&val===q\.review/);assert.match(app,/histology-atlas-data\.js\?v=1/);
+});
+
+test('все отобранные снимки доступны по отдельности и ошибки привязаны к конкретному снимку',()=>{
+  const context=vm.createContext({window:{},console});
+  vm.runInContext(fs.readFileSync(path.join(ROOT,'js/histology-practice-data.js'),'utf8'),context);
+  vm.runInContext(fs.readFileSync(path.join(ROOT,'js/histology.js'),'utf8'),context);
+  const H=context.window.HistologyPrototype, data={}, store={getItem:k=>data[k]||null,setItem:(k,v)=>data[k]=v};
+  const g=H.create(store,()=>0.42);
+  assert.equal(g.state.sampling,'images');
+  assert.equal(H.slides.reduce((n,s)=>n+s.variants.length,0),201);
+  assert.equal(g.candidates().length,201);
+  for(const slide of H.slides) for(const v of slide.variants) if(v && v.practiceOnly) {
+    assert.ok(fs.existsSync(path.join(ROOT,v.image))); assert.ok(fs.existsSync(path.join(ROOT,v.review)));
+    assert.doesNotMatch(v.image,/печень|почка|хрящ/i);
+  }
+  g.start();const first=g.current(), firstKey=g.state.session.order[0];g.dontKnow();
+  g.navigate(1);const second=g.current();g.select(second.id);g.check();
+  const restored=H.create(store,()=>0.42);assert.equal(restored.state.session.order[0],firstKey);
+  restored.setScope('mistakes');restored.setSampling('images');
+  assert.deepEqual(Array.from(restored.candidates()),[firstKey]);
+  restored.start();assert.equal(restored.current().id,first.id);restored.select(first.id);restored.check();
+  assert.equal(restored.state.imageStats[firstKey].last,true);assert.equal(restored.candidates().length,0);
+  restored.setScope('all');restored.setSampling('slides');assert.equal(restored.candidates().length,67);
+});
+
+test('старые сессии и ошибки восстанавливаются при загрузке дополнительных снимков',()=>{
+  const previous=load();previous.g.start();const current=previous.g.current();previous.g.dontKnow();
+  const ctx=vm.createContext({window:{},console});
+  for (const file of ['js/histology-practice-data.js','js/histology.js']) vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),ctx);
+  const g=ctx.window.HistologyPrototype.create(previous.store,()=>0.42);
+  assert.equal(g.current().id,current.id);assert.equal(g.entry().status,'wrong');
+  g.setScope('mistakes');g.setSampling('images');
+  assert.ok(g.candidates().every(key=>key.startsWith(current.id+'@')));
+  assert.equal(g.candidates().length,ctx.window.HistologyPrototype.byId[current.id].variants.length);
+});
+
+test('ни один новый вопрос с вводом не раскрывает ответ и исходную подпись до проверки',()=>{
+  const ctx=vm.createContext({window:{},console});
+  for (const file of ['js/histology-practice-data.js','js/histology.js']) vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),ctx);
+  const H=ctx.window.HistologyPrototype, data={}, store={getItem:k=>data[k]||null,setItem:(k,v)=>data[k]=v};
+  const g=H.create(store,()=>0.42);g.setMode('text');g.start();
+  ctx.window.localStorage=store;ctx.window.AT={views:{},utils:{esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')},ui:{}};
+  const viewSource=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8');
+  for(let i=0;i<g.state.session.order.length;i++){
+    g.state.session.index=i;store.setItem(H.STORAGE_KEY,JSON.stringify(g.state));
+    vm.runInContext(viewSource,ctx);
+    const q=g.current(), html=ctx.window.AT.views.histology().html;
+    assert.ok(!html.includes(q.name),`${q.id}: название до ответа`);
+    assert.ok(!q.review || !html.includes(q.review),`${q.id}: разбор до ответа`);
+    assert.ok(html.includes(q.image),`${q.id}: снимок отсутствует`);
+  }
+});
+
+test('цветовые темы совпадают в атласе и разборе и не подсказывают препарат заранее',()=>{
+  const {H,context}=load();
+  const style=fs.readFileSync(path.join(ROOT,'css/histology.css'),'utf8');
+  for(const group of H.atlasGroups) assert.ok(style.includes(`[data-histo-group="${group.id}"]`),group.id);
+  assert.doesNotMatch(style,/--histo-section-color|\[data-histo-section=/);
+  const colors=H.atlasGroups.map(group=>style.match(new RegExp(`\\[data-histo-group="${group.id}"\\] \\{ --histo-topic-color:(#[0-9a-f]{6})`))[1]);
+  assert.equal(new Set(colors).size,H.atlasGroups.length);
+  // The palette spans multiple hue families, not just close variants of pink/purple.
+  const hue=hex=>{const c=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255), max=Math.max(...c), min=Math.min(...c), d=max-min; let h=max===c[0]?(c[1]-c[2])/d:max===c[1]?(c[2]-c[0])/d+2:(c[0]-c[1])/d+4;return (h*60+360)%360;};
+  assert.ok(new Set(colors.map(c=>Math.floor(hue(c)/60))).size>=5);
+  const data={},store={getItem:k=>data[k]||null,setItem:(k,v)=>{data[k]=v;}};
+  const g=H.create(store,()=>0.42);g.setMode('text');g.start();const q=g.current();
+  context.window.localStorage=store;context.window.AT={views:{},utils:{esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')},ui:{}};
+  const source=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8');
+  vm.runInContext(source,context);let html=context.window.AT.views.histology().html;
+  assert.doesNotMatch(html,/histo-topic-badge|data-histo-group=/);
+  g.dontKnow();vm.runInContext(source,context);html=context.window.AT.views.histology().html;
+  const group=H.atlasGroups.find(g=>g.ids.includes(q.id));
+  assert.ok(html.includes(`class="histo-topic-badge" data-histo-group="${group.id}"`));
+  assert.ok(html.includes(group.name));
+});
+
+test('оставшиеся подписи скрыты только в снимках тренировки, включая сохранённые варианты',()=>{
+  const context=vm.createContext({window:{},console});
+  for (const file of ['js/histology-practice-data.js','js/histology.js']) vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),context);
+  const H=context.window.HistologyPrototype;
+  for(const [id,image] of Object.entries({h03:'m01.webp',p120:'m02.webp',p128:'m03.webp',p133:'m04.webp',p93:'m05.webp'})) {
+    assert.equal(H.byId[id].image,'assets/histology/masked/'+image);
+    assert.equal(H.byId[id].masked,true);
+    assert.ok(fs.existsSync(path.join(ROOT,H.byId[id].image)));
+  }
+  assert.ok(H.byId.p93.variants.some(v=>v && v.image.endsWith('/m06.webp')));
+  assert.ok(H.byId.p120.variants.some(v=>v && v.image.endsWith('/m07.webp')));
+  assert.equal(H.byId.p120.source,'часть 3, страница 11');
+  assert.equal(H.byId.p120.review,'assets/histology/atlas/part3-011.webp');
+  assert.ok(fs.existsSync(path.join(ROOT,'assets/histology/p133-image.webp')),'исходник не заменён');
+});
+
+test('центр структурных меток остаётся прозрачным, а номер вынесен за кольцо',()=>{
+  const view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8');
+  const css=fs.readFileSync(path.join(ROOT,'css/histology.css'),'utf8');
+  assert.match(css,/\.histo-marker \{[^}]*background:transparent/);
+  assert.match(css,/\.histo-marker::after \{[^}]*content:attr\(data-number\)/);
+  assert.match(view,/data-number="'\+\(i\+1\)\+'/);
+  assert.match(view,/button\.dataset\.number=String\(i\+1\)/);
+  assert.match(view,/histo-marker--label-left/);
 });

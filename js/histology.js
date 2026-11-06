@@ -1010,7 +1010,31 @@
     }
   ]
 });
-  for (const slide of slides) slide.variants = [null, ...(additionalVariants[slide.id] || [])];
+  // Точечные плашки закрывают оставшиеся подписи и номера на отдельных
+  // снимках. Исходники и изображения с обозначениями в атласе не меняются.
+  const practiceMasks = {
+    'assets/histology/03-image.webp':'assets/histology/masked/m01.webp',
+    'assets/histology/p120-image.webp':'assets/histology/masked/m02.webp',
+    'assets/histology/p128-image.webp':'assets/histology/masked/m03.webp',
+    'assets/histology/p133-image.webp':'assets/histology/masked/m04.webp',
+    'assets/histology/p93-image.webp':'assets/histology/masked/m05.webp',
+    'assets/histology/practice/i079.webp':'assets/histology/masked/m06.webp',
+    'assets/histology/practice/i212.webp':'assets/histology/masked/m07.webp'
+  };
+  function maskPracticePhoto(item) {
+    if (item && practiceMasks[item.image]) {
+      const tongue = item.image==='assets/histology/p120-image.webp' || item.image==='assets/histology/practice/i212.webp';
+      return Object.assign({},item,{image:practiceMasks[item.image],masked:true},tongue?{
+        source:'часть 3, страница 11',review:'assets/histology/atlas/part3-011.webp',
+        note:'Срез языка с нитевидными сосочками; заголовок исходной страницы не показан.'
+      }:{});
+    }
+    return item;
+  }
+  for (const slide of slides) {
+    Object.assign(slide,maskPracticePhoto(slide));
+    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || [])].map(maskPracticePhoto);
+  }
   const byId = Object.fromEntries(slides.map(s => [s.id,s]));
   // Для каждого препарата вручную задан пул похожих изображений/органов.
   // Направленные списки позволяют исключить неоднозначные пары.
@@ -1678,40 +1702,65 @@
     random = random || Math.random;
     let data = {};
     try { const parsed=JSON.parse(storage.getItem(STORAGE_KEY) || '{}'); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) data=parsed; } catch (_) { /* испорченное или недоступное хранилище */ }
-    const state = { stats:{}, favorites:{}, mode: data.mode === 'text' ? 'text' : 'choice', scope: ['all','mistakes','favorites'].includes(data.scope) ? data.scope : 'all', session:null };
+    const state = { stats:{}, favorites:{}, mode: data.mode === 'text' ? 'text' : 'choice', scope: ['all','mistakes','favorites'].includes(data.scope) ? data.scope : 'all', sampling: ['images','slides'].includes(data.sampling) ? data.sampling : (window.HistologyPracticePhotos ? 'images' : 'slides'), imageStats:{}, session:null };
     for (const s of slides) {
       const stat = data.stats && data.stats[s.id];
       if (stat && typeof stat === 'object') state.stats[s.id] = { attempts: Number.isSafeInteger(stat.attempts) && stat.attempts > 0 ? stat.attempts : 0, correct: Number.isSafeInteger(stat.correct) && stat.correct > 0 ? stat.correct : 0, last: typeof stat.last === 'boolean' ? stat.last : null };
       if (data.favorites && data.favorites[s.id] === true) state.favorites[s.id] = true;
     }
+    function parseKey(key) {
+      if (typeof key !== 'string') return null;
+      const match = /^([a-z0-9]+)(?:@(0|[1-9][0-9]*))?$/.exec(key);
+      if (!match || !byId[match[1]]) return null;
+      const variant = match[2] === undefined ? null : Number(match[2]);
+      return variant === null || (Number.isSafeInteger(variant) && variant < byId[match[1]].variants.length) ? {id:match[1], variant} : null;
+    }
+    if (data.imageStats && typeof data.imageStats === 'object') for (const [key, stat] of Object.entries(data.imageStats)) {
+      const parsed=parseKey(key);
+      if (parsed && parsed.variant !== null && stat && typeof stat === 'object') state.imageStats[key]={attempts:Number.isSafeInteger(stat.attempts)&&stat.attempts>0?stat.attempts:0, correct:Number.isSafeInteger(stat.correct)&&stat.correct>0?stat.correct:0, last:typeof stat.last==='boolean'?stat.last:null};
+    }
     const saved=data.session;
-    if (saved && Array.isArray(saved.order) && saved.order.length && new Set(saved.order).size === saved.order.length && saved.order.every(id => byId[id]) && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < saved.order.length && ['choice','text'].includes(saved.mode) && saved.entries && typeof saved.entries === 'object') {
+    if (saved && Array.isArray(saved.order) && saved.order.length && new Set(saved.order).size === saved.order.length && saved.order.every(key => parseKey(key)) && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < saved.order.length && ['choice','text'].includes(saved.mode) && saved.entries && typeof saved.entries === 'object') {
       // Не доверять произвольной форме данных из localStorage.
       const entries={}; let valid=true;
-      for (const id of saved.order) {
-        const e=saved.entries[id];
+      for (const key of saved.order) {
+        const parsed=parseKey(key), id=parsed.id, e=saved.entries[key];
         if (!e || !Array.isArray(e.options) || e.options.length !== 4 || new Set(e.options).size !== 4 || !e.options.includes(id) || !e.options.every(x=>byId[x]) || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected != null && !e.options.includes(e.selected))) {valid=false; break;}
         const variant = e.variant === undefined ? 0 : e.variant;
-        if (!Number.isInteger(variant) || variant < 0 || variant >= byId[id].variants.length) {valid=false; break;}
-        entries[id]={options:e.options.slice(), selected:e.selected || null, text:typeof e.text === 'string' ? e.text.slice(0,300) : '', status:e.status, variant};
+        if (!Number.isInteger(variant) || variant < 0 || variant >= byId[id].variants.length || (parsed.variant !== null && parsed.variant !== variant)) {valid=false; break;}
+        entries[key]={options:e.options.slice(), selected:e.selected || null, text:typeof e.text === 'string' ? e.text.slice(0,300) : '', status:e.status, variant};
       }
       if (valid) state.session={order:saved.order.slice(),index:saved.index,mode:saved.mode,entries};
     }
     let storageFailed=false;
     function save() { try { storage.setItem(STORAGE_KEY, JSON.stringify(state)); storageFailed=false; return true; } catch (_) {storageFailed=true; return false;} }
-    function current() { const s=state.session; if (!s) return null; const slide=byId[s.order[s.index]], variant=slide.variants[s.entries[slide.id].variant]; return variant ? Object.assign({},slide,variant) : slide; }
+    function current() { const s=state.session; if (!s) return null; const key=s.order[s.index], slide=byId[parseKey(key).id], variant=slide.variants[s.entries[key].variant]; return variant ? Object.assign({},slide,variant) : slide; }
     function entry() { const s=state.session; return s && s.entries[s.order[s.index]]; }
     function setMode(mode) { if (!['choice','text'].includes(mode)) return; state.mode=mode; save(); }
     function setScope(scope) { if (!['all','mistakes','favorites'].includes(scope)) return; state.scope=scope; save(); }
-    function pool() { return slides.filter(s=>state.scope === 'all' || (state.scope === 'favorites' ? !!state.favorites[s.id] : state.stats[s.id] && state.stats[s.id].last === false)); }
+    function hasImageError(id) { return Object.entries(state.imageStats).some(([key, stat])=>key.startsWith(id+'@') && stat.last===false); }
+    function pool() { return slides.filter(s=>state.scope === 'all' || (state.scope === 'favorites' ? !!state.favorites[s.id] : hasImageError(s.id) || (state.stats[s.id] && state.stats[s.id].last === false))); }
+    function setSampling(value) { if (!['images','slides'].includes(value)) return; state.sampling=value; save(); }
+    function candidates() {
+      const result=[];
+      for (const slide of pool()) {
+        if (state.sampling==='slides') {result.push(slide.id); continue;}
+        const records=Object.keys(state.imageStats).some(key=>key.startsWith(slide.id+'@'));
+        for (let i=0;i<slide.variants.length;i++) {
+          const key=slide.id+'@'+i;
+          if (state.scope !== 'mistakes' || (state.imageStats[key] && state.imageStats[key].last===false) || (!records && state.stats[slide.id] && state.stats[slide.id].last===false)) result.push(key);
+        }
+      }
+      return result;
+    }
     function start() {
-      const order=shuffle(pool().map(s=>s.id),random); if (!order.length) return false;
-      const entries={}; order.forEach(id => { const wrong=shuffle(distractors[id],random).slice(0,3); const variant=Math.floor(random()*byId[id].variants.length); entries[id]={options:shuffle([id,...wrong],random),selected:null,text:'',status:'unanswered',variant}; });
+      const order=shuffle(candidates(),random); if (!order.length) return false;
+      const entries={}; order.forEach(key => { const parsed=parseKey(key), id=parsed.id; const wrong=shuffle(distractors[id],random).slice(0,3); const variant=parsed.variant===null ? Math.floor(random()*byId[id].variants.length) : parsed.variant; entries[key]={options:shuffle([id,...wrong],random),selected:null,text:'',status:'unanswered',variant}; });
       state.session={order,index:0,mode:state.mode,entries}; save(); return true;
     }
     function select(id) { const e=entry(); if (!e || e.status!=='unanswered' || !e.options.includes(id) || state.session.mode!=='choice') return false; e.selected=id; save(); return true; }
     function setText(value) { const e=entry(); if (!e || e.status!=='unanswered' || state.session.mode!=='text') return; e.text=String(value || '').slice(0,300); save(); }
-    function record(correct) { const s=current(), e=entry(); if (!s || !e || !['unanswered','review'].includes(e.status)) return false; e.status=correct?'correct':'wrong'; const p=state.stats[s.id] || {attempts:0,correct:0,last:null}; p.attempts++; if(correct)p.correct++; p.last=correct; state.stats[s.id]=p; save(); return true; }
+    function record(correct) { const s=current(), e=entry(); if (!s || !e || !['unanswered','review'].includes(e.status)) return false; e.status=correct?'correct':'wrong'; const p=state.stats[s.id] || {attempts:0,correct:0,last:null}; p.attempts++; if(correct)p.correct++; p.last=correct; state.stats[s.id]=p; const key=s.id+'@'+e.variant, pic=state.imageStats[key] || {attempts:0,correct:0,last:null}; pic.attempts++; if(correct)pic.correct++; pic.last=correct; state.imageStats[key]=pic; save(); return true; }
     function check(value) {
       const s=current(), e=entry(); if (!e || e.status!=='unanswered') return false;
       if (state.session.mode==='choice') { if (!e.selected) return false; return record(e.selected===s.id); }
@@ -1724,7 +1773,7 @@
     function navigate(delta) { const s=state.session; if (!s) return; const index=s.index+delta; if (index>=0 && index<s.order.length) {s.index=index; save();} }
     function finish() {state.session=null;save();}
     function toggleFavorite() {const s=current();if(!s)return; if(state.favorites[s.id])delete state.favorites[s.id]; else state.favorites[s.id]=true;save();}
-    return { state, current, entry, pool, start, setMode, setScope, select, setText, check, self, dontKnow, navigate, finish, toggleFavorite, storageFailed:()=>storageFailed };
+    return { state, current, entry, pool, candidates, start, setMode, setScope, setSampling, select, setText, check, self, dontKnow, navigate, finish, toggleFavorite, storageFailed:()=>storageFailed };
   }
   // Координаты маркеров относятся только к указанным исходным изображениям, не к вариантам окраски.
   // Сверены с соответствующими размеченными снимками из присланных PDF.

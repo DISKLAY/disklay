@@ -122,9 +122,13 @@
 .histo-structure-image { position:relative; display:table; width:auto; max-width:100%; margin:auto; background:#f8f8f8; line-height:0; }
 .histo-structure-image img { display:block; width:auto; max-width:100%; max-height:550px; height:auto; }
 .histo-markers { position:absolute; inset:0; }
-.histo-marker { position:absolute; transform:translate(-50%,-50%); display:grid; place-items:center; width:30px; height:30px; padding:0; border:2px solid #fff; border-radius:50%; background:#4338a3; box-shadow:0 1px 5px #0009; color:#fff; font-size:.75rem; font-weight:800; line-height:1; cursor:pointer; }
-.histo-marker:hover, .histo-marker.is-selected { background:#a33565; outline:2px solid #fff; }
-.histo-marker.is-correct { background:#13794d; }
+.histo-marker { position:absolute; transform:translate(-50%,-50%); width:30px; height:30px; padding:0; border:2px solid #fff; border-radius:50%; background:transparent; box-shadow:0 0 0 2px #4338a3, 0 1px 5px #0009; cursor:pointer; }
+/* Номер вынесен за кольцо: точка в его центре остаётся полностью видимой. */
+.histo-marker::after { content:attr(data-number); position:absolute; left:calc(100% + 3px); top:-5px; display:grid; place-items:center; width:18px; height:18px; border:1px solid #fff; border-radius:50%; background:#4338a3; color:#fff; box-shadow:0 1px 4px #0009; font-size:.68rem; font-weight:800; line-height:1; pointer-events:none; }
+.histo-marker--label-left::after { left:auto; right:calc(100% + 3px); }
+.histo-marker:hover, .histo-marker.is-selected { background:rgba(163,53,101,.12); outline:2px solid #fff; }
+.histo-marker.is-correct { background:rgba(19,121,77,.12); }
+.histo-marker:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 .histo-marker:disabled { opacity:1; cursor:default; }
 .histo-marker-legend { display:grid; gap:5px; padding-left:0; margin:15px 0 0; list-style:none; font-size:.82rem; }
 @media(max-width:400px) { .histo-nav { gap:3px; } .histo-nav button { padding:8px; font-size:.75rem; } .histo-marker { width:26px; height:26px; } }
@@ -139,7 +143,7 @@
 .histo-atlas-searchbox { margin:22px 0 18px; padding:16px; border:1px solid var(--border); border-radius:14px; background:var(--surface-2); }
 .histo-atlas-searchbox .histo-answer-label { margin-top:0; }
 .histo-atlas-searchbox .histo-help { margin-bottom:0; }
-.histo-atlas-groups { display:grid; gap:10px; }
+.histo-atlas-groups { display:grid; gap:10px; container-type:inline-size; }
 .histo-atlas-group { min-width:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
 .histo-atlas-group[hidden] { display:none; }
 .histo-atlas-group > summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:16px; cursor:pointer; font-weight:800; font-size:.9rem; }
@@ -210,3 +214,51 @@
 .histo-photo__frame img[hidden], .histo-photo__missing[hidden] { display:none; }
 .histo-photo__missing { padding:8px; color:#555; font-size:.73rem; text-align:center; }
 .histo-viewer__paging, .histo-viewer__zoom { min-width:0; max-width:100%; flex-wrap:wrap; }
+
+/* Одни и те же цвета тем в атласе и при разборе, без подсказок до ответа. */
+[data-histo-group="embryology"] { --histo-topic-color:#42a565; }
+[data-histo-group="tissues"] { --histo-topic-color:#d05794; }
+[data-histo-group="nervous"] { --histo-topic-color:#8156cd; }
+[data-histo-group="senses"] { --histo-topic-color:#4274d4; }
+[data-histo-group="circulation"] { --histo-topic-color:#d33f4a; }
+[data-histo-group="endocrine"] { --histo-topic-color:#cb961d; }
+[data-histo-group="immune"] { --histo-topic-color:#81a328; }
+[data-histo-group="digestive"] { --histo-topic-color:#dc7624; }
+[data-histo-group="respiratory"] { --histo-topic-color:#20aeb5; }
+[data-histo-group="skin"] { --histo-topic-color:#aa7052; }
+[data-histo-group="urinary"] { --histo-topic-color:#1b92d2; }
+[data-histo-group="reproductive"] { --histo-topic-color:#ca4bb9; }
+.histo-atlas-group[data-histo-group] { border-color:color-mix(in srgb, var(--histo-topic-color) 55%, var(--border)); }
+.histo-atlas-group[data-histo-group] > summary {
+  border-radius:13px; border-left:4px solid var(--histo-topic-color); background:color-mix(in srgb, var(--histo-topic-color) 18%, var(--surface));
+}
+.histo-atlas-group[data-histo-group] > summary::before {
+  background:color-mix(in srgb, var(--histo-topic-color) 30%, var(--surface)); color:var(--text);
+}
+.histo-atlas-group[data-histo-group] > summary > span { flex:1 1 100px; min-width:0; overflow-wrap:anywhere; }
+@container (min-width:240px) { .histo-atlas-group[data-histo-group] > summary > span { min-width:min-content; overflow-wrap:normal; } }
+.histo-atlas-group[data-histo-group] .histo-atlas-note {
+  border-left-color:var(--histo-topic-color); background:color-mix(in srgb, var(--histo-topic-color) 10%, var(--surface));
+}
+.histo-atlas-group[data-histo-group] .histo-atlas-note span {
+  color:color-mix(in srgb, var(--text) 72%, var(--histo-topic-color));
+}
+.histo-topic-badge {
+  display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:5px 9px; border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--histo-topic-color) 45%, var(--border));
+  background:color-mix(in srgb, var(--histo-topic-color) 13%, var(--surface));
+  color:var(--text); font-size:.73rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere;
+}
+.histo-topic-badge::before { content:''; flex:none; width:8px; height:8px; border-radius:50%; background:var(--histo-topic-color); }
+
+/* Возврат всегда под шапкой и в потоке атласа, а не поверх нижней части страницы. */
+.histo-atlas-return {
+  position:sticky; top:var(--histo-return-top, 72px); z-index:30; display:flex; justify-content:center; align-items:center;
+  width:100%; min-width:0; min-height:48px; margin:0 0 12px; padding:11px 16px; border:1px solid #2a2478;
+  border-radius:12px; background:#3730a3; color:#fff; box-shadow:0 5px 16px #16134555;
+  font-size:.9rem; font-weight:800; line-height:1.3; overflow-wrap:anywhere; cursor:pointer;
+}
+.histo-atlas-return:hover { background:#292477; }
+.histo-atlas-return:focus-visible { outline:3px solid var(--text); outline-offset:3px; }
+.histo-atlas-item { scroll-margin-top:var(--histo-atlas-scroll-offset, 80px); }
+@media (max-width:240px) { .histo-atlas-return { padding:9px; font-size:.78rem; } }
