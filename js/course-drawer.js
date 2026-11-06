@@ -14,9 +14,9 @@
       document.body.style.overflow = previousOverflow;
       if (restoreFocus && previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
     }
-    function open() {
+    function open(trigger) {
       if (!panel.hidden) return;
-      previouslyFocused = toggle;
+      previouslyFocused = trigger || toggle;
       previousOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       panel.hidden = false;
@@ -25,7 +25,7 @@
       closeButton.focus();
     }
     toggle.hidden = false;
-    toggle.addEventListener('click', () => panel.hidden ? open() : close(true));
+    toggle.addEventListener('click', () => panel.hidden ? open(toggle) : close(true));
     closeButton.addEventListener('click', () => close(true));
     backdrop.addEventListener('click', () => close(true));
     panel.addEventListener('click', (event) => {
@@ -34,7 +34,7 @@
       if (histologyLink && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button===0 && location.hash===histologyLink.getAttribute('href') && window.AT && AT.views.histology && AT.views.histology.openSection) {
         event.preventDefault(); AT.views.histology.openSection(histologyLink.dataset.histoSidebar);
       }
-      if (event.target.closest('[data-sidebar-route], [data-histo-sidebar], [data-subject-link], .course-sidebar__item')) close(true);
+      if (event.target.closest('[data-sidebar-route], [data-histo-sidebar], [data-subject-link], .course-sidebar__item, a[href^="#/"]')) close(true);
     });
     document.addEventListener('keydown', (event) => {
       if (panel.hidden) return;
@@ -47,5 +47,6 @@
       if (event.shiftKey && index <= 0) { event.preventDefault(); focusable[focusable.length - 1].focus(); }
       else if (!event.shiftKey && (index === -1 || index === focusable.length - 1)) { event.preventDefault(); focusable[0].focus(); }
     });
+    return { open, close };
   };
 })();

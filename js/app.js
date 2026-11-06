@@ -80,7 +80,7 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=15').catch(err => { histologyCss = null; throw err; });
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=16').catch(err => { histologyCss = null; throw err; });
     const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
       .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=1'))
       .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))
@@ -102,7 +102,7 @@
   let anatomySkillsLoad = null, anatomySkillsCss = null, anatomySkillsReady = false;
   function loadAnatomySkills() {
     if (anatomySkillsLoad) return anatomySkillsLoad;
-    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=3').catch(err => { anatomySkillsCss = null; throw err; });
+    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=4').catch(err => { anatomySkillsCss = null; throw err; });
     const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
       .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=3'))
       .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=4'));
@@ -128,7 +128,7 @@
     } else if (select && select.options[select.selectedIndex]) {
       const option = select.options[select.selectedIndex];
       if (current) current.textContent = option.textContent;
-      if (sidebarCurrent) sidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
+      if (sidebarCurrent) sidebarCurrent.textContent = option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
       if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
     }
     document.querySelectorAll('[data-histo-sidebar]').forEach(link => {
@@ -142,6 +142,21 @@
     });
   }
 
+  function updateContext(route, histology) {
+    const subject = document.getElementById('contextSubject');
+    const base = document.getElementById('contextBase');
+    const separator = document.getElementById('contextBaseSeparator');
+    const page = document.getElementById('contextPage');
+    const option = document.getElementById('colloquiumSelect').selectedOptions[0];
+    const labels = {dashboard:'Главная', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', 'anatomy-skills':'Практические навыки'};
+    const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
+    subject.textContent = histology ? 'Гистология' : 'Анатомия';
+    subject.href = histology ? '#/histology' : '#/';
+    base.hidden = separator.hidden = histology;
+    if (!histology && option) base.textContent = option.textContent;
+    page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (labels[route.name] || 'Страница');
+  }
+
   function render() {
     runCleanups();
     lastRenderedHash = location.hash;
@@ -150,6 +165,7 @@
     const viewName = ROUTES[route.name] || 'notFound';
     if (viewName !== 'histology' && AT.views.histology && AT.views.histology.onLeave) AT.views.histology.onLeave();
     syncSubject(viewName === 'histology', route.params.section);
+    updateContext(route, viewName === 'histology');
 
     if (viewName === 'trainSetup' && (route.params.topic || route.params.scope === 'favorites')) {
       if (route.params.topic) AT.setup.train.topics = route.params.topic === 'all' ? ['all'] : [route.params.topic];
@@ -239,7 +255,7 @@
     if (sidebar) sidebar.querySelectorAll('[data-sidebar-route]').forEach((link) => {
       const isActive = link.getAttribute('data-sidebar-route') === active;
       link.classList.toggle('is-active', isActive);
-      if (isActive) link.setAttribute('aria-current', 'page');
+      if (isActive) { link.setAttribute('aria-current', 'page'); const more = link.closest('.course-more'); if (more) more.open = true; }
       else link.removeAttribute('aria-current');
     });
   }
@@ -309,13 +325,16 @@
       const option = moduleSelect.options[moduleSelect.selectedIndex];
       if (!option || !courseToggle || !courseToggleCurrent) return;
       courseToggleCurrent.textContent = option.textContent;
-      if (courseSidebarCurrent) courseSidebarCurrent.textContent = 'Текущая база: ' + option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
+      if (courseSidebarCurrent) courseSidebarCurrent.textContent = option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
       courseToggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
     };
     moduleSelect.addEventListener('change', syncCourseToggle);
     syncCourseToggle();
     window.initModulePicker(moduleSelect, document.getElementById('courseSidebarNav'));
-    window.initCourseDrawer(document.getElementById('courseSidebar'), document.getElementById('courseToggle'), document.getElementById('courseClose'), document.getElementById('courseBackdrop'));
+    const drawer = window.initCourseDrawer(document.getElementById('courseSidebar'), document.getElementById('courseToggle'), document.getElementById('courseClose'), document.getElementById('courseBackdrop'));
+    const baseButton = document.getElementById('contextBase'), picker = document.getElementById('coursePicker');
+    baseButton.addEventListener('click', () => { drawer.open(baseButton); picker.open = true; picker.querySelector('summary').focus(); });
+    document.getElementById('sidebarSkills').hidden = AT.colloquium.id !== '1';
   }
 
   /* ---------------------------------------------------------------- запуск */

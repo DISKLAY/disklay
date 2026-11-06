@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/medzo-mark-transparent.png?v=2" type="image/png">
-  <link rel="stylesheet" href="css/styles.css?v=20261107-promo1">
+  <link rel="stylesheet" href="css/styles.css?v=20261107-nav2">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -55,10 +55,8 @@
       <nav class="nav" id="mainNav" aria-label="Основная навигация">
         <a href="#/" data-route="dashboard">Главная</a>
         <a href="#/train" data-route="train">Тренировка</a>
-        <a href="#/exam" data-route="exam">Экзамен</a>
         <a href="#/mistakes" data-route="mistakes">Ошибки</a>
-        <a href="#/stats" data-route="stats">Статистика</a>
-        <a href="#/rewards" data-route="rewards">Награды</a>
+        <a href="#/portfolio" data-route="portfolio">Портфель</a>
       </nav>
 
       <button class="icon-btn" data-action="toggle-theme" aria-label="Переключить тему" title="Переключить тему">
@@ -75,29 +73,35 @@
   <div class="app-layout">
     <button type="button" class="course-backdrop" id="courseBackdrop" aria-label="Закрыть навигацию" tabindex="-1" hidden></button>
     <aside class="course-sidebar" id="courseSidebar" role="dialog" aria-modal="true" aria-labelledby="courseSidebarTitle" hidden>
-      <div class="course-sidebar__heading"><div><span id="subjectSidebarLabel">Анатомия</span><strong id="courseSidebarTitle">Меню</strong><p class="course-sidebar__current" id="courseSidebarCurrent"></p></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
+      <div class="course-sidebar__heading"><div><span id="subjectSidebarLabel">Анатомия</span><strong id="courseSidebarTitle">Навигация</strong></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
       <div class="course-sidebar__section-title">Предмет</div>
       <nav class="subject-switch" aria-label="Выбрать предмет">
         <a href="#/" data-subject-link="anatomy">Анатомия</a>
         <a href="#/histology" data-subject-link="histology">Гистология</a>
       </nav>
       <div id="anatomySidebar">
-      <div class="course-sidebar__section-title">Навигация</div>
-      <nav class="course-sidebar__pages" aria-label="Разделы приложения">
-        <a href="#/" data-sidebar-route="dashboard">Главная</a>
-        <a href="#/train" data-sidebar-route="train">Тренировка</a>
-        <a href="#/exam" data-sidebar-route="exam">Экзамен</a>
-        <a href="#/mistakes" data-sidebar-route="mistakes">Ошибки</a>
-        <a href="#/portfolio" data-sidebar-route="portfolio">Портфель избранного</a>
-        <a href="#/stats" data-sidebar-route="stats">Статистика</a>
-        <a href="#/rewards" data-sidebar-route="rewards">Награды</a>
-        <a href="#/dungeon" data-sidebar-route="dungeon">Подземелье ⚔</a>
-        <a href="#/key" data-sidebar-route="key">Ключ</a>
-        <a href="#/settings" data-sidebar-route="settings">Настройки</a>
-      </nav>
-      <div class="course-sidebar__section-title">Выбрать базу</div>
-      <p class="course-sidebar__note">Прогресс хранится отдельно. Таймер экзамена при переключении продолжает идти.</p>
-      <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
+        <details class="course-picker" id="coursePicker">
+          <summary><span><small>Текущая база</small><strong id="courseSidebarCurrent"></strong></span><span class="course-picker__change">Сменить</span></summary>
+          <p class="course-sidebar__note">Прогресс хранится отдельно. Таймер экзамена при переключении продолжает идти.</p>
+          <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
+        </details>
+        <nav class="course-sidebar__pages" aria-label="Разделы приложения">
+          <span class="course-sidebar__section-title">Учёба</span>
+          <a href="#/" data-sidebar-route="dashboard">Главная</a>
+          <a href="#/train" data-sidebar-route="train">Тренировка</a>
+          <a href="#/exam" data-sidebar-route="exam">Экзамен</a>
+          <a href="#/anatomy-skills" data-sidebar-route="anatomy-skills" id="sidebarSkills" hidden>Практические навыки</a>
+          <span class="course-sidebar__section-title">Мой прогресс</span>
+          <a href="#/mistakes" data-sidebar-route="mistakes">Ошибки</a>
+          <a href="#/portfolio" data-sidebar-route="portfolio">Портфель избранного</a>
+          <a href="#/stats" data-sidebar-route="stats">Статистика</a>
+          <details class="course-more"><summary>Ещё</summary>
+            <a href="#/rewards" data-sidebar-route="rewards">Награды и оформление</a>
+            <a href="#/dungeon" data-sidebar-route="dungeon">Подземелье ⚔</a>
+            <a href="#/key" data-sidebar-route="key">Ключ</a>
+            <a href="#/settings" data-sidebar-route="settings">Настройки</a>
+          </details>
+        </nav>
       </div>
       <div id="histologySidebar">
       <div class="course-sidebar__section-title">Гистология</div>
@@ -113,7 +117,14 @@
       <p class="course-sidebar__note">Сессии сохраняются при переходе между разделами.</p>
       </div>
     </aside>
-    <main id="app" class="main" tabindex="-1"></main>
+    <div class="content-shell">
+      <nav class="context-nav" aria-label="Путь по разделам">
+        <a id="contextSubject" href="#/">Анатомия</a><span aria-hidden="true">/</span>
+        <button type="button" id="contextBase" aria-label="Сменить базу"></button><span id="contextBaseSeparator" aria-hidden="true">/</span>
+        <span class="context-nav__current" id="contextPage" aria-current="page"></span>
+      </nav>
+      <main id="app" class="main" tabindex="-1"></main>
+    </div>
   </div>
 
   <footer class="footer">
@@ -155,7 +166,7 @@
   <script src="js/views-pages.js?v=20261107-promo1"></script>
   <script src="js/views-rewards.js?v=20261101-dungeon9"></script>
   <script src="js/module-picker.js"></script>
-  <script src="js/course-drawer.js?v=20261105-nav1"></script>
-  <script src="js/app.js?v=20261106-recovery19"></script>
+  <script src="js/course-drawer.js?v=20261107-nav2"></script>
+  <script src="js/app.js?v=20261107-nav2"></script>
 </body>
 </html>

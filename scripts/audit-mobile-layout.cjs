@@ -48,7 +48,7 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
             }
             // In the image viewer the stage and its overlay may contain markers that
             // protrude past the picture; the viewport deliberately scrolls/clips them.
-            const viewerStage = el.matches('.histo-viewer__stage, .histo-viewer__markers');
+            const viewerStage = el.matches('.histo-viewer__stage, .histo-viewer__markers, .histo-structure-image, .histo-markers');
             // Marker numbers intentionally sit outside their rings; page overflow is checked separately.
             if (!viewerStage && !el.classList.contains('histo-marker') && el.clientWidth && el.scrollWidth > el.clientWidth + 2 &&
                 style.overflowX !== 'auto' && style.overflowX !== 'scroll' &&
@@ -100,7 +100,7 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
             await scan('histology-' + tab);
             if (tab === 'atlas') {
               await page.locator('#atlasSearch').fill('трахея');
-              await page.locator('[data-atlas-item]:visible > summary').click();
+              await page.locator('[data-atlas-item]:visible > summary').first().click();
               await scan('histology-atlas-open');
               await page.locator('[data-histo="atlas-photo"]:visible').first().click();
               await page.waitForSelector('.histo-image-dialog[open]');

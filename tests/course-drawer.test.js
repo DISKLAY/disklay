@@ -50,3 +50,14 @@ test('выбор пункта закрывает панель и возвращ�
   panel.click({closest: () => ({})});
   assert.equal(panel.hidden, true); assert.equal(document.activeElement, toggle);
 });
+
+test('при открытии из текущей базы фокус после закрытия возвращается к этой кнопке', () => {
+  const document = { activeElement:null, body:{style:{overflow:''}}, addEventListener(){} };
+  const make = () => ({hidden:true, attrs:{}, addEventListener(){}, setAttribute(k,v){this.attrs[k]=v;}, focus(){document.activeElement=this;}});
+  const panel=make(),toggle=make(),close=make(),backdrop=make(),trigger=make();
+  const context=vm.createContext({document,window:{}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js/course-drawer.js'),'utf8'),context);
+  const drawer=context.window.initCourseDrawer(panel,toggle,close,backdrop);
+  drawer.open(trigger); assert.equal(document.activeElement,close);
+  drawer.close(true); assert.equal(document.activeElement,trigger);
+});
