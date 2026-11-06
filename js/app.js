@@ -86,10 +86,12 @@
       .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))
       .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=1'))
       .then(() => window.HistologyElectronIndividual ? undefined : resource('script', 'js/histology-electron-individual-data.js?v=4'))
+      .then(() => window.HistologyAdditionalPhotos ? undefined : resource('script', 'js/histology-additional-data.js?v=1'))
+      .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=1'))
       .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=2'))
-      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=16'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=18'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=19'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=21'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }

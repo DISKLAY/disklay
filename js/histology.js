@@ -1037,7 +1037,7 @@
   slides.push(...first.slides,...tissues.slides,...electrons.slides);
   for (const slide of slides) {
     Object.assign(slide,maskPracticePhoto(slide));
-    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || []), ...(tissues.variants[slide.id] || [])].map(maskPracticePhoto);
+    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || []), ...(tissues.variants[slide.id] || []), ...((window.HistologyAdditionalPhotos || {})[slide.id] || [])].map(maskPracticePhoto);
   }
   const byId = Object.fromEntries(slides.map(s => [s.id,s]));
   // Для каждого препарата вручную задан пул похожих изображений/органов.
@@ -1822,7 +1822,8 @@
       {id:'muscle',name:'Мышечная оболочка',aliases:['мышечная оболочка','мышечный слой'],x:35,y:69}
     ]}
   ];
-  structureSlides.push(...first.structures,...tissues.structures,...electrons.structures);
+  const bloodFields=window.HistologyBloodFields || {structures:[],atlas:{}};
+  structureSlides.push(...first.structures,...tissues.structures,...electrons.structures,...bloodFields.structures);
   // Положения вручную перенесены с подписанных страниц сборника.
   // Добавляются в конец: существующие индексы и идентификаторы не меняются.
   const restoredPoints = {
@@ -1850,9 +1851,9 @@
   for(const group of structureSlides)for(const point of group.points){const extent=restoredExtents[group.slideId]?.[point.id];if(extent){point.extent=extent;point.x=(extent[0][0]+extent[1][0])/2;point.y=(extent[0][1]+extent[1][1])/2;}}
   const STRUCTURE_KEY='histology-structures-v1';
   const structureTasks={};
-  for (const group of structureSlides) for (const point of group.points) for (const mode of ['point','name']) {
-    const id=group.slideId+'.'+point.id+'.'+mode;
-    structureTasks[id]={id, slideId:group.slideId, pointId:point.id, mode};
+  for (const group of structureSlides) for (const point of group.points) for (const mode of (group.modes || ['point','name'])) {
+    const groupId=group.id||group.slideId, id=groupId+'.'+point.id+'.'+mode;
+    structureTasks[id]={id, groupId, slideId:group.slideId, pointId:point.id, mode};
   }
   function visibleStructurePoints(group,task,selectedId) {
     const indexed=group.points.map((point,index)=>({point,index}));
@@ -1878,7 +1879,7 @@
     if(s && Array.isArray(s.order) && s.order.length && new Set(s.order).size===s.order.length && s.order.every(id=>structureTasks[id] && structureTasks[id].mode===s.mode) && Number.isInteger(s.index) && s.index>=0 && s.index<s.order.length && ['point','name'].includes(s.mode) && s.entries && typeof s.entries==='object') {
       const entries={};let valid=true;
       for(const id of s.order) {
-        const e=s.entries[id], task=structureTasks[id], group=structureSlides.find(g=>g.slideId===task.slideId);
+        const e=s.entries[id], task=structureTasks[id], group=structureSlides.find(g=>(g.id||g.slideId)===task.groupId);
         if(!e || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected!=null&&!group.points.some(p=>p.id===e.selected))) {valid=false;break;}
         entries[id]={status:e.status,selected:e.selected||null,text:typeof e.text==='string'?e.text.slice(0,300):''};
       }
@@ -1888,7 +1889,7 @@
     function save(){try{storage.setItem(STRUCTURE_KEY,JSON.stringify(state));failed=false;return true;}catch(_){failed=true;return false;}}
     function current(){const s=state.session;return s && structureTasks[s.order[s.index]];}
     function entry(){const s=state.session;return s && s.entries[s.order[s.index]];}
-    function group(){const t=current();return t && structureSlides.find(g=>g.slideId===t.slideId);}
+    function group(){const t=current();return t && structureSlides.find(g=>(g.id||g.slideId)===t.groupId);}
     function target(){const t=current(),g=group();return t&&g.points.find(p=>p.id===t.pointId);}
     function setMode(mode){if(!['point','name'].includes(mode))return;state.mode=mode;save();}
     function start(scope){
