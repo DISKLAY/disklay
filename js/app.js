@@ -26,7 +26,7 @@
   }
 
   function parseHash() {
-    const hash = location.hash.replace(/^#/, '') || '/';
+    const hash = /^#tgWebApp/.test(location.hash) ? '/' : (location.hash.replace(/^#/, '') || '/');
     const [path, query] = hash.split('?');
     const segments = path.split('/').filter(Boolean);
     const params = {};

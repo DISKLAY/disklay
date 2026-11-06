@@ -59,7 +59,7 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       let id;
       if(body.initData)id=await verifyInitData(body.initData,bot,now);
       else{const challenge=await verifyObject(body.nonce,signing,'challenge',now);id=await verifyOidc(body.idToken,body.nonce,match[1],fetchFn,now);const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(body.nonce))),x=>x.toString(16).padStart(2,'0')).join('');const claimed=await db('rpc/medzo_study_claim_nonce',{method:'POST',body:JSON.stringify({p_hash:digest,p_expires:challenge.exp})});if(claimed!==true)throw new Error('nonce_used');}
-      return response(200,{session:await signObject({kind:'session',id,exp:now+28800},signing),expiresAt:now+28800});
+      return response(200,{session:await signObject({kind:'session',id,exp:now+28800},signing),userId:id,expiresAt:now+28800});
     }
     const auth=req.headers.get('authorization')||'';if(!auth.startsWith('Bearer '))return response(401,{error:'unauthorized'});
     const session=await verifyObject(auth.slice(7),signing,'session',now);const id=userId(session.id);
