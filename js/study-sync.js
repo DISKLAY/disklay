@@ -30,11 +30,17 @@
   }
   function connect(data) {
     if(!data || !/^[1-9][0-9]{0,19}$/.test(String(data.userId)) || typeof data.session!=='string' || !Number.isSafeInteger(data.expiresAt)) throw Error('auth');
-    sessionStorage.setItem(SESSION,JSON.stringify(data));auth=data;
+    localStorage.setItem(SESSION,JSON.stringify(data));sessionStorage.removeItem(SESSION);auth=data;
     engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body),userId:String(data.userId)});
   }
-  function logout() { auth=null;engine=null;plan=null;sessionStorage.removeItem(SESSION);message='Вы вышли. Локальные учебные данные не изменены.';notify(); }
-  try { const old=JSON.parse(sessionStorage.getItem(SESSION)||'null');if(old&&old.expiresAt>Date.now()/1000+5)connect(old);else sessionStorage.removeItem(SESSION); } catch (_) { auth=null; }
+  async function logout() {
+    if(!auth||busy)return;busy=true;notify();
+    try { await call({action:'logout'});auth=null;engine=null;plan=null;localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);message='Вы вышли. Локальные учебные данные не изменены.'; }
+    catch (e) { if(e.message==='auth'){auth=null;engine=null;plan=null;localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);message='Сессия завершена. Учебные данные на устройстве не изменены.';}else message='Не удалось выйти. Проверьте интернет и повторите.'; }
+    finally { busy=false;notify(); }
+  }
+  try { const old=JSON.parse(localStorage.getItem(SESSION)||sessionStorage.getItem(SESSION)||'null');if(old&&old.expiresAt>Date.now()/1000+5)connect(old);else {localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);} } catch (_) { auth=null; }
+  window.addEventListener('storage',e=>{if(e.key!==SESSION)return;if(!e.newValue){auth=null;engine=null;plan=null;message='Вход завершён в другой вкладке.';notify();}else try{const next=JSON.parse(e.newValue);if(!auth||next.session!==auth.session){connect(next);plan=null;message='';notify();}}catch(_){} });
   async function prepareLogin() {
     if(auth || window.MedzoTelegramLaunch)return;
     try {
@@ -51,7 +57,7 @@
       const result=await engine.inspect();plan=result;
       if(auto&&result.state==='local-changed') { await engine.push(result);plan=await engine.inspect(); }
       message='';
-    } catch(e) { plan=null;message=e.message==='auth'?'Сессия истекла. Выйдите и войдите снова.':'Не удалось проверить синхронизацию. Учебные данные на устройстве не изменены.'; }
+    } catch(e) { plan=null;message=e.message==='auth'?'Не удалось подтвердить сессию. Проверьте интернет; если проблема не исчезнет, выйдите и войдите снова.':'Не удалось проверить синхронизацию. Учебные данные на устройстве не изменены.'; }
     finally { busy=false;notify(); }
   }
   async function loginMini(initData) {
