@@ -262,3 +262,7 @@
 .histo-atlas-return:focus-visible { outline:3px solid var(--text); outline-offset:3px; }
 .histo-atlas-item { scroll-margin-top:var(--histo-atlas-scroll-offset, 80px); }
 @media (max-width:240px) { .histo-atlas-return { padding:9px; font-size:.78rem; } }
+
+.histo-review__open { display:block; border:0; padding:0; background:transparent; cursor:zoom-in; max-width:100%; }
+.histo-image-dialog { overflow-y:auto; }
+.histo-image-dialog__viewport { flex:1 0 100px; min-height:100px; }

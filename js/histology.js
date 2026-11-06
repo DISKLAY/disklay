@@ -1698,7 +1698,15 @@
     for (let i=out.length-1;i>0;i--) { const j=Math.floor(random()*(i+1)); [out[i],out[j]]=[out[j],out[i]]; }
     return out;
   }
+  // Сохранить исходные данные восстановленной версии до их возможной записи
+  // более ограниченной базой; отдельный ключ не используется игровым движком.
+  function backupRecoveryState(storage,key) {
+    try { const raw=storage.getItem(key),backup=key+'-pre-recovery-backup';
+      if(raw!==null && storage.getItem(backup)===null) storage.setItem(backup,raw);
+    } catch (_) { /* основная обработка недоступного хранилища остаётся прежней */ }
+  }
   function create(storage, random) {
+    backupRecoveryState(storage,STORAGE_KEY);
     random = random || Math.random;
     let data = {};
     try { const parsed=JSON.parse(storage.getItem(STORAGE_KEY) || '{}'); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) data=parsed; } catch (_) { /* испорченное или недоступное хранилище */ }
@@ -1815,6 +1823,7 @@
     structureTasks[id]={id, slideId:group.slideId, pointId:point.id, mode};
   }
   function createStructures(storage, random) {
+    backupRecoveryState(storage,STRUCTURE_KEY);
     random=random||Math.random; let data={};
     try {const parsed=JSON.parse(storage.getItem(STRUCTURE_KEY)||'{}');if(parsed && typeof parsed==='object'&&!Array.isArray(parsed))data=parsed;}catch(_){}
     const state={stats:{},session:null,mode:data.mode==='name'?'name':'point'};
@@ -1896,6 +1905,7 @@
   const THEORY_KEY='histology-theory-v1';
   const theoryById=Object.fromEntries(theoryQuestions.map(q=>[q.id,q]));
   function createTheory(storage, random) {
+    backupRecoveryState(storage,THEORY_KEY);
     random=random||Math.random;let data={};
     try {const parsed=JSON.parse(storage.getItem(THEORY_KEY)||'{}');if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))data=parsed;}catch(_){}
     const state={stats:{},session:null};

@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=12/);
+  assert.match(app,/js\/views-histology\.js\?v=13/);
 });
 
 
@@ -325,4 +325,12 @@ test('центр структурных меток остаётся прозра
   assert.match(view,/data-number="'\+\(i\+1\)\+'/);
   assert.match(view,/button\.dataset\.number=String\(i\+1\)/);
   assert.match(view,/histo-marker--label-left/);
+});
+
+test('при восстановлении сохраняется исходная копия ранее записанных сессий',()=>{
+ const data={};
+ for(const key of ['histology-prototype-v1','histology-structures-v1','histology-theory-v1'])data[key]=JSON.stringify({stats:{missing:{attempts:5,correct:3,last:true}},session:{order:['missing']}});
+ const original={...data}, {H,store}=load(data);
+ H.create(store,()=>0.5).setMode('text');H.createStructures(store,()=>0.5).setMode('name');H.createTheory(store,()=>0.5).start('all');
+ for(const key of Object.keys(original))assert.equal(data[key+'-pre-recovery-backup'],original[key]);
 });
