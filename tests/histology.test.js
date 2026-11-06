@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=22/);
+  assert.match(app,/js\/views-histology\.js\?v=23/);
 });
 
 
@@ -175,10 +175,17 @@ test('тренировка структур сохраняется отдель�
   assert.equal(data['histology-prototype-v1'],'{"favorites":{"h01":true}}');assert.equal(data['anatomy-colloquium-v1'],'sentinel');
 });
 
-test('ответ по структуре распознаётся точно, неоднозначный ждёт оценки и восстанавливается',()=>{
+test('выбор названия структуры сохраняется и проверяется автоматически',()=>{
   const data={}, {H,store}=load(data);let g=H.createStructures(store,()=>0.42);g.setMode('name');g.start();const id=g.current().id;
-  g.setText('необычное название');g=H.createStructures(store,()=>0.42);assert.equal(g.entry().text,'необычное название');assert.equal(g.check(''),false);assert.equal(g.check('необычное название'),true);assert.equal(g.entry().status,'review');assert.equal(g.state.stats[id],undefined);
-  g=H.createStructures(store,()=>0.42);assert.equal(g.entry().status,'review');assert.equal(g.self(true),true);assert.equal(g.self(false),false);assert.equal(g.state.stats[id].attempts,1);g.navigate(1);const answer=g.target().aliases[0].toUpperCase();assert.equal(g.check('  '+answer+'! '),true);assert.equal(g.entry().status,'correct');
+  assert.equal(g.entry().options.length,4);assert.equal(g.check(),false);assert.equal(g.select('несуществующий вариант'),false);
+  const wrong=g.entry().options.find(x=>x!==g.target().name);assert.ok(g.select(wrong));g=H.createStructures(store,()=>0.42);assert.equal(g.entry().selected,wrong);assert.ok(g.check());assert.equal(g.entry().status,'wrong');assert.equal(g.state.stats[id].attempts,1);
+  g.navigate(1);const answer=g.target().name;assert.ok(g.select(answer));assert.ok(g.check());assert.equal(g.entry().status,'correct');
+});
+
+test('старое незавершённое задание с ручной самопроверкой сохраняется',()=>{
+  const {H,store}=load();let g=H.createStructures(store,()=>0.42);g.setMode('name');g.start();const id=g.current().id;
+  const saved=JSON.parse(store.getItem(H.STRUCTURE_KEY));saved.session.entries[id]={status:'review',selected:null,text:'старый ответ'};store.setItem(H.STRUCTURE_KEY,JSON.stringify(saved));
+  g=H.createStructures(store,()=>0.42);assert.equal(g.current().id,id);assert.equal(g.entry().status,'review');assert.equal(g.entry().text,'старый ответ');assert.ok(g.self(true));assert.equal(g.state.stats[id].last,true);
 });
 
 test('повреждённая или недоступная запись структур безопасна',()=>{

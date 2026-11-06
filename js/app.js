@@ -90,9 +90,9 @@
       .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=1'))
       .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=2'))
       .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=1'))
-      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=19'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=20'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=22'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=23'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
