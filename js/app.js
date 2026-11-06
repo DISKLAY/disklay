@@ -201,7 +201,7 @@
         console.error(err);
       }
     }
-    document.title = viewName === 'histology' ? 'Гистология · АРМ РНИМУ' : (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум');
+    document.title = viewName === 'histology' ? 'Гистология · Medzo' : (result.title || 'Тренажёр') + ' · Анатомия — ' + (AT.colloquium.kind === 'credit' ? 'зачёт' : 'коллоквиум') + ' · Medzo';
     updateNav(route.name);
     const routeKey = route.name + ':' + JSON.stringify(route.params);
     if (routeKey !== lastRouteKey) {

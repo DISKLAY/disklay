@@ -190,11 +190,18 @@ img, svg { display: block; }
   flex: none;
 }
 .brand__mark { width: 38px; height: 38px; flex: none; }
-.brand__mark svg { width: 100%; height: 100%; border-radius: 11px; box-shadow: var(--shadow-sm); }
+.brand__mark img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; border-radius: 9px; }
 .brand__text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand__text strong { display: flex; align-items: center; gap: 6px; font-size: 1rem; letter-spacing: -.01em; white-space: nowrap; }
 .brand__flag { color-scheme: only light; width: 20px; height: 12px; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); }
 .brand__text span { font-size: .72rem; color: var(--muted); letter-spacing: .01em; }
+/* Знак и название Medzo отделены от названия предмета и АРМ РНИМУ. */
+.brand__text strong { gap:7px; font-size:1.1rem; font-weight:850; letter-spacing:-.035em; }
+.brand__text .brand__wordmark { font:inherit; color:#15577b; line-height:1; letter-spacing:inherit; }
+[data-theme="dark"] .brand__text .brand__wordmark { color:#9bd9eb; }
+.brand__text .brand__meta { display:flex; align-items:center; flex-wrap:wrap; gap:3px 7px; margin-top:6px; line-height:1.15; }
+.brand__meta b { padding:2px 4px; border-radius:4px; background:var(--surface-2); color:var(--text-2); font-weight:700; }
+.brand__meta #subjectBrandLabel { padding-left:6px; border-left:1px solid var(--border-strong); }
 .hero__module { color: var(--primary); font-weight: 650; margin-bottom: 8px; }
 
 .nav {
@@ -1982,3 +1989,14 @@ kbd {
 body[data-subject="histology"] #mainNav, body[data-subject="histology"] #anatomySidebar { display: none; }
 
 body:not([data-subject="histology"]) #histologySidebar { display: none; }
+
+.topbar { container-type:inline-size; }
+@container (max-width:280px) {
+ .topbar__inner { padding-left:8px; padding-right:8px; gap:6px; }
+ .brand { flex:1 1 0; min-width:0; }
+ .brand__mark { display:none; }
+ .brand__text strong { font-size:.75rem; gap:3px; }
+ .brand__text span { font-size:.6rem; }
+ .course-toggle { width:40px; padding:7px; }
+ .course-toggle__text { display:none; }
+}
