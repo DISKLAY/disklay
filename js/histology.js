@@ -1955,6 +1955,10 @@
     {id:'corpus-luteum',slideId:'p153',question:'Из какой структуры формируется жёлтое тело после овуляции?',answers:['Из фолликула яичника','Из маточной железы','Из первичного ооцита','Из мозгового вещества яичника'],explanation:'Жёлтое тело образуется из овулировавшего фолликула и состоит из лютеиновых клеток.'}
   ];
   const THEORY_KEY='histology-theory-v1';
+  // Восстановленные авторские вопросы имеют новые ID: не переиспользуем
+  // идентификаторы утраченных вопросов с неизвестным исходным содержанием.
+  for(const q of (window.HistologyRecoveryTheory||[])) if(byId[q.slideId])theoryQuestions.push(q);
+  for(const q of theoryQuestions)if(!q.topic){const g=atlasGroups.find(x=>x.ids.includes(q.slideId));q.topic=g?g.name:'Общая гистология';}
   const theoryById=Object.fromEntries(theoryQuestions.map(q=>[q.id,q]));
   function createTheory(storage, random) {
     backupRecoveryState(storage,THEORY_KEY);
@@ -1972,7 +1976,7 @@
     function save(){try{storage.setItem(THEORY_KEY,JSON.stringify(state));failed=false;}catch(_){failed=true;}}
     function current(){const s=state.session;return s&&theoryById[s.order[s.index]];}
     function entry(){const s=state.session;return s&&s.entries[s.order[s.index]];}
-    function start(scope,slideId){const pool=theoryQuestions.filter(q=>(scope!=='mistakes'||state.stats[q.id]&&state.stats[q.id].last===false)&&(!slideId||q.slideId===slideId));if(!pool.length)return false;const order=shuffle(pool.map(q=>q.id),random),entries={};for(const id of order)entries[id]={status:'unanswered',selected:null,options:shuffle([0,1,2,3],random)};state.session={order,index:0,entries};save();return true;}
+    function start(scope,slideId,topic){const pool=theoryQuestions.filter(q=>(scope!=='mistakes'||state.stats[q.id]&&state.stats[q.id].last===false)&&(!slideId||q.slideId===slideId)&&(!topic||q.topic===topic));if(!pool.length)return false;const order=shuffle(pool.map(q=>q.id),random),entries={};for(const id of order)entries[id]={status:'unanswered',selected:null,options:shuffle([0,1,2,3],random)};state.session={order,index:0,entries};save();return true;}
     function select(i){const e=entry();if(!e||e.status!=='unanswered'||!e.options.includes(i))return false;e.selected=i;save();return true;}
     function record(correct){const q=current(),e=entry();if(!q||!e||e.status!=='unanswered')return false;e.status=correct?'correct':'wrong';const p=state.stats[q.id]||{attempts:0,correct:0,last:null};p.attempts++;if(correct)p.correct++;p.last=correct;state.stats[q.id]=p;save();return true;}
     function check(){const e=entry();return !!e&&e.selected!=null&&record(e.selected===0);}
