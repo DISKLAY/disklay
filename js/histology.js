@@ -1031,9 +1031,11 @@
     }
     return item;
   }
+  const first = window.HistologyFirstData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
+  slides.push(...first.slides);
   for (const slide of slides) {
     Object.assign(slide,maskPracticePhoto(slide));
-    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || [])].map(maskPracticePhoto);
+    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || [])].map(maskPracticePhoto);
   }
   const byId = Object.fromEntries(slides.map(s => [s.id,s]));
   // Для каждого препарата вручную задан пул похожих изображений/органов.
@@ -1443,6 +1445,8 @@
 });
   for (const [id, similar] of Object.entries({"h04": ["p69"], "h02": ["p69"], "p68": ["p69"], "p117": ["p125", "p112"], "p118": ["p125"], "p119": ["p125"], "p137": ["p135", "p136", "p157"], "p129": ["p127", "p129a"], "p130": ["p129a"], "h06": ["p127"], "p147": ["p148", "p154"], "p102": ["p101", "p103a", "p89"]})) distractors[id].push(...similar);
   // Тексты разделов теории из присланного сборника; страницы сопоставлены вручную.
+  Object.assign(distractors, first.distractors);
+
   const atlasTheory = {
   "h01": {
     "text": "5. Мазок крови человека\nЭритроциты: Розовые безъядерные диски с просветлением в центре. Преобладают.\nЛейкоциты:\nНейтрофилы – с сегментированным ядром (3-5 долей), мелкая светлая зернистость.\n•Эозинофилы – ядро из 2 долей, цитоплазма заполнена крупной ярко-розовой зернистостью.\n•Базофилы – крупная фиолетовая зернистость, скрывающая ядро (редки).\n•Лимфоциты – крупное круглое фиолетовое ядро, узкий ободок голубой цитоплазмы.\n•Моноциты – самые крупные, бобовидное светлое ядро, серая \"пыльная\" цитоплазма.\nТромбоциты: Мелкие фиолетовые скопления гранул, часто группами.",
@@ -1816,6 +1820,7 @@
       {id:'muscle',name:'Мышечная оболочка',aliases:['мышечная оболочка','мышечный слой'],x:35,y:69}
     ]}
   ];
+  structureSlides.push(...first.structures);
   const STRUCTURE_KEY='histology-structures-v1';
   const structureTasks={};
   for (const group of structureSlides) for (const point of group.points) for (const mode of ['point','name']) {
@@ -1880,6 +1885,12 @@
     {id:'urinary',name:'Мочевыделительная система',ids:['p146','p147','p148']},
     {id:'reproductive',name:'Половая система и плацента',ids:['p149','p150','p151','p152','p153','p154','p155','p157','p158','p159']}
   ];
+  if(first.slides.length) {
+    atlasGroups.unshift({id:'cell',name:'Клетка и клеточный цикл',ids:first.groups.cell || []});
+    atlasGroups.splice(2,0,{id:'epithelium',name:'Эпителиальные ткани и железы',ids:first.groups.epithelium || []});
+    atlasGroups.splice(4,0,{id:'muscle',name:'Мышечные ткани',ids:first.groups.muscle || []});
+    atlasGroups.find(g=>g.id==='embryology').ids.push(...(first.groups.development || []));
+  }
   // Вопросы составлены по указанной странице сборника. Это пробная подборка, а не вузовский ключ.
   // В каждом наборе первый вариант является правильным; порядок в тренировке перемешивается.
   const theoryQuestions = [
