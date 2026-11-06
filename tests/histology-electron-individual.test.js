@@ -6,3 +6,5 @@ test('исходные электронные страницы распреде�
 test('цвет задан для каждой темы атласа',()=>{const H=load().HistologyPrototype,css=fs.readFileSync(path.join(root,'css/histology.css'),'utf8');for(const g of H.atlasGroups)assert.ok(css.includes('[data-histo-group="'+g.id+'"] { --histo-topic-color:'),g.id);});
 
 test('электронные структуры доступны в обоих направлениях',()=>{const H=load().HistologyPrototype;for(const id of ['recmneutro','recmeos','recmmast','recmplasma']){const g=H.structureSlides.find(x=>x.slideId===id);assert.ok(g&&g.points.length>=2);for(const p of g.points){assert.ok(p.x>0&&p.x<100&&p.y>0&&p.y<100);assert.ok(H.structureTasks[id+'.'+p.id+'.point']);assert.ok(H.structureTasks[id+'.'+p.id+'.name']);}}});
+
+test('соседний лимфоцит не предлагается как ответ на снимок тучной клетки',()=>{const H=load().HistologyPrototype;assert.equal(H.distractors.recmmast.includes('recmmlymph'),false);});

@@ -269,7 +269,6 @@ window.HistologyElectronIndividual = {
       "recmplatelet",
       "recmeos",
       "recmmmono",
-      "recmmlymph",
       "recmplasma"
     ],
     "recmplasma": [

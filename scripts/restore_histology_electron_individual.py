@@ -78,7 +78,7 @@ reference=[
  ('emcellgolgi','Комплекс Гольджи','Найдите цистерны и везикулы комплекса Гольджи.'),
  ('emcellsecret','Секреторные клетки','Сравните специализированные секреторные клетки.')]
 refs=[dict(id=id,name=name,number='ЭМ',aliases=[name,'электронная микроскопия','электронная микрофотография'],note=note,variants=[]) for id,name,note in reference]
-ids=[c[0] for c in cells];distractors={id:[x for x in ids if x!=id] for id in ids}
+ids=[c[0] for c in cells];distractors={id:[x for x in ids if x!=id and not (id=='recmmast' and x=='recmmlymph')] for id in ids} # Лимфоцит также виден рядом с тучной клеткой.
 # Approximate points transferred from the labelled source pages to the
 # extracted image bounds. Do not infer finer ultrastructural features.
 def point(id,name,x,y,*aliases):return dict(id=id,name=name,x=x,y=y,aliases=[name,*aliases])
