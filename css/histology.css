@@ -1,5 +1,5 @@
 /* Гистология — самостоятельное пространство внутри общей платформы. */
-.histo-view { max-width: 1050px; margin: 0 auto; min-width: 0; }
+.histo-view { max-width: 100%; margin: 0 auto; min-width: 0; }
 .histo-hero { position: relative; overflow: hidden; display: flex; justify-content: space-between; gap: 24px; padding: clamp(24px,5vw,52px); border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)); border-radius: 25px; background: radial-gradient(circle at 82% 18%,color-mix(in srgb,var(--primary) 16%,transparent),transparent 35%),linear-gradient(125deg,var(--surface),var(--primary-soft)); box-shadow: var(--shadow-sm); }
 .histo-hero h1 { margin: 14px 0 9px; font-size: clamp(2.35rem,5.3vw,4.5rem); line-height: 1; letter-spacing: -.055em; }
 .histo-hero h1 span { color: var(--primary); }

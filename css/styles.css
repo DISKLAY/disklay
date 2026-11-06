@@ -2009,3 +2009,45 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .promo-form__row input { min-width: 0; flex: 1 1 180px; padding: 10px 14px; border: 1px solid var(--border, #d7d0e2); border-radius: 12px; color: inherit; background: transparent; font: inherit; }
 .promo-form__row .btn { flex: 0 0 auto; }
 .promo-form [role="status"]:empty { display: none; }
+
+/* Context first: the drawer reveals the larger navigation only when needed. */
+.topbar__inner { max-width: 1760px; padding-inline: clamp(20px, 3vw, 48px); }
+.content-shell { width: min(100%, 1760px); margin-inline: auto; min-width: 0; }
+.main { max-width: none; padding: 12px clamp(20px, 3vw, 48px) 80px; }
+.footer { max-width: 1760px; width: 100%; padding-inline: clamp(20px, 3vw, 48px); }
+.context-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; padding: 21px clamp(20px, 3vw, 48px) 0; color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.context-nav a, .context-nav button { color: var(--text-2); font: inherit; font-weight: 650; }
+.context-nav a:hover, .context-nav button:hover { color: var(--primary); }
+.context-nav button { padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.context-nav__current { color: var(--text); font-weight: 700; }
+.context-nav [hidden], .course-sidebar__pages a[hidden] { display: none; }
+.course-sidebar__section-title { padding: 14px 9px 4px; color: var(--muted); font-size: .68rem; letter-spacing: .04em; text-transform: uppercase; }
+.course-sidebar__pages { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 3px 0 12px; }
+.course-sidebar__pages a { min-height: 40px; }
+.course-picker { margin: 14px 0 3px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.course-picker > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; }
+.course-picker > summary::-webkit-details-marker, .course-more > summary::-webkit-details-marker { display: none; }
+.course-picker > summary > span:first-child { display: grid; gap: 4px; min-width: 0; }
+.course-picker small { color: var(--muted); font-size: .68rem; }
+.course-picker strong { color: var(--text); font-size: .8rem; line-height: 1.35; }
+.course-picker__change { flex: none; color: var(--primary); font-size: .73rem; font-weight: 700; }
+.course-picker #courseSidebarNav { padding: 0 6px 8px; }
+.course-picker .course-sidebar__note { padding-inline: 12px; }
+.course-more { margin-top: 5px; border-top: 1px solid var(--border); }
+.course-more > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 8px 10px; cursor: pointer; color: var(--text-2); font-size: .82rem; font-weight: 700; }
+.course-more > summary::after { content: '⌄'; font-size: 1.1rem; }
+.course-more[open] > summary::after { transform: rotate(180deg); }
+.runner { max-width: 1040px; }
+@media (max-width: 760px) {
+  .topbar__inner { padding-inline: 14px; }
+  .main { padding: 10px 14px 64px; }
+  .context-nav { padding: 15px 14px 0; gap: 6px; font-size: .72rem; }
+  .footer { padding-inline: 14px; }
+}
+@media (min-width: 1200px) {
+  .view--dashboard .topic-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Keep secondary controls usable at high zoom and between grid breakpoints. */
+.promo-form { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.promo-form label, .promo-form__row { min-width: 0; overflow-wrap: anywhere; }
+.appearance-card__footer { flex-wrap: wrap; }
