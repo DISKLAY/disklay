@@ -1448,6 +1448,9 @@
   for (const [id, similar] of Object.entries({"h04": ["p69"], "h02": ["p69"], "p68": ["p69"], "p117": ["p125", "p112"], "p118": ["p125"], "p119": ["p125"], "p137": ["p135", "p136", "p157"], "p129": ["p127", "p129a"], "p130": ["p129a"], "h06": ["p127"], "p147": ["p148", "p154"], "p102": ["p101", "p103a", "p89"]})) distractors[id].push(...similar);
   // Тексты разделов теории из присланного сборника; страницы сопоставлены вручную.
   Object.assign(distractors, first.distractors, tissues.distractors, electrons.distractors);
+  // Четвёртый тематический дистрактор для ранних наборов с тремя.
+  for(const [id,extra] of Object.entries({h01:'p115',p40:'a38',a2:'m71',a12:'a22',a13:'a21',a14:'a22',a21:'a12',a22:'a13',a37:'p40',a38:'p40',a42:'a43',a43:'a46',a44:'a46',a45:'a46',a46:'a45',a47:'a42',a50:'p136',a51:'p136',a52:'p135'}))if(byId[id]&&byId[extra]&&distractors[id]&&!distractors[id].includes(extra))distractors[id].push(extra);
+
 
   const atlasTheory = {
   "h01": {
@@ -1739,10 +1742,12 @@
       const entries={}; let valid=true;
       for (const key of saved.order) {
         const parsed=parseKey(key), id=parsed.id, e=saved.entries[key];
-        if (!e || !Array.isArray(e.options) || e.options.length !== 4 || new Set(e.options).size !== 4 || !e.options.includes(id) || !e.options.every(x=>byId[x]) || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected != null && !e.options.includes(e.selected))) {valid=false; break;}
+        if (!e || !Array.isArray(e.options) || ![4,5].includes(e.options.length) || new Set(e.options).size !== e.options.length || !e.options.includes(id) || !e.options.every(x=>byId[x]) || !['unanswered','review','correct','wrong'].includes(e.status) || (e.selected != null && !e.options.includes(e.selected))) {valid=false; break;}
+        const options=e.options.slice();
+        if(options.length===4){const extra=distractors[id].find(x=>!options.includes(x));if(extra)options.push(extra);}
         const variant = e.variant === undefined ? 0 : e.variant;
         if (!Number.isInteger(variant) || variant < 0 || variant >= byId[id].variants.length || (parsed.variant !== null && parsed.variant !== variant)) {valid=false; break;}
-        entries[key]={options:e.options.slice(), selected:e.selected || null, text:typeof e.text === 'string' ? e.text.slice(0,300) : '', status:e.status, variant};
+        entries[key]={options, selected:e.selected || null, text:typeof e.text === 'string' ? e.text.slice(0,300) : '', status:e.status, variant};
       }
       if (valid) state.session={order:saved.order.slice(),index:saved.index,mode:saved.mode,entries};
     }
@@ -1769,7 +1774,7 @@
     }
     function start() {
       const order=shuffle(candidates(),random); if (!order.length) return false;
-      const entries={}; order.forEach(key => { const parsed=parseKey(key), id=parsed.id; const wrong=shuffle(distractors[id],random).slice(0,3); const variant=parsed.variant===null ? Math.floor(random()*byId[id].variants.length) : parsed.variant; entries[key]={options:shuffle([id,...wrong],random),selected:null,text:'',status:'unanswered',variant}; });
+      const entries={}; order.forEach(key => { const parsed=parseKey(key), id=parsed.id; const wrong=shuffle(distractors[id],random).slice(0,4); const variant=parsed.variant===null ? Math.floor(random()*byId[id].variants.length) : parsed.variant; entries[key]={options:shuffle([id,...wrong],random),selected:null,text:'',status:'unanswered',variant}; });
       state.session={order,index:0,mode:state.mode,entries}; save(); return true;
     }
     function select(id) { const e=entry(); if (!e || e.status!=='unanswered' || !e.options.includes(id) || state.session.mode!=='choice') return false; e.selected=id; save(); return true; }
@@ -1870,8 +1875,8 @@
       return Math.hypot(px-t*dx,py-t*dy)<.7;
     }
     function separate(a,b) {return (Math.abs(a.x-b.x)>=12||Math.abs(a.y-b.y)>=14)&&!nearLine(a,b)&&!nearLine(b,a);}
-    for(const item of candidates) {if(chosen.length>=4)break;if(chosen.every(x=>separate(x.point,item.point)))chosen.push(item);}
-    if(selected&&!chosen.includes(selected)){if(chosen.length>=4)chosen.pop();chosen.push(selected);}
+    for(const item of candidates) {if(chosen.length>=5)break;if(chosen.every(x=>separate(x.point,item.point)))chosen.push(item);}
+    if(selected&&!chosen.includes(selected)){if(chosen.length>=5)chosen.pop();chosen.push(selected);}
     return chosen.sort((a,b)=>a.index-b.index);
   }
   // Близкие альтернативы для небольших наборов меток. Для мазков сравниваем
@@ -1926,7 +1931,18 @@
   };
   Object.assign(structureRelated,window.HistologyStructureExtra?.related||{});
   Object.assign(structureConflicts,window.HistologyStructureExtra?.conflicts||{});
-  function structureNameChoices(group,task,random) {
+  // Дополнительные альтернативы того же предметного ряда; не части отмеченного объекта.
+  for(const [id,names] of Object.entries({
+    c60:['Ретикулярная соединительная ткань'],c59:['Слизистая соединительная ткань'],m71:['Адипоцит'],
+    n76:['Кровеносный капилляр'],n77:['Тело астроцита'],n79:['Коллагеновый пучок эндоневрия'],
+    a42:['Однослойный кубический эпителий почечного канальца'],a43:['Стенка пищевода'],a44:['Стенка гортани'],
+    a46:['Эпителий слизистой оболочки пищевода'],a50:['Просвет кровеносного сосуда','Шеечная железа матки'],
+    a52:['Просвет кровеносного сосуда'], 'sp65-054':['Эластический хрящ'],
+    'sm71-039':['Гладкомышечная оболочка сосуда'],'sm71-045':['Эритроцит'],
+    'sp85-014':['Симпатический нервный узел'],p143:['Волосяной фолликул']
+  }))if(structureRelated[id])structureRelated[id].push(...names);
+
+  function structureNameChoices(group,task,random,existing) {
     const target=group.points.find(p=>p.id===task.pointId),blood=group.id?.startsWith('bloodfield')||(group.slideId==='recmmast'&&task.pointId==='lymphocyte');
     if(!target)return [];
     const aliases=new Set([target.name,...target.aliases].map(normalize));
@@ -1943,16 +1959,16 @@
     if(group.slideId==='c59'&&target.id==='tissue')forbidden.add(normalize('Коллагеновые волокна'));
     const same=blood?[]:group.points.filter(p=>p.id!==target.id&&!forbidden.has(normalize(p.name))).map(p=>p.name);
     const related=blood?bloodNames:(structureRelated[group.id||group.slideId]||[]);
-    const unique=[],used=new Set(aliases);
+    const unique=[],used=new Set(aliases),saved=existing||[];
+    function equivalents(name){const key=normalize(name),terms=new Set([key]);for(const p of group.points){const aliases=[p.name,...p.aliases].map(normalize);if(aliases.includes(key))for(const term of aliases)terms.add(term);}return terms;}
+    for(const name of saved)if(name!==target.name)for(const term of equivalents(name))used.add(term);
     for(const name of [...shuffle(same,random),...shuffle(related,random)]) {
       if(typeof name!=='string')continue;
-      const key=normalize(name),equiv=new Set([key]);
-      // Учитываем совпадение синонимов меток того же поля.
-      for(const p of group.points){const terms=[p.name,...p.aliases].map(normalize);if(terms.includes(key))for(const term of terms)equiv.add(term);}
+      const key=normalize(name),equiv=equivalents(name);
       if(!key||forbidden.has(key)||Array.from(equiv).some(term=>used.has(term)))continue;
       unique.push(name);for(const term of equiv)used.add(term);
     }
-    return shuffle([target.name,...unique.slice(0,3)],random);
+    return existing?[...saved,...unique.slice(0,5-saved.length)]:shuffle([target.name,...unique.slice(0,4)],random);
   }
   function structureChoiceSeed(id) {
     let seed=2166136261;for(const c of id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
@@ -1979,8 +1995,8 @@
           const blood=group.id?.startsWith('bloodfield')||(group.slideId==='recmmast'&&task.pointId==='lymphocyte');
           const allowed=new Set([target.name,...(blood?bloodNames:[...group.points.map(p=>p.name),...(structureRelated[group.id||group.slideId]||[])])]);
           const aliases=new Set([target.name,...target.aliases].map(normalize));
-          const validOptions=Array.isArray(e.options)&&e.options.length===4&&new Set(e.options.map(normalize)).size===4&&e.options.includes(target.name)&&e.options.every(x=>typeof x==='string'&&allowed.has(x)&&(x===target.name||!aliases.has(normalize(x))));
-          options=validOptions?e.options.slice():structureNameChoices(group,task,structureChoiceSeed(id));
+          const validOptions=Array.isArray(e.options)&&[4,5].includes(e.options.length)&&new Set(e.options.map(normalize)).size===e.options.length&&e.options.includes(target.name)&&e.options.every(x=>typeof x==='string'&&allowed.has(x)&&(x===target.name||!aliases.has(normalize(x))));
+          options=validOptions?structureNameChoices(group,task,structureChoiceSeed(id),e.options):structureNameChoices(group,task,structureChoiceSeed(id));
           if(!options.includes(selected))selected=null;
         }
         entries[id]={status:e.status,selected,text:typeof e.text==='string'?e.text.slice(0,300):'',...(options?{options}:{})};
@@ -2067,7 +2083,7 @@
   for(const q of [...(window.HistologyRecoveryTheory||[]),...(window.HistologyExpandedTheory||[])]) if(byId[q.slideId])theoryQuestions.push(q);
   for(const q of theoryQuestions)if(!q.topic){const g=atlasGroups.find(x=>x.ids.includes(q.slideId));q.topic=g?g.name:'Общая гистология';}
   const theoryById=Object.fromEntries(theoryQuestions.map(q=>[q.id,q]));
-  const harderTheory=window.HistologyTheoryHard||{};
+  const harderTheory=window.HistologyTheoryHard||{},fifthTheory=window.HistologyFifthAnswer||{};
   function createTheory(storage, random) {
     backupRecoveryState(storage,THEORY_KEY);
     random=random||Math.random;let data={};
@@ -2077,14 +2093,14 @@
     const s=data.session;
     if(s&&Array.isArray(s.order)&&s.order.length&&new Set(s.order).size===s.order.length&&s.order.every(id=>theoryById[id])&&Number.isInteger(s.index)&&s.index>=0&&s.index<s.order.length&&s.entries&&typeof s.entries==='object'){
       const entries={};let valid=true;
-      for(const id of s.order){const e=s.entries[id],q=theoryById[id];if(!e||!['unanswered','correct','wrong'].includes(e.status)||!Array.isArray(e.options)||e.options.length!==4||new Set(e.options).size!==4||!e.options.every(i=>Number.isInteger(i)&&i>=0&&i<4)||(e.selected!=null&&!e.options.includes(e.selected))){valid=false;break;}const answers=Array.isArray(e.answers)&&e.answers.length===4&&e.answers[0]===q.answers[0]&&e.answers.every(x=>typeof x==='string'&&x.length<=500)&&new Set(e.answers).size===4?e.answers.slice():q.answers.slice();entries[id]={status:e.status,options:e.options.slice(),selected:e.selected==null?null:e.selected,answers};}
+      for(const id of s.order){const e=s.entries[id],q=theoryById[id];if(!e||!['unanswered','correct','wrong'].includes(e.status)||!Array.isArray(e.options)||![4,5].includes(e.options.length)||new Set(e.options).size!==e.options.length||!e.options.every(i=>Number.isInteger(i)&&i>=0&&i<e.options.length)||(e.selected!=null&&!e.options.includes(e.selected))){valid=false;break;}const answers=Array.isArray(e.answers)&&e.answers.length===e.options.length&&e.answers[0]===q.answers[0]&&e.answers.every(x=>typeof x==='string'&&x.length<=500)&&new Set(e.answers).size===e.options.length?e.answers.slice():q.answers.slice();if(e.options.length===5&&answers.length!==5){valid=false;break;}const options=e.options.slice();if(answers.length===4&&options.length===4&&fifthTheory[id]){answers.push(fifthTheory[id]);options.push(4);}entries[id]={status:e.status,options,selected:e.selected==null?null:e.selected,answers};}
       if(valid)state.session={order:s.order.slice(),index:s.index,entries};
     }
     let failed=false;
     function save(){try{storage.setItem(THEORY_KEY,JSON.stringify(state));failed=false;}catch(_){failed=true;}}
     function current(){const s=state.session;return s&&theoryById[s.order[s.index]];}
     function entry(){const s=state.session;return s&&s.entries[s.order[s.index]];}
-    function start(scope,slideId,topic){const pool=theoryQuestions.filter(q=>(scope!=='mistakes'||state.stats[q.id]&&state.stats[q.id].last===false)&&(!slideId||q.slideId===slideId)&&(!topic||q.topic===topic));if(!pool.length)return false;const order=shuffle(pool.map(q=>q.id),random),entries={};for(const id of order){const q=theoryById[id],hard=harderTheory[id],answers=Array.isArray(hard)&&hard.length===3?[q.answers[0],...hard]:q.answers.slice();entries[id]={status:'unanswered',selected:null,options:shuffle([0,1,2,3],random),answers};}state.session={order,index:0,entries};save();return true;}
+    function start(scope,slideId,topic){const pool=theoryQuestions.filter(q=>(scope!=='mistakes'||state.stats[q.id]&&state.stats[q.id].last===false)&&(!slideId||q.slideId===slideId)&&(!topic||q.topic===topic));if(!pool.length)return false;const order=shuffle(pool.map(q=>q.id),random),entries={};for(const id of order){const q=theoryById[id],hard=harderTheory[id],answers=Array.isArray(hard)&&hard.length===3?[q.answers[0],...hard]:q.answers.slice();if(fifthTheory[id])answers.push(fifthTheory[id]);entries[id]={status:'unanswered',selected:null,options:shuffle(answers.map((_,i)=>i),random),answers};}state.session={order,index:0,entries};save();return true;}
     function select(i){const e=entry();if(!e||e.status!=='unanswered'||!e.options.includes(i))return false;e.selected=i;save();return true;}
     function record(correct){const q=current(),e=entry();if(!q||!e||e.status!=='unanswered')return false;e.status=correct?'correct':'wrong';const p=state.stats[q.id]||{attempts:0,correct:0,last:null};p.attempts++;if(correct)p.correct++;p.last=correct;state.stats[q.id]=p;save();return true;}
     function check(){const e=entry();return !!e&&e.selected!=null&&record(e.selected===0);}

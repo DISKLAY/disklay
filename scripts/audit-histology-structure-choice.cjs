@@ -7,7 +7,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8000/';
   await page.goto(base+'#/histology?section=structures');await page.waitForSelector('[data-histo="structure-start"]');
   const before=await page.evaluate(()=>{const H=window.HistologyPrototype,g=H.createStructures(localStorage,()=>.42),id='bloodfield009.neutro.name';g.state.session={mode:'name',order:[id],index:0,entries:{[id]:{status:'unanswered',selected:null,text:''}}};localStorage.setItem(H.STRUCTURE_KEY,JSON.stringify(g.state));return id;});
   await page.reload();await page.locator('[data-histo="structure-resume"]').click();
-  assert.equal(await page.locator('[data-histo="structure-option"]').count(),4);assert.equal(await page.locator('#structureAnswer').count(),0);assert.equal(await page.locator('.histo-feedback').count(),0);assert.equal(await page.locator('[data-histo="structure-check"]').isDisabled(),true);
+  assert.equal(await page.locator('[data-histo="structure-option"]').count(),5);assert.equal(await page.locator('#structureAnswer').count(),0);assert.equal(await page.locator('.histo-feedback').count(),0);assert.equal(await page.locator('[data-histo="structure-check"]').isDisabled(),true);
   const info=await page.evaluate(()=>{const g=window.HistologyPrototype.createStructures(localStorage),e=g.entry();return {options:e.options,correct:g.target().name};});
   const index=info.options.findIndex(x=>x!==info.correct);await page.locator(`[data-histo="structure-option"][data-value="${index}"]`).click();
   await page.reload();await page.locator('[data-histo="structure-resume"]').click();assert.equal(await page.locator(`[data-histo="structure-option"][data-value="${index}"]`).getAttribute('aria-pressed'),'true');

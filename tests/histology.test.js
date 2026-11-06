@@ -34,7 +34,7 @@ test('сравнение ввода учитывает пробелы, реги�
 test('варианты перемешаны, ответ записывается один раз, анатомия не изменяется',()=>{
   const storage={'anatomy-colloquium-v1':'{"sentinel":123}', 'anatomy-colloquium-rewards-shared-v1':'{"appearance":"ocean"}'};
   const {H,g}=load(storage); assert.ok(g.start());
-  const q=g.current(), e=g.entry(); assert.equal(e.options.length,4);assert.equal(new Set(e.options).size,4);assert.ok(e.options.includes(q.id));
+  const q=g.current(), e=g.entry(); assert.equal(e.options.length,5);assert.equal(new Set(e.options).size,5);assert.ok(e.options.includes(q.id));
   assert.equal(g.check(),false);g.select(q.id);assert.equal(g.check(),true);
   assert.equal(g.entry().status,'correct');assert.equal(g.state.stats[q.id].attempts,1);
   assert.equal(g.check(),false);assert.equal(g.dontKnow(),false);assert.equal(g.state.stats[q.id].attempts,1);
@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=24/);
+  assert.match(app,/js\/views-histology\.js\?v=25/);
 });
 
 
@@ -177,7 +177,7 @@ test('тренировка структур сохраняется отдель�
 
 test('выбор названия структуры сохраняется и проверяется автоматически',()=>{
   const data={}, {H,store}=load(data);let g=H.createStructures(store,()=>0.42);g.setMode('name');g.start();const id=g.current().id;
-  assert.equal(g.entry().options.length,4);assert.equal(g.check(),false);assert.equal(g.select('несуществующий вариант'),false);
+  assert.equal(g.entry().options.length,5);assert.equal(g.check(),false);assert.equal(g.select('несуществующий вариант'),false);
   const wrong=g.entry().options.find(x=>x!==g.target().name);assert.ok(g.select(wrong));g=H.createStructures(store,()=>0.42);assert.equal(g.entry().selected,wrong);assert.ok(g.check());assert.equal(g.entry().status,'wrong');assert.equal(g.state.stats[id].attempts,1);
   g.navigate(1);const answer=g.target().name;assert.ok(g.select(answer));assert.ok(g.check());assert.equal(g.entry().status,'correct');
 });
