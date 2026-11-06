@@ -80,7 +80,7 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=13').catch(err => { histologyCss = null; throw err; });
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=14').catch(err => { histologyCss = null; throw err; });
     const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
       .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=1'))
       .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))

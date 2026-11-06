@@ -189,8 +189,8 @@ img, svg { display: block; }
   gap: 11px;
   flex: none;
 }
-.brand__mark { width: 38px; height: 38px; flex: none; }
-.brand__mark img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; border-radius: 9px; }
+.brand__mark { width: 48px; height: 48px; flex: none; }
+.brand__mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .brand__text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand__text strong { display: flex; align-items: center; gap: 6px; font-size: 1rem; letter-spacing: -.01em; white-space: nowrap; }
 .brand__flag { color-scheme: only light; width: 20px; height: 12px; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); }
@@ -1659,7 +1659,7 @@ kbd {
   .icon-btn { margin-left: 0; }
 }
 @media (max-width: 520px) {
-  .brand__mark { width: 32px; height: 32px; }
+  .brand__mark { width: 40px; height: 40px; }
   .course-toggle { min-height: 40px; padding: 7px 9px; }
   .course-toggle__current { display: none; }
 }
@@ -1964,7 +1964,7 @@ kbd {
 @media (max-width: 280px) {
   .topbar__inner { padding-left: 8px; padding-right: 8px; gap: 6px; }
   .brand { gap: 4px; }
-  .brand__mark { width: 26px; height: 26px; }
+  .brand__mark { width: 32px; height: 32px; }
   .brand__text strong { font-size: .75rem; gap: 3px; }
   .brand__text span { font-size: .6rem; }
   .brand__flag { width: 14px; height: 9px; }

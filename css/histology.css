@@ -144,7 +144,7 @@
 .histo-atlas-searchbox .histo-answer-label { margin-top:0; }
 .histo-atlas-searchbox .histo-help { margin-bottom:0; }
 .histo-atlas-groups { display:grid; gap:10px; container-type:inline-size; }
-.histo-atlas-group { min-width:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.histo-atlas-group { --histo-topic-color:var(--primary); min-width:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
 .histo-atlas-group[hidden] { display:none; }
 .histo-atlas-group > summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:16px; cursor:pointer; font-weight:800; font-size:.9rem; }
 .histo-atlas-group > summary::before { content:'+'; display:grid; place-items:center; width:26px; height:26px; flex:none; border-radius:8px; background:var(--primary-soft); color:var(--primary); font-size:1rem; }
@@ -216,6 +216,9 @@
 .histo-viewer__paging, .histo-viewer__zoom { min-width:0; max-width:100%; flex-wrap:wrap; }
 
 /* Одни и те же цвета тем в атласе и при разборе, без подсказок до ответа. */
+[data-histo-group="cell"] { --histo-topic-color:#338fa1; }
+[data-histo-group="epithelium"] { --histo-topic-color:#8a68bb; }
+[data-histo-group="muscle"] { --histo-topic-color:#d05b50; }
 [data-histo-group="embryology"] { --histo-topic-color:#42a565; }
 [data-histo-group="tissues"] { --histo-topic-color:#d05794; }
 [data-histo-group="nervous"] { --histo-topic-color:#8156cd; }
