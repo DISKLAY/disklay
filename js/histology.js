@@ -1032,10 +1032,11 @@
     return item;
   }
   const first = window.HistologyFirstData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
-  slides.push(...first.slides);
+  const tissues = window.HistologyTissueData || {slides:[],variants:{},groups:{},distractors:{},structures:[]};
+  slides.push(...first.slides,...tissues.slides);
   for (const slide of slides) {
     Object.assign(slide,maskPracticePhoto(slide));
-    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || [])].map(maskPracticePhoto);
+    slide.variants = [null, ...(additionalVariants[slide.id] || []), ...((window.HistologyPracticePhotos || {})[slide.id] || []), ...(first.variants[slide.id] || []), ...(tissues.variants[slide.id] || [])].map(maskPracticePhoto);
   }
   const byId = Object.fromEntries(slides.map(s => [s.id,s]));
   // Для каждого препарата вручную задан пул похожих изображений/органов.
@@ -1445,7 +1446,7 @@
 });
   for (const [id, similar] of Object.entries({"h04": ["p69"], "h02": ["p69"], "p68": ["p69"], "p117": ["p125", "p112"], "p118": ["p125"], "p119": ["p125"], "p137": ["p135", "p136", "p157"], "p129": ["p127", "p129a"], "p130": ["p129a"], "h06": ["p127"], "p147": ["p148", "p154"], "p102": ["p101", "p103a", "p89"]})) distractors[id].push(...similar);
   // Тексты разделов теории из присланного сборника; страницы сопоставлены вручную.
-  Object.assign(distractors, first.distractors);
+  Object.assign(distractors, first.distractors, tissues.distractors);
 
   const atlasTheory = {
   "h01": {
@@ -1820,12 +1821,23 @@
       {id:'muscle',name:'Мышечная оболочка',aliases:['мышечная оболочка','мышечный слой'],x:35,y:69}
     ]}
   ];
-  structureSlides.push(...first.structures);
+  structureSlides.push(...first.structures,...tissues.structures);
   const STRUCTURE_KEY='histology-structures-v1';
   const structureTasks={};
   for (const group of structureSlides) for (const point of group.points) for (const mode of ['point','name']) {
     const id=group.slideId+'.'+point.id+'.'+mode;
     structureTasks[id]={id, slideId:group.slideId, pointId:point.id, mode};
+  }
+  function visibleStructurePoints(group,task,selectedId) {
+    const indexed=group.points.map((point,index)=>({point,index}));
+    const target=indexed.find(x=>x.point.id===task.pointId); if(!target)return [];
+    const chosen=[target],selected=indexed.find(x=>x.point.id===selectedId);
+    let seed=0;for(const c of task.id)seed=(Math.imul(seed,31)+c.charCodeAt(0))>>>0;
+    const candidates=indexed.filter(x=>!chosen.includes(x)).sort((a,b)=>(((Math.imul(a.index+1,2654435761)^seed)>>>0)-((Math.imul(b.index+1,2654435761)^seed)>>>0)));
+    for(const item of candidates) {if(chosen.length>=4)break;if(chosen.every(x=>Math.abs(x.point.x-item.point.x)>=12||Math.abs(x.point.y-item.point.y)>=14))chosen.push(item);}
+    if(chosen.length===1&&candidates.length)chosen.push(candidates[0]);
+    if(selected&&!chosen.includes(selected)){if(chosen.length>=4)chosen.pop();chosen.push(selected);}
+    return chosen.sort((a,b)=>a.index-b.index);
   }
   function createStructures(storage, random) {
     backupRecoveryState(storage,STRUCTURE_KEY);
@@ -1891,6 +1903,10 @@
     atlasGroups.splice(4,0,{id:'muscle',name:'Мышечные ткани',ids:first.groups.muscle || []});
     atlasGroups.find(g=>g.id==='embryology').ids.push(...(first.groups.development || []));
   }
+  for (const [id,ids] of Object.entries(tissues.groups)) {
+    const group=atlasGroups.find(g=>g.id===id);
+    if(group)group.ids.push(...ids);
+  }
   // Вопросы составлены по указанной странице сборника. Это пробная подборка, а не вузовский ключ.
   // В каждом наборе первый вариант является правильным; порядок в тренировке перемешивается.
   const theoryQuestions = [
@@ -1941,5 +1957,5 @@
     return {state,current,entry,start,select,check,dontKnow,navigate,finish,storageFailed:()=>failed};
   }
 
-  window.HistologyPrototype = { slides, byId, distractors, atlasTheory, atlasGroups, theoryQuestions, theoryById, createTheory, THEORY_KEY, structureSlides, structureTasks, createStructures, STRUCTURE_KEY, normalize, matches, create, STORAGE_KEY };
+  window.HistologyPrototype = { slides, byId, distractors, atlasTheory, atlasGroups, theoryQuestions, theoryById, createTheory, THEORY_KEY, structureSlides, structureTasks, visibleStructurePoints, createStructures, STRUCTURE_KEY, normalize, matches, create, STORAGE_KEY };
 })();

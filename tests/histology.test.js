@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=13/);
+  assert.match(app,/js\/views-histology\.js\?v=14/);
 });
 
 
@@ -322,8 +322,8 @@ test('центр структурных меток остаётся прозра
   const css=fs.readFileSync(path.join(ROOT,'css/histology.css'),'utf8');
   assert.match(css,/\.histo-marker \{[^}]*background:transparent/);
   assert.match(css,/\.histo-marker::after \{[^}]*content:attr\(data-number\)/);
-  assert.match(view,/data-number="'\+\(i\+1\)\+'/);
-  assert.match(view,/button\.dataset\.number=String\(i\+1\)/);
+  assert.match(view,/data-number="'\+\(number\+1\)\+'/);
+  assert.match(view,/button\.dataset\.number=String\(number\+1\)/);
   assert.match(view,/histo-marker--label-left/);
 });
 
