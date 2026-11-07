@@ -59,3 +59,25 @@ test('profile photos require a session, are scoped to the verified account and r
   assert.equal((await call({action:'photo-delete'},a.session)).status,200);
   assert.equal((await(await call({action:'photo-get'},a.session)).json()).photo,null);
 });
+
+test('leaderboard participation is authenticated, isolated, explicit and validates names',async()=>{
+ const members=new Map(),sessions=fakeSessions();
+ const handler=createHandler({get:k=>({TELEGRAM_BOT_TOKEN:bot,SUPABASE_SERVICE_ROLE_KEY:'server-secret',SUPABASE_URL:'https://db.test'})[k]},async(url,opts={})=>{
+  const session=sessions(url,opts);if(session)return session;
+  if(url.includes('/rpc/medzo_leaderboard_top'))return new Response('[]');
+  if(url.includes('/medzo_leaderboard_members')){const id=new URL(url).searchParams.get('user_id')?.slice(3);
+   if(opts.method==='POST'){const row=JSON.parse(opts.body);members.set(row.user_id,row);return new Response(JSON.stringify([row]));}
+   if(opts.method==='DELETE'){members.delete(id);return new Response('[]');}
+   return new Response(JSON.stringify(members.has(id)?[members.get(id)]:[]));
+  }throw Error('unexpected');
+ });
+ async function call(body,token){return handler(new Request('https://edge.test',{method:'POST',headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:JSON.stringify(body)}));}
+ const a=await(await call({action:'login',initData:await initData(123)})).json(),b=await(await call({action:'login',initData:await initData(456)})).json();
+ assert.equal((await call({action:'leaderboard-join',name:'A',showPhoto:false})).status,401);
+ for(const name of ['', 'x'.repeat(49),'bad\nname'])assert.equal((await call({action:'leaderboard-join',name,showPhoto:false},a.session)).status,400);
+ assert.equal((await call({action:'leaderboard-join',name:'  Анна  ',showPhoto:false},a.session)).status,200);
+ assert.deepEqual((await(await call({action:'leaderboard-get'},a.session)).json()).member,{name:'Анна',showPhoto:false});
+ assert.equal((await(await call({action:'leaderboard-get'},b.session)).json()).member,null);
+ assert.equal((await call({action:'leaderboard-leave'},b.session)).status,200);assert.equal(members.has('123'),true);
+ assert.equal((await call({action:'leaderboard-leave'},a.session)).status,200);assert.equal(members.has('123'),false);
+});

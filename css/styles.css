@@ -2113,3 +2113,15 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .profile-photo__avatar img[hidden] { display: none; }
 .profile-photo__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 @media (max-width: 360px) { .profile-photo { flex-direction: column; } }
+
+.leaderboard { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+.leaderboard[hidden] { display: none; }
+.leaderboard form > label:not(.leaderboard__photo) { display: grid; gap: .4rem; font-weight: 600; }
+.leaderboard input[type="text"] { width: 100%; max-width: 26rem; min-width: 0; border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: .7rem .8rem; background: var(--surface); color: var(--text); font: inherit; }
+.leaderboard__photo { display: flex; gap: .5rem; align-items: center; margin: .75rem 0; }
+.leaderboard__list { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .4rem; }
+.leaderboard__list li { display: flex; align-items: center; gap: .65rem; padding: .65rem; border: 1px solid var(--border); border-radius: var(--r-sm); min-width: 0; }
+.leaderboard__list strong { overflow-wrap: anywhere; min-width: 0; }
+.leaderboard__place { color: var(--muted); min-width: 1.5rem; font-variant-numeric: tabular-nums; }
+.leaderboard__score { margin-left: auto; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+.leaderboard__avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; }
