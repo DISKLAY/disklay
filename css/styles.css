@@ -2310,7 +2310,7 @@ body { container: viewport-shell / inline-size; }
   }
 }
 
-/* Байкал: GIF заполняет центральный блок; после вступления возвращается фото. */
+/* Байкал: меньшее кадрирование поверх мягкого фона из того же GIF. */
 @media (min-width: 761px) {
   [data-accent="patriotic"] .hero:not(.hero--credit) { min-height: 360px; }
 }
@@ -2318,7 +2318,8 @@ body { container: viewport-shell / inline-size; }
   [data-accent="patriotic"] .hero:not(.hero--credit).hero--patriotic-playing { background: linear-gradient(110deg, #0d1c36, #284c6b 65%, #111c33); }
 }
 .hero__patriotic-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
-.hero__patriotic-intro img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 55%; }
+.hero__patriotic-intro::before { content: ""; position: absolute; inset: -24px; background: url('../assets/patriotic-baikal.gif') center 55% / cover no-repeat; filter: blur(20px) brightness(.65); }
+.hero__patriotic-intro img { display: block; position: absolute; top: 0; left: 57%; transform: translateX(-50%); width: min(35%, 420px); height: 100%; object-fit: cover; object-position: center 55%; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
 .hero__patriotic-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,28,54,.95), rgba(13,28,54,.28) 48%, rgba(13,28,54,.12) 72%, rgba(13,28,54,.65)); }
 .hero__patriotic-intro.is-playing { animation: patriotic-intro 9.8s linear forwards; }
 @keyframes patriotic-intro { 0%, 94% { opacity: 1; } 100% { opacity: 0; } }
