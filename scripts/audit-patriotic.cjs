@@ -17,7 +17,7 @@ const base = process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/';
       await page.goto(base); await page.waitForSelector('.hero');
       assert.equal(await page.locator('html').getAttribute('data-accent'), 'patriotic');
       assert.match(await page.locator('.hero').evaluate(el => getComputedStyle(el).backgroundImage), /patriotic-shaman/);
-      assert.match(await page.locator('body').evaluate(el => getComputedStyle(el, '::before').backgroundImage), /patriotic-background/);
+      assert.match(await page.locator('body').evaluate(el => getComputedStyle(el, '::before').backgroundImage), /patriotic-background-v2/);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${width}/${theme} home overflow`);
       await page.goto(base + '#/rewards'); await page.waitForSelector('.appearance-preview--patriotic');
       assert.match(await page.locator('.appearance-preview--patriotic').evaluate(el => getComputedStyle(el).backgroundImage), /patriotic-shaman/);

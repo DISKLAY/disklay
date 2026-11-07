@@ -876,7 +876,7 @@ test('патриотическое оформление покупается и 
   assert.equal(AT.game.profile().appearance, 'patriotic');
   assert.match(AT.views.rewards().html, /appearance-preview--patriotic/);
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
-  for (const name of ['patriotic-shaman.webp', 'patriotic-background.webp']) {
+  for (const name of ['patriotic-shaman.webp', 'patriotic-background-v2.webp']) {
     assert.ok(css.includes(name));
     assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', name)).size > 10000);
   }
