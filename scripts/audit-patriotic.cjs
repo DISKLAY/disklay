@@ -12,6 +12,8 @@ const base = process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/';
         localStorage.setItem('anatomy-colloquium-theme', theme);
         localStorage.setItem('anatomy-colloquium-rewards-shared-v1', JSON.stringify({appearance: 'patriotic', appearances: {patriotic: true}}));
       }, theme);
+      // Poster is shown immediately when motion is reduced; the intro has its own audit.
+      await page.emulateMedia({reducedMotion: 'reduce'});
       await page.goto(base); await page.waitForSelector('.hero');
       assert.equal(await page.locator('html').getAttribute('data-accent'), 'patriotic');
       assert.match(await page.locator('.hero').evaluate(el => getComputedStyle(el).backgroundImage), /patriotic-shaman/);

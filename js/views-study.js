@@ -95,6 +95,7 @@
   let titanIntroPlayed = false;
   let rickIntroPlayed = false;
   let breakingIntroPlayed = false;
+  let patrioticIntroPlayed = false;
   views.dashboard = function () {
     const overall = analytics.overall();
     const keyed = keyApi.count();
@@ -215,6 +216,32 @@
         }, { once: true });
         media.appendChild(clip); hero.prepend(media);
         clip.src = isRick ? 'assets/rick-morty-intro-hd.gif' : 'assets/breaking-bad-intro.gif';
+        return;
+      }
+      if (appearance === 'patriotic') {
+        if (patrioticIntroPlayed) return;
+        const hero = root.querySelector('.hero:not(.hero--credit)');
+        if (!hero) return;
+        patrioticIntroPlayed = true;
+        const media = document.createElement('div'), clip = document.createElement('img');
+        media.className = 'hero__patriotic-intro'; media.setAttribute('aria-hidden', 'true');
+        clip.alt = '';
+        const queries = [mobileMedia, reducedMedia].filter(Boolean);
+        const onMediaChange = event => { if (event.matches) finishIntro(); };
+        const finishIntro = () => {
+          queries.forEach(query => { if (query.removeEventListener) query.removeEventListener('change', onMediaChange); });
+          hero.classList.remove('hero--patriotic-playing'); media.remove();
+        };
+        queries.forEach(query => { if (query.addEventListener) query.addEventListener('change', onMediaChange); });
+        media.addEventListener('animationend', finishIntro, { once: true });
+        media.addEventListener('animationcancel', finishIntro, { once: true });
+        clip.addEventListener('error', finishIntro, { once: true });
+        clip.addEventListener('load', () => {
+          if (media.isConnected) { hero.classList.add('hero--patriotic-playing'); media.classList.add('is-playing'); }
+          else finishIntro();
+        }, { once: true });
+        media.appendChild(clip); hero.prepend(media);
+        clip.src = 'assets/patriotic-baikal.gif';
         return;
       }
       if (titanIntroPlayed || appearance !== 'anime') return;
