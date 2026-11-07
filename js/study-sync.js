@@ -6,6 +6,7 @@
   const S=window.MedzoStudySnapshot, E=window.MedzoSyncEngine;
   let auth=null, engine=null, plan=null, busy=false, listener=null, message='', challenge=null, config=null;
   let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
+  let photo=null, photoStatus='', photoVersion=0;
   function notify() { if(listener) listener(); }
   function loadScript(src) {
     return new Promise((resolve,reject)=>{
@@ -39,10 +40,10 @@
       // A tab-only login must not erase a remembered login belonging to another tab.
       if(storageName==='local')sessionStorage.removeItem(SESSION);
     }
-    auth=data;authStorage=storageName;
+    auth=data;authStorage=storageName;photo=null;photoStatus='';photoVersion++;
     engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body),userId:String(data.userId)});
   }
-  function clearAuth() {auth=null;engine=null;plan=null;authStorage=null;}
+  function clearAuth() {auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;}
   function clearCurrentSession() {
     const store=authStorage==='local'?localStorage:authStorage==='session'?sessionStorage:null;
     // Never erase a newer session written by another tab while logout was in flight.
@@ -62,7 +63,7 @@
   window.addEventListener('storage',e=>{
     if(e.key!==SESSION || e.storageArea!==localStorage || authStorage==='session')return;
     if(!e.newValue){if(authStorage==='local'){clearAuth();message='Вход завершён в другой вкладке.';notify();}return;}
-    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();}}catch(_){}
+    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();}}catch(_){}
   });
   async function prepareLogin() {
     if(auth || window.MedzoTelegramLaunch)return;
@@ -88,7 +89,7 @@
     try { connect(await call({action:'login',initData},false),rememberLogin?'local':'session');message=''; }
     catch (_) { message='Не удалось войти через Telegram. Закройте и снова откройте приложение из бота.'; }
     finally { busy=false;notify(); }
-    if(engine)await inspect();
+    if(engine){await Promise.all([inspect(),loadPhoto()]);}
   }
   function login() {
     if(busy)return;
@@ -109,7 +110,7 @@
         try { connect(await call({action:'login',idToken:result.id_token,nonce},false),rememberLogin?'local':'session');message=''; }
         catch (_) { message='Вход не удалось проверить. Попробуйте ещё раз.';prepareLogin(); }
         finally { busy=false;notify(); }
-        if(engine)await inspect();
+        if(engine){await Promise.all([inspect(),loadPhoto()]);}
       });
     } catch (_) { message='Не удалось открыть Telegram. Разрешите всплывающие окна и повторите.';notify();prepareLogin(); }
   }
@@ -146,6 +147,31 @@
     try { localStorage.removeItem(E.META);S.apply(localStorage,data);location.reload(); }
     catch(_){message='Не удалось восстановить данные. Проверьте свободное место в браузере.';notify();}
   }
+  async function loadPhoto() {
+    if(!auth)return;
+    const active=auth,version=++photoVersion;
+    try {const result=await call({action:'photo-get'});if(auth===active&&version===photoVersion){photo=typeof result.photo==='string'?result.photo:null;photoStatus='';}}
+    catch (_){if(auth===active&&version===photoVersion)photoStatus='Не удалось загрузить фото. Проверьте интернет.';}
+    notify();
+  }
+  async function changePhoto(file) {
+    if(!auth||busy||!file)return;
+    const active=auth,version=++photoVersion;busy=true;photoStatus='Подготавливаем фото…';notify();
+    try{
+      const encoded=await window.MedzoProfilePhoto.prepare(file);
+      if(auth!==active||version!==photoVersion)return;
+      await call({action:'photo-put',photo:encoded});
+      if(auth===active&&version===photoVersion){photo=encoded;photoStatus='Фото сохранено в аккаунте.';}
+    }catch(_){if(auth===active&&version===photoVersion)photoStatus='Не удалось сохранить фото. Выберите JPG, PNG или WebP до 8 МБ и проверьте интернет.';}
+    finally{busy=false;notify();}
+  }
+  async function deletePhoto(){
+    if(!auth||busy||!photo)return;
+    const active=auth,version=++photoVersion;busy=true;photoStatus='Удаляем фото…';notify();
+    try{await call({action:'photo-delete'});if(auth===active&&version===photoVersion){photo=null;photoStatus='Фото удалено.';}}
+    catch(_){if(auth===active&&version===photoVersion)photoStatus='Не удалось удалить фото. Проверьте интернет.';}
+    finally{busy=false;notify();}
+  }
   function mount(node) {
     listener=()=>{
       if(!node.isConnected){listener=null;return;}
@@ -154,6 +180,13 @@
       if(account){account.hidden=!auth;account.textContent=auth?'Telegram подключён':'';}
       const view=node.closest('.view');
       if(view)view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});
+      if(view)view.querySelectorAll('[data-if-signed-in]').forEach(el=>{el.hidden=!auth || auth.expiresAt<=Date.now()/1000;});
+      const photoImage=node.querySelector('[data-profile-photo]'),placeholder=node.querySelector('[data-profile-placeholder]'),photoText=node.querySelector('[data-profile-status]'),photoDelete=node.querySelector('[data-profile-delete]');
+      if(photoImage && photoImage.tagName==='IMG'){photoImage.hidden=!photo;if(photo)photoImage.src='data:image/jpeg;base64,'+photo;else photoImage.removeAttribute('src');}
+      if(placeholder)placeholder.hidden=!!photo;
+      if(photoText)photoText.textContent=photoStatus;
+      if(photoDelete){photoDelete.hidden=!photo;photoDelete.disabled=busy;}
+
       let text=message;
       if(!text && busy)text='Проверяем…';
       if(!text && !auth)text='Войдите через Telegram.';
@@ -167,11 +200,11 @@
       }
       actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy;});
     };
-    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect();if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();});
-    node.addEventListener('change',e=>{if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
+    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect();if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();});
+    node.addEventListener('change',e=>{if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
     const checkbox=node.querySelector('[data-sync-remember]');if(checkbox)checkbox.checked=remember;
     window.AT.onCleanup(()=>{listener=null;});notify();
-    if(auth)inspect();else prepareLogin();
+    if(auth){inspect();loadPhoto();}else prepareLogin();
   }
   function mountVisibility(view) {
     listener=()=>{if(!view.isConnected){listener=null;return;}view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});};

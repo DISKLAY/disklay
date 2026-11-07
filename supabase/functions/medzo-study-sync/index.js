@@ -37,6 +37,12 @@ async function verifyOidc(token,nonce,botId,fetchFn,now){
   // Require profile scope so website and Mini App map to the same Telegram user id.
   if(typeof claims.sub!=='string'||!claims.sub||claims.id==null)throw new Error('subject');return userId(claims.id);
 }
+// Only JPEG image bytes can be saved. Clients re-encode into a small image,
+// dropping EXIF; the server still limits and validates the untrusted payload.
+function validPhoto(value){
+  if(typeof value!=='string'||value.length<16||value.length>90000||value.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(value))return false;
+  try {const data=atob(value);return data.length<=65536 && data.charCodeAt(0)===255 && data.charCodeAt(1)===216 && data.charCodeAt(2)===255 && data.charCodeAt(data.length-2)===255 && data.charCodeAt(data.length-1)===217;}catch(_){return false;}
+}
 const moduleIds=['1','2','3','4','5','6','7','credit-1','credit-2','stom-2','stom-3'];
 const anatomyFields=['key','keyMeta','progress','favorites','comments','sessions','seen'];
 const allowed=Object.fromEntries(moduleIds.map(id=>[id==='1'?'anatomy-colloquium-v1':'anatomy-colloquium-v1-'+id,anatomyFields]).concat(Object.entries({'histology-prototype-v1':['stats','favorites','imageStats'],'histology-structures-v1':['stats'],'histology-theory-v1':['stats'],'anatomy-practical-skills-1-v1':['favorites','stats','notes']})));
@@ -74,6 +80,19 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       const rows=await db(path+'&select=expires_at');
       if(!rows.length || Date.parse(rows[0].expires_at)<=Date.now())throw Error('revoked');
     } else if(body.action==='logout') return response(200,{ok:true});
+    if(body.action==='photo-get'){
+      const rows=await db('medzo_profile_photos?user_id=eq.'+encodeURIComponent(id)+'&select=jpeg_base64');
+      return response(200,{photo:rows.length?rows[0].jpeg_base64:null});
+    }
+    if(body.action==='photo-put'){
+      if(!validPhoto(body.photo))return response(400,{error:'invalid_photo'});
+      await db('medzo_profile_photos?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,jpeg_base64:body.photo,updated_at:new Date().toISOString()})});
+      return response(200,{ok:true});
+    }
+    if(body.action==='photo-delete'){
+      await db('medzo_profile_photos?user_id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=representation'}});
+      return response(200,{ok:true});
+    }
     if(body.action==='get'){
       const rows=await db('medzo_study_sync?user_id=eq.'+encodeURIComponent(id)+'&select=revision,snapshot,updated_at');
       return response(200,rows.length?{revision:rows[0].revision,snapshot:rows[0].snapshot,updatedAt:rows[0].updated_at}:{revision:0,snapshot:{schema:1,records:{}}});
@@ -86,4 +105,4 @@ function createHandler(env,fetchFn=fetch){return async function(req){
   }catch(error){return error && error.message==='database'?response(503,{error:'unavailable'}):response(401,{error:'request_failed'});}
 };}
 if(typeof Deno!=='undefined')Deno.serve(createHandler(Deno.env));
-if(typeof module!=='undefined'&&module.exports)module.exports={hmac,b64u,unb64,verifyInitData,verifyOidc,signObject,verifyObject,validSnapshot,createHandler};
+if(typeof module!=='undefined'&&module.exports)module.exports={hmac,b64u,unb64,verifyInitData,verifyOidc,signObject,verifyObject,validSnapshot,validPhoto,createHandler};
