@@ -184,9 +184,9 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
       if (width === 1024 && zoom === 1) {
         for (const destination of ['dungeon', 'key', 'settings']) {
           await page.locator('#courseToggle').click();
-          await page.locator(`[data-sidebar-route="${destination}"]`).click();
+          await page.locator(`#anatomySidebar [data-sidebar-route="${destination}"]`).click();
           await page.waitForFunction(name => AT.route() === name, destination);
-          const active = await page.locator(`[data-sidebar-route="${destination}"]`).getAttribute('aria-current');
+          const active = await page.locator(`#anatomySidebar [data-sidebar-route="${destination}"]`).getAttribute('aria-current');
           if (active !== 'page') failures.push(`Меню: не отмечен текущий раздел ${destination}`);
           if (await page.locator('#courseSidebar').isVisible()) failures.push(`Меню не закрылось после перехода в ${destination}`);
         }

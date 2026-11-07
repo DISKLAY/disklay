@@ -15,7 +15,7 @@ const key='medzo-study-sync-session-v1';
    return r.fulfill({headers,contentType:'application/json',body:JSON.stringify(res)});
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(base);await page.waitForSelector('.hero');await page.locator('#courseToggle').click();await page.locator('[data-sidebar-route="profile"]').click();
+  await page.goto(base);await page.waitForSelector('.hero');await page.locator('#courseToggle').click();await page.locator('#courseSidebar [data-sidebar-route="profile"]').click();
   await page.waitForSelector('#studySync');assert.equal(await page.locator('#contextPage').textContent(),'Профиль');
   assert.equal(await page.locator('[data-sync-remember]').isChecked(),true);
   if(!remember)await page.locator('[data-sync-remember]').uncheck();

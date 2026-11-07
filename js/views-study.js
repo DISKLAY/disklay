@@ -130,19 +130,7 @@
         '<span class="game-overview__arrow">' + icon('chevronRight') + '</span></a>';
     }
 
-    const active = AT.currentSession();
-    if (active) {
-      const aq = AT.sessionQuestions(active);
-      const answered = aq.filter((item) => {
-        const r = active.results[item.id];
-        return r && r.selected && r.selected.length;
-      }).length;
-      html += '<a class="banner banner--resume" href="#/run">' +
-        '<span class="banner__icon">' + icon(active.mode === 'exam' ? 'exam' : 'play') + '</span>' +
-        '<span class="banner__body"><strong>Незаконченная ' + (active.mode === 'exam' ? 'экзамен' : 'тренировка') + '</strong>' +
-        '<span>Отвечено ' + answered + ' из ' + aq.length + ' · ' + esc(active.label || sessionLabel(active.topicIds)) + '</span></span>' +
-        '<span class="banner__cta">Продолжить' + icon('chevronRight') + '</span></a>';
-    }
+    html += resumeBanner();
 
     if (keyed < total) {
       const p = utils.pct(keyed, total);
@@ -276,11 +264,28 @@
       '<span class="topic__go">' + icon('chevronRight') + '</span></a>';
   }
 
+  function resumeBanner() {
+    const active = AT.currentSession();
+    if (active) {
+      const aq = AT.sessionQuestions(active);
+      const answered = aq.filter((item) => {
+        const r = active.results[item.id];
+        return r && r.selected && r.selected.length;
+      }).length;
+      return '<a class="banner banner--resume" href="#/run">' +
+        '<span class="banner__icon">' + icon(active.mode === 'exam' ? 'exam' : 'play') + '</span>' +
+        '<span class="banner__body"><strong>' + (active.mode === 'exam' ? 'Незаконченный экзамен' : 'Незаконченная тренировка') + '</strong>' +
+        '<span>Отвечено ' + answered + ' из ' + aq.length + ' · ' + esc(active.label || sessionLabel(active.topicIds)) + '</span></span>' +
+        '<span class="banner__cta">Продолжить' + icon('chevronRight') + '</span></a>';
+    }
+    return '';
+  }
+
   /* Единый вход в тесты: показываем только выбранную группу баз. */
   views.tests = function () {
     const select = document.getElementById('colloquiumSelect');
     const groups = Array.from(select.querySelectorAll('optgroup'));
-    const html = '<div class="view tests-view"><header class="tests-head"><div><span class="tests-head__eyebrow">АНАТОМИЯ</span><h1>Тесты</h1><p>Выберите коллоквиум или зачёт</p></div><div class="tests-head__mark" aria-hidden="true">'+icon('book')+'</div></header><div class="test-groups">' + groups.map((group, index) =>
+    const html = '<div class="view tests-view"><header class="tests-head"><div><span class="tests-head__eyebrow">АНАТОМИЯ</span><h1>Тесты</h1><p>Выберите коллоквиум или зачёт</p></div><div class="tests-head__mark" aria-hidden="true">'+icon('book')+'</div></header>' + resumeBanner() + '<div class="test-groups">' + groups.map((group, index) =>
       '<details class="test-group"'+(group.contains(select.selectedOptions[0])?' open':'')+'><summary><span class="test-group__number" aria-hidden="true">'+utils.pad(index+1)+'</span><span class="test-group__heading"><strong>'+esc(group.label)+'</strong><small>'+group.children.length+' '+utils.plural(group.children.length,'раздел','раздела','разделов')+'</small></span><span class="test-group__chevron" aria-hidden="true">⌄</span></summary><div class="test-group__items">'+Array.from(group.children).map(option => {
         const module=window.COLLOQUIUM_MODULES && window.COLLOQUIUM_MODULES[option.value];
         const credit=option.value.startsWith('credit-'),parts=option.textContent.replace(/^Стом\s*·\s*/,'').split(' · ');

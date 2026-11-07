@@ -86,7 +86,8 @@ test('в шапке нет второго выпадающего списка и
   assert.match(html, /<select id="colloquiumSelect" hidden/);
   assert.doesNotMatch(html, /id="modulePicker"/);
   assert.match(html, /course-toggle__text"><span>Меню<\/span>/);
-  assert.match(html, /id="courseSidebarNav"/);
+  assert.doesNotMatch(html, /id="courseSidebarNav"/);
+  assert.match(html, /id="courseRail"/);
   assert.match(css, /@media \(max-width: 760px\)\s*\{\s*\.nav\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /\.course-toggle span\s*\{\s*display:\s*none/);
 });
