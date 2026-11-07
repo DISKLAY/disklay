@@ -13,7 +13,7 @@
     const image=document.getElementById('topbarProfilePhoto'),fallback=document.getElementById('topbarProfilePlaceholder');
     if(!image||!fallback)return;
     const show=!!auth&&auth.expiresAt>Date.now()/1000&&typeof photo==='string'&&photo.length<=90000&&/^[A-Za-z0-9+/]*={0,2}$/.test(photo);
-    image.hidden=!show;fallback.hidden=show;
+    image.hidden=!show;fallback.toggleAttribute('hidden',show);
     if(show){const src='data:image/jpeg;base64,'+photo;if(image.getAttribute('src')!==src)image.src=src;}else image.removeAttribute('src');
   }
   function notify() { updateHeader();if(listener) listener(); }
