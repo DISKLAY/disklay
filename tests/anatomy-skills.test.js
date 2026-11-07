@@ -22,9 +22,10 @@ test('пустой фильтр и повреждённые или недост�
  let bad=H.create({getItem:()=>'{',setItem(){throw Error('storage');}},()=>.5);assert.ok(bad.start());assert.equal(bad.storageFailed(),true);
  bad=H.create({getItem:()=>JSON.stringify({session:{order:[1,1],index:0}}),setItem(){}},()=>.5);assert.equal(bad.state.session,null);
 });
-test('раздел загружается отдельно и доступен на главной только первого коллоквиума',()=>{
- const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'js/app.js'),'utf8'),dashboard=fs.readFileSync(path.join(root,'js/views-study.js'),'utf8');
- assert.match(html,/data-sidebar-route="anatomy-skills"[^>]*id="sidebarSkills" hidden/);assert.match(app,/getElementById\('sidebarSkills'\)\.hidden = AT\.colloquium\.id !== '1'/);assert.doesNotMatch(html.match(/<nav class="nav" id="mainNav"[\s\S]*?<\/nav>/)[0],/anatomy-skills/);assert.match(app,/function loadAnatomySkills/);assert.match(dashboard,/AT.colloquium.id === '1' \? modeCard\('Практические навыки'/);
+test('навыки первого коллоквиума доступны через общую навигацию тренировки',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'js/app.js'),'utf8');
+ assert.doesNotMatch(html,/data-sidebar-route="anatomy-skills"/);
+ assert.match(app,/function loadAnatomySkills/);assert.match(app,/\['anatomy-skills','Навыки · 1','#\/anatomy-skills'\]/);
 });
 
 

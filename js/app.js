@@ -120,7 +120,7 @@
       .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=2'))
       .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=1'))
       .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=1'))
-      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=2'));
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=3'));
     anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
     return anatomyOralLoad;
   }
@@ -146,10 +146,9 @@
 
   function updateMobileNav(route, histology) {
     const items = histology
-      ? [['Препараты','microscope','#/histology?section=setup','setup'],['Атлас','atlas','#/histology?section=atlas','atlas'],['Ошибки','mistakes','#/histology?section=errors','errors'],['Статистика','stats','#/histology?section=stats','stats']]
-      : [['Главная','home','#/','dashboard'],['Тесты','book','#/tests','tests'],['Ошибки','mistakes','#/mistakes','mistakes'],['Статистика','stats','#/stats','stats']];
-    const session=AT.getState().session;
-    const active=histology?(route.params.section||'setup'):(route.name==='train'||((route.name==='run'||route.name==='summary')&&(!session||session.mode!=='exam'))?'tests':route.name);
+      ? [['Препараты','slide','#/histology?section=setup','setup'],['Атлас','atlas','#/histology?section=atlas','atlas'],['Ошибки','mistakes','#/histology?section=errors','errors'],['Статистика','stats','#/histology?section=stats','stats']]
+      : [['Главная','home','#/','dashboard'],['Тренировка','train','#/tests','tests'],['Теория','book','#/anatomy-oral?section=notes','anatomy-oral'],['Статистика','stats','#/stats','stats']];
+    const active=histology?(route.params.section||'setup'):(trainingRoute(route)?'tests':route.name);
     document.querySelectorAll('[data-mobile-nav]').forEach((link,i)=>{
       const [label,iconName,href,key]=items[i];link.href=href;link.innerHTML=ui.icon(iconName)+'<span>'+label+'</span>';link.setAttribute('aria-label',label);
       link.classList.toggle('is-active',active===key);if(active===key)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
@@ -162,13 +161,29 @@
     const separator = document.getElementById('contextBaseSeparator');
     const page = document.getElementById('contextPage');
     const option = document.getElementById('colloquiumSelect').selectedOptions[0];
-    const labels = {dashboard:'Главная', tests:'Тесты', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Устная подготовка'};
+    const labels = {dashboard:'Главная', tests:'Тренировка · Базы', train:'Тренировка · Тесты', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Теория · 1 коллоквиум'};
     const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
-    base.hidden = separator.hidden = histology || route.name === 'profile';
+    base.hidden = separator.hidden = histology || ['profile','anatomy-oral','anatomy-skills'].includes(route.name);
     if (!histology && option) base.value = option.value;
-    page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (labels[route.name] || 'Страница');
+    const oralLabels = {cards:'Карточки · 1 коллоквиум', tickets:'Билеты · 1 коллоквиум'};
+    page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (route.name === 'anatomy-oral' && oralLabels[route.params.section] || labels[route.name] || 'Страница');
+  }
+
+  // Старые ссылки сохранены; все тренировочные экраны образуют один раздел.
+  function trainingRoute(route) {
+    return ['tests','train','exam','mistakes','anatomy-skills','run','summary'].includes(route.name) ||
+      (route.name === 'anatomy-oral' && ['cards','tickets'].includes(route.params.section));
+  }
+  function trainingNav(route) {
+    const tabs=[['tests','Базы','#/tests'],['train','Тесты','#/train'],['exam',AT.colloquium.kind === 'credit'?'Пробный зачёт':'Экзамен','#/exam'],
+      ['anatomy-skills','Навыки · 1','#/anatomy-skills'],['tickets','Билеты · 1','#/anatomy-oral?section=tickets'],
+      ['cards','Карточки · 1','#/anatomy-oral?section=cards'],['mistakes','Ошибки','#/mistakes']];
+    const active=route.name==='anatomy-oral'?route.params.section:route.name;
+    const nav=document.createElement('nav'); nav.className='anatomy-training-nav'; nav.setAttribute('aria-label','Разделы тренировки по анатомии');
+    nav.innerHTML=tabs.map(([key,label,href])=>'<a href="'+href+'"'+(key===active?' class="is-active" aria-current="page"':'')+'>'+label+'</a>').join('');
+    return nav;
   }
 
   function render() {
@@ -246,6 +261,7 @@
     }
 
     root.innerHTML = result.html;
+    if (trainingRoute(route) && !['run','summary'].includes(route.name)) { const view=root.querySelector('.view'); if (view) view.prepend(trainingNav(route)); }
     if (result.mount) {
       try {
         result.mount(root);
@@ -267,8 +283,7 @@
 
   function updateNav(name) {
     if (!nav) return;
-    const session = AT.getState().session;
-    const active = name === 'run' || name === 'summary' ? (session && session.mode === 'exam' ? 'exam' : 'tests') : name === 'train' ? 'tests' : name;
+    const active = trainingRoute(parseHash()) ? 'tests' : name;
     nav.querySelectorAll('[data-route]').forEach((link) => {
       const r = link.getAttribute('data-route');
       const isActive = r === active || (active === 'dashboard' && r === 'dashboard');
@@ -317,7 +332,7 @@
 
   document.addEventListener('click', (e) => {
     const link=e.target.closest('[data-mobile-nav]');
-    if(link && location.hash===link.getAttribute('href') && !e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey&&e.button===0 && AT.views.histology?.openSection){
+    if(link && link.getAttribute('href').startsWith('#/histology?') && location.hash===link.getAttribute('href') && !e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey&&e.button===0 && AT.views.histology?.openSection){
       const section=new URLSearchParams(link.hash.split('?')[1]||'').get('section');if(section){e.preventDefault();AT.views.histology.openSection(section);}
     }
     const el = e.target.closest('[data-action="toggle-theme"]');
@@ -353,7 +368,6 @@
     quickSelect.value = moduleSelect.value;
     quickSelect.addEventListener('change', () => { moduleSelect.value = quickSelect.value; moduleSelect.dispatchEvent(new Event('change', {bubbles:true})); });
     moduleSelect.addEventListener('change', () => { quickSelect.value = moduleSelect.value; });
-    document.getElementById('sidebarSkills').hidden = AT.colloquium.id !== '1';
     const sidebar = document.getElementById('courseSidebar');
     sidebar.querySelectorAll('[data-nav-icon]').forEach(link => {
       const label = link.textContent.trim();
