@@ -882,14 +882,14 @@ test('патриотическое оформление покупается и 
   }
 });
 
-test('патриотическое оформление использует предоставленную анимацию Байкала без растягивания', () => {
+test('патриотическое оформление показывает анимацию Байкала на весь центральный блок', () => {
   const gif = fs.readFileSync(path.join(__dirname, '..', 'assets/patriotic-baikal.gif'));
   assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(study, /patrioticIntroPlayed/);
   assert.match(study, /assets\/patriotic-baikal\.gif/);
-  assert.match(css, /\.hero__patriotic-intro img \{[^}]*object-fit: contain/);
+  assert.match(css, /\.hero__patriotic-intro img \{[^}]*object-fit: fill/);
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__patriotic-intro \{ display: none; animation: none;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__patriotic-intro/);
 });
