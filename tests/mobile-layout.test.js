@@ -39,7 +39,9 @@ test('в верхней строке только основные раздел�
   }
   assert.doesNotMatch(html, /id="coursePicker"|class="course-more"|>Учёба<|>Мой прогресс</);
   assert.match(html, /class="icon-btn topbar-settings" href="#\/settings"/);
-  assert.match(html, /id="courseRail"/);
+  assert.doesNotMatch(html, /id="courseRail"/);
+  assert.match(html, /id="courseSidebarContents"/);
+  assert.doesNotMatch(html.match(/<header[\s\S]*?<\/header>/)[0], /id="courseToggle"/);
   assert.match(html, /class="context-nav" aria-label="Путь по разделам"/);
   assert.match(css, /\.nav \{[^}]*flex-wrap: wrap/s);
   assert.match(css, /@media \(max-width: 1100px\) \{\s*\.topbar__inner \{ flex-wrap: wrap/s);

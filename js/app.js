@@ -97,7 +97,7 @@
       .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=1'))
       .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=22'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=26'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=27'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
@@ -116,23 +116,9 @@
     const brand = document.getElementById('subjectBrand');
     const brandLabel = document.getElementById('subjectBrandLabel');
     const sidebarLabel = document.getElementById('subjectSidebarLabel');
-    const current = document.getElementById('courseToggleCurrent');
-    const sidebarCurrent = document.getElementById('courseSidebarCurrent');
-    const toggle = document.getElementById('courseToggle');
-    const select = document.getElementById('colloquiumSelect');
     if (brand) brand.setAttribute('href', histology ? '#/histology' : '#/');
     if (brandLabel) brandLabel.textContent = histology ? 'Гистология' : 'Анатомия';
     if (sidebarLabel) sidebarLabel.textContent = histology ? 'Гистология' : 'Анатомия';
-    if (histology) {
-      if (current) current.textContent = 'Гистология';
-      if (sidebarCurrent) sidebarCurrent.textContent = 'Препараты, атлас и тренировки';
-      if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Гистология');
-    } else if (select && select.options[select.selectedIndex]) {
-      const option = select.options[select.selectedIndex];
-      if (current) current.textContent = option.textContent;
-      if (sidebarCurrent) sidebarCurrent.textContent = option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
-      if (toggle) toggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
-    }
     document.querySelectorAll('[data-histo-sidebar]').forEach(link => {
       const active = histology && link.getAttribute('data-histo-sidebar') === (section || 'setup');
       link.classList.toggle('is-active', active);
@@ -321,50 +307,16 @@
         ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
-    const courseToggle = document.getElementById('courseToggle');
-    const courseToggleCurrent = document.getElementById('courseToggleCurrent');
-    const courseSidebarCurrent = document.getElementById('courseSidebarCurrent');
-    const syncCourseToggle = () => {
-      const option = moduleSelect.options[moduleSelect.selectedIndex];
-      if (!option || !courseToggle || !courseToggleCurrent) return;
-      courseToggleCurrent.textContent = option.textContent;
-      if (courseSidebarCurrent) courseSidebarCurrent.textContent = option.parentElement.label + ' · ' + option.textContent.replace(/^Стом\s*·\s*/, '');
-      courseToggle.setAttribute('aria-label', 'Открыть меню. Текущая база: ' + option.parentElement.label + ', ' + option.textContent);
-    };
-    moduleSelect.addEventListener('change', syncCourseToggle);
-    syncCourseToggle();
-    const drawer = window.initCourseDrawer(document.getElementById('courseSidebar'), document.getElementById('courseToggle'), document.getElementById('courseClose'), document.getElementById('courseBackdrop'));
-    const baseButton = document.getElementById('contextBase');
-    baseButton.addEventListener('click', () => AT.go('#/tests'));
+    document.getElementById('contextBase').addEventListener('click', () => AT.go('#/tests'));
     document.getElementById('sidebarSkills').hidden = AT.colloquium.id !== '1';
-
-    // The compact desktop rail reuses the same links, labels and active states.
-    const sidebar = document.getElementById('courseSidebar'), rail = document.getElementById('courseRail');
+    const sidebar = document.getElementById('courseSidebar');
     sidebar.querySelectorAll('[data-nav-icon]').forEach(link => {
       const label = link.textContent.trim();
       link.innerHTML = ui.icon(link.dataset.navIcon) + '<span class="course-nav-label"></span>';
       link.querySelector('.course-nav-label').textContent = label;
+      link.setAttribute('aria-label', label); link.title = label;
     });
-    const subjects = document.createElement('div'); subjects.className = 'course-rail__subjects';
-    sidebar.querySelectorAll('[data-subject-link]').forEach(link => {
-      const copy = link.cloneNode(true); copy.setAttribute('aria-label', link.textContent.trim()); copy.title = link.textContent.trim(); subjects.appendChild(copy);
-    });
-    rail.appendChild(subjects);
-    ['anatomySidebar', 'histologySidebar'].forEach(id => {
-      const group = document.createElement('div'); group.className = 'course-rail__group'; group.dataset.railSubject = id === 'anatomySidebar' ? 'anatomy' : 'histology';
-      document.getElementById(id).querySelectorAll('[data-nav-icon]').forEach(link => {
-        const copy = link.cloneNode(true); copy.removeAttribute('id'); copy.setAttribute('aria-label', link.textContent.trim()); copy.title = link.textContent.trim(); group.appendChild(copy);
-      });
-      rail.appendChild(group);
-    });
-    const profile = sidebar.querySelector('[data-sidebar-route="profile"]').cloneNode(true);
-    profile.setAttribute('aria-label', 'Профиль'); profile.title = 'Профиль'; rail.appendChild(profile);
-    rail.addEventListener('click', event => {
-      const link = event.target.closest('[data-histo-sidebar]');
-      if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button === 0 && location.hash === link.getAttribute('href') && AT.views.histology && AT.views.histology.openSection) {
-        event.preventDefault(); AT.views.histology.openSection(link.dataset.histoSidebar);
-      }
-    });
+    window.initCourseDrawer(sidebar, document.getElementById('courseToggle'), document.getElementById('courseBackdrop'));
   }
 
   /* ---------------------------------------------------------------- запуск */
@@ -372,7 +324,7 @@
   if (AT.colloquium.kind === 'credit') {
     const examLink = nav.querySelector('[data-route="exam"]');
     if (examLink) examLink.textContent = 'Пробный зачёт';
-    document.querySelectorAll('[data-sidebar-route="exam"]').forEach(link => { link.querySelector('.course-nav-label').textContent = 'Пробный зачёт'; if (link.closest('#courseRail')) { link.setAttribute('aria-label', 'Пробный зачёт'); link.title = 'Пробный зачёт'; } });
+    document.querySelectorAll('[data-sidebar-route="exam"]').forEach(link => { link.querySelector('.course-nav-label').textContent = 'Пробный зачёт'; link.setAttribute('aria-label', 'Пробный зачёт'); link.title = 'Пробный зачёт'; });
   }
   ui.applyTheme();
   AT.game.applyAppearance();

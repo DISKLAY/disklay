@@ -26,12 +26,10 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${width} overflow`);
    await page.locator('#courseToggle').click();
    for(const link of await page.locator('#courseSidebar [data-nav-icon]:visible').all()) assert.equal(await link.locator('svg').count(),1);
-   await page.locator('#courseClose').click();
-   if(width>=900) {
-    assert.equal(await page.locator('#courseRail [data-sidebar-route="key"].is-active:visible').count(),1);
-    assert.equal(await page.locator('#courseRail [data-rail-subject="anatomy"] [data-sidebar-route="key"] .course-nav-label').isVisible(),false);
-    await page.locator('#courseRail [data-sidebar-route="tests"]').click();await page.waitForSelector('.test-groups');
-   } else assert.equal(await page.locator('#courseRail').isVisible(),false);
+   await page.locator('#courseToggle').click();
+   assert.equal(await page.locator('#anatomySidebar [data-sidebar-route="key"].is-active').count(),1);
+   assert.equal(await page.locator('#anatomySidebar [data-sidebar-route="key"] .course-nav-label').isVisible(),false);
+   await page.locator('#anatomySidebar [data-sidebar-route="tests"]').click();await page.waitForSelector('.test-groups');
    assert.deepEqual(errors,[]);await page.close();console.log(`${width}px navigation and resume/reset OK`);
   }
   {
@@ -50,7 +48,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
    },{theme,appearance});await page.emulateMedia({reducedMotion:'reduce'});await page.goto(base+'#/tests');await page.waitForSelector('.test-groups');
    assert.equal(await page.locator('html').getAttribute('data-theme'),theme);assert.equal(await page.locator('html').getAttribute('data-accent'),appearance);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${theme}/${appearance} overflow`);
-   const colors=await page.locator('#courseRail [data-sidebar-route="tests"]').evaluate(el=>({color:getComputedStyle(el).color,bg:getComputedStyle(el).backgroundColor}));
+   const colors=await page.locator('#anatomySidebar [data-sidebar-route="tests"]').evaluate(el=>({color:getComputedStyle(el).color,bg:getComputedStyle(el).backgroundColor}));
    const luminance = color => { const rgb=color.match(/\d+(?:\.\d+)?/g).slice(0,3).map(n=>{const c=Number(n)/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4}); return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]; };
    const lum=[luminance(colors.color),luminance(colors.bg)].sort((a,b)=>b-a);
    assert.ok((lum[0]+.05)/(lum[1]+.05)>=3,`${theme}/${appearance} active icon contrast`);

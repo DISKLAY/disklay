@@ -9,7 +9,7 @@
   let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
   let photo=null, photoStatus='', photoVersion=0, accountName='',lastPhotoCheck=0;
   let bootstrap=false, bootstrapHash=Promise.resolve(null), syncAlert='', autoTimer=null, retryDelay=5000;
-  let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false;
+  let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false, leaderMutating=false;
   function updateHeader(){
     if(typeof document.getElementById!=='function')return;
     const image=document.getElementById('topbarProfilePhoto'),fallback=document.getElementById('topbarProfilePlaceholder');
@@ -291,8 +291,8 @@
     if(!auth||!String(auth.userId).startsWith('p_'))return;
     const active=auth;try{const data=await call({action:'account-get'});if(auth===active&&typeof data.displayName==='string'&&data.displayName.length<=48)accountName=data.displayName;}catch(_){}notify();
   }
-  async function loadLeaderboard(){
-    if(!auth)return;const active=auth,version=++leaderVersion;
+  async function loadLeaderboard(force=false){
+    if(!auth || (leaderMutating&&!force))return;const active=auth,version=++leaderVersion;
     try{const data=await call({action:'leaderboard-get'});if(auth===active&&version===leaderVersion){leaders=Array.isArray(data.leaders)?data.leaders:[];member=data.member||null;leaderNeedsForm=true;leaderStatus='';}}
     catch(_){if(auth===active&&version===leaderVersion)leaderStatus='Не удалось загрузить рейтинг. Проверьте интернет.';}
     notify();
@@ -300,16 +300,16 @@
   async function joinLeaderboard(form){
     if(!auth||busy)return;const active=auth,version=++leaderVersion;
     const name=form.elements['leaderboard-name'].value,showPhoto=form.elements['leaderboard-photo'].checked;
-    busy=true;leaderStatus='Сохраняем…';notify();
-    try{await call({action:'leaderboard-join',name,showPhoto});if(auth===active&&version===leaderVersion){if(form.elements['leaderboard-name'].value===name&&form.elements['leaderboard-photo'].checked===showPhoto)leaderDirty=false;await loadLeaderboard();leaderStatus='Настройки рейтинга сохранены.';}}
+    leaderMutating=true;busy=true;leaderStatus='Сохраняем…';notify();
+    try{await call({action:'leaderboard-join',name,showPhoto});if(auth===active&&version===leaderVersion){if(form.elements['leaderboard-name'].value===name&&form.elements['leaderboard-photo'].checked===showPhoto)leaderDirty=false;await loadLeaderboard(true);leaderStatus='Настройки рейтинга сохранены.';}}
     catch(_){if(auth===active&&version===leaderVersion)leaderStatus='Не удалось сохранить. Проверьте имя и подключение.';}
-    finally{busy=false;notify();}
+    finally{leaderMutating=false;busy=false;notify();}
   }
   async function leaveLeaderboard(){
-    if(!auth||busy||!member)return;const active=auth,version=++leaderVersion;busy=true;leaderStatus='Удаляем из рейтинга…';notify();
-    try{await call({action:'leaderboard-leave'});if(auth===active&&version===leaderVersion){await loadLeaderboard();leaderStatus='Вы больше не участвуете в рейтинге.';}}
+    if(!auth||busy||!member)return;const active=auth,version=++leaderVersion;leaderMutating=true;busy=true;leaderStatus='Удаляем из рейтинга…';notify();
+    try{await call({action:'leaderboard-leave'});if(auth===active&&version===leaderVersion){await loadLeaderboard(true);leaderStatus='Вы больше не участвуете в рейтинге.';}}
     catch(_){if(auth===active&&version===leaderVersion)leaderStatus='Не удалось выйти из рейтинга. Проверьте подключение.';}
-    finally{busy=false;notify();}
+    finally{leaderMutating=false;busy=false;notify();}
   }
   function renderLeaderboard(node){
     const form=node.querySelector('[data-leaderboard-form]'),list=node.querySelector('[data-leaderboard-list]'),status=node.querySelector('[data-leaderboard-status]');
@@ -368,6 +368,22 @@
     window.AT.onCleanup(()=>{listener=null;});notify();
     if(auth){schedule(0);loadPhoto();loadLeaderboard();loadAccount();}else prepareLogin();
   }
+  function mountLeaderboard(node) {
+    if(!node)return;
+    leaderNeedsForm=true;leaderDirty=false;
+    listener=()=>{
+      if(!node.isConnected){listener=null;return;}
+      const signedIn=!!auth && auth.expiresAt>Date.now()/1000;
+      node.querySelector('[data-leaderboard-signed-in]').hidden=!signedIn;
+      node.querySelector('[data-leaderboard-signed-out]').hidden=signedIn;
+      renderLeaderboard(node);
+    };
+    node.addEventListener('input',e=>{if(e.target.closest('[data-leaderboard-form]'))leaderDirty=true;});
+    node.addEventListener('change',e=>{if(e.target.closest('[data-leaderboard-form]'))leaderDirty=true;});
+    node.addEventListener('submit',e=>{if(e.target.matches('[data-leaderboard-form]')){e.preventDefault();joinLeaderboard(e.target);}});
+    node.addEventListener('click',e=>{if(e.target.closest('[data-leaderboard-leave]'))leaveLeaderboard();});
+    window.AT.onCleanup(()=>{listener=null;});notify();if(auth)loadLeaderboard();
+  }
   function mountVisibility(view) {
     listener=()=>{if(!view.isConnected){listener=null;return;}view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});};
     window.AT.onCleanup(()=>{listener=null;});notify();
@@ -379,7 +395,7 @@
   window.addEventListener('online',()=>schedule(0));
   window.addEventListener('focus',()=>{schedule(0);refreshPhoto();});
   if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule(0);});
-  window.MedzoStudySync={mount,mountVisibility,changed:()=>schedule()};
+  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,changed:()=>schedule()};
   notify();
   if(auth){loadPhoto();schedule(0);}
 })();
