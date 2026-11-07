@@ -9,9 +9,9 @@
 .histo-eyebrow span { width: 7px; height: 7px; background: var(--primary); border-radius: 50%; }
 .histo-hero__tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 25px; }
 .histo-hero__tags span { padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); font-size: .72rem; font-weight: 600; }
-.histo-hero__mark { flex: none; align-self: center; display: grid; place-items: center; width: 150px; height: 150px; border: 1px solid color-mix(in srgb,var(--primary) 25%,transparent); border-radius: 50%; color: var(--primary); box-shadow: 0 0 0 22px color-mix(in srgb,var(--primary) 5%,transparent),0 0 0 44px color-mix(in srgb,var(--primary) 3%,transparent); }
-.histo-hero__mark span { font-size: 4.5rem; line-height: 1; }
-.histo-hero__mark small { margin-top: -35px; text-align: center; font-size: .52rem; font-weight: 800; letter-spacing: .15em; line-height: 1.2; }
+.histo-hero__mark { flex: none; align-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 150px; height: 150px; border: 1px solid color-mix(in srgb,var(--primary) 25%,transparent); border-radius: 50%; color: var(--primary); box-shadow: 0 0 0 22px color-mix(in srgb,var(--primary) 5%,transparent),0 0 0 44px color-mix(in srgb,var(--primary) 3%,transparent); }
+.histo-hero__slide { display: block; width: 84px; height: 67px; flex: none; }
+.histo-hero__mark small { text-align: center; font-size: .52rem; font-weight: 800; letter-spacing: .15em; line-height: 1.2; }
 .histo-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin: 18px 0; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
 .histo-stats div { min-width: 0; padding: 20px 22px; display: flex; flex-direction: column; gap: 3px; }
 .histo-stats div + div { border-left: 1px solid var(--border); }

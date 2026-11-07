@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=27/);
+  assert.match(app,/js\/views-histology\.js\?v=28/);
 });
 
 
@@ -340,4 +340,14 @@ test('при восстановлении сохраняется исходна�
  const original={...data}, {H,store}=load(data);
  H.create(store,()=>0.5).setMode('text');H.createStructures(store,()=>0.5).setMode('name');H.createTheory(store,()=>0.5).start('all');
  for(const key of Object.keys(original))assert.equal(data[key+'-pre-recovery-backup'],original[key]);
+});
+
+
+test('знак микроатласа изображает гистологический препарат и не зависит от эмодзи',()=>{
+  const view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8');
+  const css=fs.readFileSync(path.join(ROOT,'css/histology.css'),'utf8');
+  assert.match(view, /histo-hero__mark" aria-hidden="true"><svg class="histo-hero__slide"/);
+  assert.match(view, /<rect x="5" y="9" width="78" height="52"/);
+  assert.doesNotMatch(view, /histo-hero__mark[^]*?<span>✳<\/span>/);
+  assert.match(css, /\.histo-hero__slide \{[^}]*width: 84px/);
 });
