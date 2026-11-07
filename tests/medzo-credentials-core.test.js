@@ -39,3 +39,9 @@ test('identity from provider must match the account being authenticated',async()
  const h=harness();await h.service.register({username:'student',nickname:'Test',password:'password1234'},{});h.provider.authenticate=async()=>({ok:true,identity:{id:'another'}});
  assert.deepEqual(await h.service.login({username:'student',password:'password1234'},{}),{ok:false,error:'invalid_credentials'});
 });
+
+test('only a definitive provider refusal releases a pending username',async()=>{
+ const h=harness();h.provider.create=async()=>{const e=Error('invalid');e.definitive=true;throw e;};
+ await h.service.register({username:'student',nickname:'A',password:'password1234'},{});assert.equal(h.rows.has('student'),false);
+ h.provider.create=async()=>{throw Error('timeout')};await h.service.register({username:'student',nickname:'A',password:'password1234'},{});assert.equal(h.rows.has('student'),true);
+});

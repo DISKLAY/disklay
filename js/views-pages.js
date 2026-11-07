@@ -605,7 +605,7 @@
 
   views.profile = function () {
     let html = '<div class="view view--narrow"><div class="page-head"><h1>Профиль</h1></div>';
-    html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Telegram и синхронизация</h2>' +
+    html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Вход и синхронизация</h2>' +
       '<p class="muted small">Не синхронизируются: подземелье, настройки и текущие сессии.</p>' +
       '<label class="profile-remember" data-if-signed-out><input type="checkbox" data-sync-remember checked><span><strong>Запомнить меня</strong><small>С галочкой — до 90 дней; без неё — в этой вкладке, которую браузер может восстановить после закрытия.</small></span></label>' +
       '<div class="profile-photo" data-if-signed-in hidden><div class="profile-photo__avatar"><img alt="Фото профиля" data-profile-photo hidden><span aria-hidden="true" data-profile-placeholder>☺</span></div>' +
@@ -613,6 +613,9 @@
       '<div class="profile-photo__actions"><label class="btn btn--ghost btn--file">Выбрать фото<input type="file" accept="image/jpeg,image/png,image/webp" data-profile-file></label>' +
       '<button type="button" class="btn btn--ghost" data-sync="photo-delete" data-profile-delete hidden>Удалить фото</button></div>' +
       '<p class="muted small" data-profile-status role="status" aria-live="polite"></p></div></div>' +
+      '<div data-if-signed-out class="password-entry"><details><summary>Войти по логину и паролю</summary><form data-password-login><label>Логин<input name="username" autocomplete="username" required minlength="4" maxlength="32" pattern="[A-Za-z0-9_]+"></label><label>Пароль<input type="password" name="password" autocomplete="current-password" required maxlength="72"></label><button type="submit" class="btn btn--primary">Войти</button></form></details>' +
+      '<details><summary>Создать аккаунт без почты</summary><p class="muted small">Логин: 4–32 латинские буквы, цифры или _. Пароль: не менее 10 символов. Имя видно в профиле.</p><p class="muted small"><strong>Важно:</strong> привязка Telegram и восстановление пароля пока не доступны. Если забыть пароль, восстановить аккаунт сейчас нельзя. Сохраните пароль в надёжном месте. Парольный и Telegram-аккаунты пока раздельные; их прогресс не объединяется автоматически.</p>' +
+      '<form data-password-register><label>Логин<input name="username" autocomplete="username" required minlength="4" maxlength="32" pattern="[A-Za-z0-9_]+"></label><label>Имя или никнейм<input name="nickname" autocomplete="nickname" required maxlength="48"></label><label>Пароль<input type="password" name="password" autocomplete="new-password" required minlength="10" maxlength="72"></label><label>Повторите пароль<input type="password" name="confirmation" autocomplete="new-password" required minlength="10" maxlength="72"></label><button type="submit" class="btn btn--primary">Создать аккаунт</button></form></details></div>' +
       '<p class="profile-account" data-sync-account hidden></p><p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
       '<div class="leaderboard" data-if-signed-in hidden><h2 class="card__title">Общий рейтинг</h2>' +
       '<p class="muted small">Участие добровольное. Имя, рейтинг и, по желанию, фото будут видны другим пользователям. Учитываются очки, сохранённые в облаке. Результаты начисляются в браузере и сервером не проверяются.</p>' +

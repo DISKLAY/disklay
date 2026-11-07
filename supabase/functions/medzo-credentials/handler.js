@@ -5,7 +5,7 @@
     if(!service||typeof service.register!=='function'||typeof service.login!=='function'||typeof issueSession!=='function')throw Error('missing_adapters');
     return async function(req){
       const origin=req.headers.get('origin');
-      const headers={'Content-Type':'application/json','Cache-Control':'no-store',...(origin===site?{'Access-Control-Allow-Origin':site,'Vary':'Origin','Access-Control-Allow-Headers':'content-type','Access-Control-Allow-Methods':'POST, OPTIONS'}:{})};
+      const headers={'Content-Type':'application/json','Cache-Control':'no-store',...(origin===site?{'Access-Control-Allow-Origin':site,'Vary':'Origin','Access-Control-Allow-Headers':'content-type, authorization','Access-Control-Allow-Methods':'POST, OPTIONS'}:{})};
       const response=(status,body)=>new Response(JSON.stringify(body),{status,headers});
       if(req.method==='OPTIONS')return origin===site?new Response(null,{status:204,headers}):new Response(null,{status:403});
       if(req.method!=='POST'||(origin&&origin!==site))return response(403,{error:'forbidden'});

@@ -39,7 +39,12 @@
         if(!identity||typeof identity.id!=='string'||!identity.id)throw new Error('invalid_identity');
         await accounts.complete(reservation,identity,name);
         return {ok:true};
-      } catch (_) {
+      } catch (error) {
+        // A definitive provider rejection cannot have created an identity.
+        // Ambiguous timeouts remain reserved to avoid deleting a real account.
+        if(!identity&&error?.definitive===true&&typeof accounts.release==='function'){
+          try{await accounts.release(reservation);}catch(_){}
+        }
         // A provider/database timeout can occur after the operation committed.
         // Retain the reservation and identity for explicit reconciliation;
         // deleting either here could destroy a successfully-created account.

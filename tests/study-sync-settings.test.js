@@ -7,7 +7,7 @@ test('sync settings name only excluded data and retain backup and conflict prote
   assert.doesNotMatch(section,/Прогресс, ошибки, избранное|Для надёжности/);
   assert.match(section,/Скачать учебную копию/);assert.match(section,/Восстановить учебную копию/);
   assert.match(sync,/автоматической перезаписи не будет/);
-  assert.match(sync,/if\(!text && !auth\)text='Войдите через Telegram\.'/);
+  assert.match(sync,/if\(!text && !auth\)text='Войдите через Telegram или по логину и паролю\.'/);
 });
 test('manual backups remain available while signed out and hide on a live authenticated session',()=>{
   const section=pages.split('id="studySync"')[1].split('</section>')[0];

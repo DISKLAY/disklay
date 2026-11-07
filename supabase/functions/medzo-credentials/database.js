@@ -10,6 +10,7 @@
     const rpc=(name,data)=>request('rpc/'+name,{method:'POST',body:JSON.stringify(data)});
     const accounts={
       async reserve(username,nickname){return rpc('medzo_password_reserve',{p_username:username,p_name:nickname});},
+      async release(reservation){if(!reservation||typeof reservation.reservation!=='string')throw Error('invalid_reservation');return rpc('medzo_password_release',{p_reservation:reservation.reservation});},
       async complete(reservation,identity){
         if(!reservation||!identity||identity.email!==reservation.email)throw Error('identity_mismatch');
         const ok=await rpc('medzo_password_complete',{p_reservation:reservation.reservation,p_provider_id:identity.id});
