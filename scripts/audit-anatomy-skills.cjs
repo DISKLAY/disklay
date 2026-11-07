@@ -1,5 +1,5 @@
 /* Optional Playwright audit: serve the site, set PLAYWRIGHT_MODULE and CHROMIUM_PATH. */
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');const assert=require('node:assert/strict');
+const {chromium}=require('./audit-browser.cjs');const assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8000/';
 (async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
 try {for(const {width,zoom} of [{width:195,zoom:1},{width:390,zoom:1},{width:390,zoom:2},{width:1280,zoom:1}]) {

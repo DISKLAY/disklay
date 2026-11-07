@@ -1,5 +1,5 @@
 /* Browser checks for the navigation, key reset and unfinished session across themes. */
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');
+const {chromium}=require('./audit-browser.cjs');
 const assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
 (async()=>{
@@ -29,6 +29,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
    await page.locator('#courseToggle').click();
    assert.equal(await page.locator('#anatomySidebar [data-sidebar-route="key"].is-active').count(),1);
    assert.equal(await page.locator('#anatomySidebar [data-sidebar-route="key"] .course-nav-label').isVisible(),false);
+   if(width<=1100) await page.locator('#courseToggle').click();
    await page.locator('#anatomySidebar [data-sidebar-route="tests"]').click();await page.waitForSelector('.test-groups');
    assert.deepEqual(errors,[]);await page.close();console.log(`${width}px navigation and resume/reset OK`);
   }

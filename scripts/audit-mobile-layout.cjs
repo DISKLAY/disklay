@@ -1,5 +1,5 @@
 /* Optional browser layout audit. Start the static site first; see README. */
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core');
+const { chromium } = require('./audit-browser.cjs');
 const BASE_URL = process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/';
 const cases = process.env.AUDIT_ZOOM_ONLY ? [{width:390, zoom:2}] : [195, 240, 320, 375, 768, 1001, 1024, 1100, 1101, 1280, 1600].map(width => ({ width, zoom: 1 }));
 if (!process.env.AUDIT_ZOOM_ONLY) cases.push({ width: 390, zoom: 2 });
