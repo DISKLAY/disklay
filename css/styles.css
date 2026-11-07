@@ -2064,3 +2064,11 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .dashboard-topics > summary { padding-left:0; }
 .test-base--credit { background:linear-gradient(120deg,#354eae,#4939a2); border-color:#4652ab; color:#fff; }
 .test-base--credit:hover, .test-base--credit:focus-visible, .test-base--credit.is-current { border-color:#a8bdff; outline-color:#657beb; }
+
+.profile-remember { display:flex; align-items:flex-start; gap:10px; margin:18px 0; cursor:pointer; color:var(--text); }
+.profile-remember input { flex:none; width:18px; height:18px; margin:2px 0 0; accent-color:var(--primary); }
+.profile-remember span { display:grid; min-width:0; gap:4px; }
+.profile-remember small { color:var(--muted); font-size:.8rem; line-height:1.45; }
+.profile-remember[hidden] { display:none; }
+.profile-account { color:var(--primary); font-weight:700; font-size:.9rem; }
+.profile-account[hidden] { display:none; }

@@ -52,6 +52,7 @@
     dungeon: 'dungeon',
     key: 'key',
     settings: 'settings',
+    profile: 'profile',
     histology: 'histology',
     'anatomy-skills': 'anatomySkills',
   };
@@ -149,11 +150,11 @@
     const separator = document.getElementById('contextBaseSeparator');
     const page = document.getElementById('contextPage');
     const option = document.getElementById('colloquiumSelect').selectedOptions[0];
-    const labels = {dashboard:'Главная', tests:'Тесты', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', 'anatomy-skills':'Практические навыки'};
+    const labels = {dashboard:'Главная', tests:'Тесты', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки'};
     const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
-    base.hidden = separator.hidden = histology;
+    base.hidden = separator.hidden = histology || route.name === 'profile';
     if (!histology && option) base.textContent = option.textContent;
     page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (labels[route.name] || 'Страница');
   }
