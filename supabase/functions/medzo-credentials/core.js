@@ -56,7 +56,7 @@
         // users rather than short-circuiting. It decides whether login succeeded.
         const result=await provider.authenticate(account||null,secret);
         if(!account||!result||!result.ok||!result.identity||result.identity.id!==account.id)return {ok:false,error:'invalid_credentials'};
-        return {ok:true,identity:result.identity};
+        return {ok:true,identity:{id:account.id,accountId:account.accountId}};
       } catch (_) {return {ok:false,error:'unavailable'};}
     }
     return {register,login};
