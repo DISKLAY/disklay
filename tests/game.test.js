@@ -337,15 +337,15 @@ test('аниме — одно из самых дорогих оформлени�
 });
 
 test('достижение за все доступные оформления учитывает покупку аниме и сохраняется между базами', () => {
-  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true, rickmorty:true, breakingbad:true};
+  const purchases = {ocean:true, ruby:true, amber:true, autumn:true, winter:true, spring:true, rickmorty:true, breakingbad:true, patriotic:true};
   const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:purchases, achievements:{}})};
   let AT = app(storage, '1'); let badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.absolute, true); assert.equal(badge.goal, 9); assert.equal(badge.current, 8); assert.equal(badge.unlocked, false);
+  assert.equal(badge.absolute, true); assert.equal(badge.goal, 10); assert.equal(badge.current, 9); assert.equal(badge.unlocked, false);
   AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 2500; AT.save(true);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
   badge = AT.game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.current, 9); assert.equal(badge.unlocked, true);
+  assert.equal(badge.current, 10); assert.equal(badge.unlocked, true);
   AT.resetProgress(); AT = app(storage, 'credit-1');
   assert.equal(AT.game.achievements().find(a => a.id === 'absolute-collector').unlocked, true);
 });
@@ -384,7 +384,7 @@ test('импорт оформлений добавляет коллекцию, �
   AT.getState().key['1'] = [2];
   AT.game.ensure().coins = 321; AT.game.ensure().rating = 45; AT.save(true);
   const file = { sharedRewards: { appearances: Object.fromEntries(Object.keys(AT.game.appearances).filter(id => id !== 'default').map(id => [id, true])) }, game: { coins: 1000000 }, progress: {} };
-  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, 9);
+  assert.equal(AT.game.inspectAppearanceImport(file).ids.length, Object.keys(AT.game.appearances).length - 1);
   assert.equal(AT.game.importAppearances(file).ok, true);
   assert.equal(AT.game.ensure().coins, 321); assert.equal(AT.game.ensure().rating, 45);
   assert.equal(AT.getState().progress.q1.streak, 2); assert.deepEqual([...AT.getState().key['1']], [2]);
@@ -799,7 +799,7 @@ test('оформления сериалов покупаются из общег
 test('ранее полученное достижение коллекционера сохраняется после расширения магазина', () => {
   const storage = {'anatomy-colloquium-rewards-shared-v1': JSON.stringify({achievements:{'absolute-collector':123}, appearances:{anime:true}})};
   const badge = app(storage).game.achievements().find(a => a.id === 'absolute-collector');
-  assert.equal(badge.goal, 9); assert.equal(badge.unlocked, true);
+  assert.equal(badge.goal, 10); assert.equal(badge.unlocked, true);
 });
 
 
@@ -861,4 +861,23 @@ test('снимок переносит кошелёк, купленные офо�
  const storageFor=o=>({getItem:key=>Object.hasOwn(o,key)?o[key]:null,setItem:(key,val)=>{o[key]=String(val);},removeItem:key=>{delete o[key];}});
  const dest={'anatomy-dungeon-v1':'destination-dungeon'},snapshot=S.capture(storageFor(origin));S.apply(storageFor(dest),snapshot);
  AT=app(dest,'1');assert.equal(AT.game.walletBalance(),expectedBalance);assert.equal(AT.game.totalRating(),expectedRating);assert.equal(AT.game.profile().appearances.ocean,true);assert.equal(AT.game.profile().appearance,'ocean');assert.equal(dest['anatomy-dungeon-v1'],'destination-dungeon');
+});
+
+
+test('патриотическое оформление покупается и сохраняется между базами', () => {
+  const storage = {}; let AT = app(storage, '1');
+  assert.equal(AT.game.appearances.patriotic.price, 5000);
+  assert.equal(AT.game.appearances.patriotic.premium, true);
+  AT.game.ensure().coins = 5000; AT.save(true);
+  assert.equal(AT.game.buyAppearance('patriotic').ok, true);
+  assert.equal(AT.game.walletBalance(), 0);
+  AT = app(storage, '2');
+  assert.equal(AT.game.profile().appearances.patriotic, true);
+  assert.equal(AT.game.profile().appearance, 'patriotic');
+  assert.match(AT.views.rewards().html, /appearance-preview--patriotic/);
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  for (const name of ['patriotic-shaman.webp', 'patriotic-background.webp']) {
+    assert.ok(css.includes(name));
+    assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', name)).size > 10000);
+  }
 });

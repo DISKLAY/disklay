@@ -41,7 +41,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
    await page.locator('[data-modal="ok"]').click();await page.waitForFunction(()=>AT.keyApi.count()===0);
    await page.close();console.log('Keyless bank clears only user answers: OK');
   }
-  for(const theme of ['light','dark']) for(const appearance of ['default','ocean','ruby','amber','autumn','winter','spring','anime','rickmorty','breakingbad']) {
+  for(const theme of ['light','dark']) for(const appearance of ['default','ocean','ruby','amber','autumn','winter','spring','anime','rickmorty','breakingbad','patriotic']) {
    const page=await browser.newPage({viewport:{width:1440,height:900}});await page.addInitScript(({theme,appearance})=>{
     localStorage.setItem('anatomy-colloquium-theme',theme);
     localStorage.setItem('anatomy-colloquium-rewards-shared-v1',JSON.stringify({appearance,appearances:{[appearance]:true}}));
