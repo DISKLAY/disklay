@@ -4,6 +4,7 @@
   const AT=window.AT, esc=AT.utils.esc, rows=window.AnatomyOralData;
   const skillById=Object.fromEntries(window.AnatomySkillsData.items.map(item=>[item.id,item]));
   const ticketSkills=window.AnatomyTicketSkills;
+  const sourceById=Object.fromEntries(window.AnatomyOralSource.map(section=>[section.id,section]));
   let store;
   try{store=window.localStorage;}catch(_){store={getItem(){return null;},setItem(){throw Error('storage');}};}
   const game=window.AnatomyOral.create(store,()=>window.MedzoStudySync?.oralChanged());
@@ -12,7 +13,34 @@
   function tab(section){return '<nav class="oral-tabs" aria-label="Режим подготовки">'+[['notes','Конспект'],['cards','Карточки'],['tickets','Билеты']].map(([id,label])=>'<a href="#/anatomy-oral?section='+id+'"'+(section===id?' class="is-active" aria-current="page"':'')+'>'+label+'</a>').join('')+'</nav>';}
   function sourceLink(page){return '<a class="oral-source" href="'+source+'#page='+page+'" target="_blank" rel="noopener">Исходная теория · стр. '+page+' ↗</a>';}
   function answerContent(item){return '<div class="oral-explanation"><p><strong>Кратко.</strong> '+esc(item.answer)+'</p><p><strong>Подробнее.</strong> '+esc(item.detail)+'</p><p><strong>Примеры и ориентиры.</strong> '+esc(item.examples)+'</p></div>'; }
-  function notes(){return '<section class="oral-panel"><h2>Конспект</h2><p class="oral-note">72 темы по материалу пользователя: объяснения и примеры. Это учебный ориентир, а не полный ответ; уточняйте детали по учебнику и атласу. Медицинская редактура пока не проводилась.</p><label> <span>Поиск по конспекту: </span><input type="search" class="oral-search" data-oral-search placeholder="Найти тему или термин"></label><div class="oral-list">'+rows.map(x=>'<details data-oral-note data-search="'+esc((x.id+' '+x.title+' '+x.answer+' '+x.detail+' '+x.examples).toLowerCase())+'"><summary>'+x.id+'. '+esc(x.title)+'</summary>'+answerContent(x)+sourceLink(x.page)+'</details>').join('')+'</div><p data-oral-empty hidden>Ничего не найдено.</p><section class="oral-materials" aria-label="Исходные материалы"><div><h2>Исходные материалы</h2><p>Сверяйте конспект с оригиналом и учебником.</p></div><div class="oral-materials__links"><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-tickets.pdf" target="_blank" rel="noopener">Открыть билеты · PDF ↗</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-oral-theory.pdf" target="_blank" rel="noopener">Открыть расписанную теорию · PDF ↗</a></div></section></section>';}
+  function sourceText(section){
+    return section.blocks.map(block=>block.type==='table'?[block.caption||'',...block.headers,...block.rows.flat()].join(' '):block.runs.map(run=>run.text).join('')).join(' ');
+  }
+  function sourceRuns(runs){
+    const plain=runs.map(run=>run.text).join('');
+    // Highlight concise definitions or important labels; retain all source text.
+    const match=plain.match(/^(?:•\s*)?(?:\d+[.)]\s*)?([^.!?;]{2,110}?)(?:\s+[–—-]\s+|:\s+)/);
+    let end=match?match[0].length:0,position=0;
+    return runs.map(run=>{const before=Math.max(0,Math.min(run.text.length,end-position));position+=run.text.length;
+      const a=esc(run.text.slice(0,before)),b=esc(run.text.slice(before));
+      return (a?'<strong>'+a+'</strong>':'')+(b?(run.bold?'<strong>'+b+'</strong>':b):'');
+    }).join('');
+  }
+  function sourceTable(block){
+    return '<div class="oral-source-table">'+(block.caption?'<h4>'+esc(block.caption)+'</h4>':'')+block.rows.map(row=>'<dl class="oral-source-table__row">'+row.map((cell,i)=>cell?'<div><dt>'+esc(block.headers[i]||'')+'</dt><dd>'+esc(cell)+'</dd></div>':'').join('')+'</dl>').join('')+'</div>';
+  }
+  function fullSource(section){
+    let lastPage=0;
+    const body=section.blocks.map(block=>{const page=block.page!==lastPage?'<div class="oral-page-label">Страница '+block.page+' оригинала</div>':'';lastPage=block.page;
+      if(block.type==='table')return page+sourceTable(block);
+      const tag=block.type==='heading'?'h3':'p',cls=block.type==='list'?'oral-source-list':block.type==='note'?'oral-source-footnote':'';
+      return page+'<'+tag+(cls?' class="'+cls+'"':'')+'>'+sourceRuns(block.runs)+'</'+tag+'>';
+    }).join('');
+    const pages=section.pages.map(page=>'<figure><a href="'+source+'#page='+page+'" target="_blank" rel="noopener"><img src="assets/anatomy/oral-source-pages/'+String(page).padStart(2,'0')+'.jpg" loading="lazy" alt="Страница '+page+' исходной теории: рисунки и оригинальный текст"></a><figcaption><a href="'+source+'#page='+page+'" target="_blank" rel="noopener">Страница '+page+' в PDF ↗</a></figcaption></figure>').join('');
+    return '<div class="oral-source-text">'+body+'</div><details class="oral-pages"><summary>Иллюстрации и страницы оригинала · '+section.pages.length+'</summary><p>На странице могут находиться и соседние темы. Нажмите изображение, чтобы открыть PDF.</p><div class="oral-pages__grid">'+pages+'</div></details>';
+  }
+  function notes(){return '<section class="oral-panel"><h2>Теория · 1 коллоквиум</h2><p class="oral-note">Текст перенесён близко к исходному материалу, включая примеры; выделены термины и важные места. Возможны ошибки исходника и переноса, независимой медицинской редактуры не было. Иллюстрации и таблицы сверяйте с оригинальными страницами.</p><label> <span>Поиск по теории: </span><input type="search" class="oral-search" data-oral-search placeholder="Найти тему, определение или пример"></label><div class="oral-list">'+rows.map(x=>{const full=sourceById[x.id];return '<details data-oral-note data-search="'+esc((x.id+' '+x.title+' '+x.answer+' '+x.detail+' '+x.examples+' '+sourceText(full)).toLowerCase())+'"><summary>'+x.id+'. '+esc(x.title)+'</summary><details class="oral-brief"><summary>Краткое повторение · примеры и ориентиры</summary>'+answerContent(x)+'</details>'+fullSource(full)+sourceLink(x.page)+'</details>';}).join('')+'</div><p data-oral-empty hidden>Ничего не найдено.</p><section class="oral-materials" aria-label="Исходные материалы"><div><h2>Исходные материалы</h2><p>Сверяйте конспект с оригиналом и учебником.</p></div><div class="oral-materials__links"><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-tickets.pdf" target="_blank" rel="noopener">Открыть билеты · PDF ↗</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-oral-theory.pdf" target="_blank" rel="noopener">Открыть расписанную теорию · PDF ↗</a></div></section></section>';}
+
   function ratings(kind,count){
     const data=game.read().tickets[selectedTicket]?.[kind]||{};
     return '<div class="oral-rating-grid">'+Array.from({length:count},(_,j)=>{

@@ -38,3 +38,23 @@
 .oral-explanation p { margin: 12px 0; }
 .oral-explanation strong { color: var(--text); }
 .oral-explanation p:last-child { padding: 12px 14px; border-left: 3px solid var(--primary); border-radius: 0 10px 10px 0; background: var(--primary-soft); }
+/* Long source text is separate from the short memorisation cards. */
+.oral-list .oral-brief, .oral-list .oral-pages { margin: 16px 0; background: var(--surface-2); }
+.oral-list .oral-brief summary, .oral-list .oral-pages summary { color: var(--primary); font-size: .9rem; }
+.oral-source-text { overflow-wrap: anywhere; line-height: 1.65; }
+.oral-source-text h3 { margin: 14px 0 10px; font-size: 1rem; line-height: 1.5; }
+.oral-source-text strong { color: var(--text); font-weight: 750; }
+.oral-source-text .oral-source-list { margin: 7px 0; padding-left: 1.1em; text-indent: -1.1em; }
+.oral-page-label { display: inline-block; margin: 18px 0 2px; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+.oral-list .oral-source-footnote { padding: 12px; border-left: 3px solid var(--primary-border); background: var(--surface-2); font-size: .88rem; }
+.oral-source-table { display: grid; gap: 8px; margin: 16px 0; }
+.oral-source-table h4 { margin: 0; font-size: .95rem; }
+.oral-source-table__row { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(180px,100%),1fr)); gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.oral-source-table__row div { min-width: 0; }
+.oral-source-table__row dt { color: var(--text); font-size: .76rem; font-weight: 700; }
+.oral-source-table__row dd { margin: 4px 0 0; color: var(--text-2); }
+.oral-pages__grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(220px,100%),1fr)); gap: 12px; }
+.oral-pages__grid figure { min-width: 0; margin: 0; }
+.oral-pages__grid img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; }
+.oral-pages__grid figcaption { margin-top: 5px; font-size: .8rem; }
+.oral-pages__grid a { color: var(--primary); font-weight: 700; }
