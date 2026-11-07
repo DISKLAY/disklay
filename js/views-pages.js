@@ -337,7 +337,7 @@
       '<div class="key-status__info"><strong>' + keyed + ' из ' + total + '</strong>' +
       '<span>' + (keyed === total ? 'Ключ полный — проверка работает автоматически.' :
         keyed ? 'Вопросы без ключа проверяются самооценкой.' : 'Ключа нет: вопросы доступны в режиме самооценки.') + '</span>' +
-      (keyApi.count() ? '<button class="btn btn--sm btn--ghost btn--danger" data-action="clear-key">' + icon('trash') + 'Удалить все ответы</button>' : '') +
+      '<button class="btn btn--sm btn--ghost" data-action="clear-key"' + (Object.keys(AT.getState().key).length ? '' : ' hidden') + '>' + icon('refresh') + (AT.colloquium.hasBaseKey === false ? 'Удалить свои ответы' : 'Вернуть исходный ключ') + '</button>'  +
       '</div></div>' +
       (keyApi.count() === total && AT.colloquium.hasBaseKey !== false
         ? '<p class="key-source">' + icon('info') + '<span>Ключ загружен из базы теста: верные варианты отмечены в PDF ' + (AT.colloquium.keyMark === 'галочками' ? 'галочками' : 'подсветкой') + '. ' +
@@ -452,16 +452,16 @@
             'text/plain;charset=utf-8');
         } else if (action === 'clear-key') {
           confirmDialog({
-            title: 'Удалить все ответы?',
-            text: 'Будут удалены только ваши ответы, импортированные и отмеченные вручную.',
-            confirm: 'Удалить',
+            title: AT.colloquium.hasBaseKey === false ? 'Удалить свои ответы?' : 'Вернуть исходный ключ?',
+            text: AT.colloquium.hasBaseKey === false ? 'Ваши импортированные и отмеченные вручную ответы будут удалены. В этой базе исходного ключа нет.' : 'Ваши импортированные и отмеченные вручную ответы будут удалены. Вернутся ответы из исходной базы; учебный прогресс не изменится.',
+            confirm: AT.colloquium.hasBaseKey === false ? 'Удалить' : 'Вернуть ключ',
             danger: true,
           }).then((ok) => {
             if (!ok) return;
             AT.getState().key = {};
             AT.save(true);
             AT.rerender();
-            toast('Ключ очищен');
+            toast(AT.colloquium.hasBaseKey === false ? 'Ваши ответы удалены' : 'Исходный ключ восстановлен');
           });
         }
       });
@@ -533,6 +533,8 @@
     }
     const info = ringEl.querySelector('.key-status__info strong');
     if (info) info.textContent = keyed + ' из ' + total;
+    const resetAll = ringEl.querySelector('[data-action="clear-key"]');
+    if (resetAll) resetAll.hidden = Object.keys(AT.getState().key).length === 0;
   }
 
   function importKey(text, root) {

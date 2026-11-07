@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/medzo-mark-transparent.png?v=2" type="image/png">
-  <link rel="stylesheet" href="css/styles.css?v=20261107-autosync1">
+  <link rel="stylesheet" href="css/styles.css?v=20261107-nav3">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -59,6 +59,7 @@
         <a href="#/portfolio" data-route="portfolio">Портфель</a>
       </nav>
 
+      <a class="icon-btn topbar-settings" href="#/settings" aria-label="Открыть настройки" title="Настройки"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h8M17 6.5h3M4 12h3M12 12h8M4 17.5h7M16 17.5h4"/><circle cx="14.5" cy="6.5" r="2.2"/><circle cx="9.5" cy="12" r="2.2"/><circle cx="13.5" cy="17.5" r="2.2"/></svg></a>
       <button class="icon-btn" data-action="toggle-theme" aria-label="Переключить тему" title="Переключить тему">
         <svg class="icon icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
           <circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>
@@ -81,52 +82,47 @@
       <div class="course-sidebar__heading"><div><span id="subjectSidebarLabel">Анатомия</span><strong id="courseSidebarTitle">Навигация</strong></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
       <div class="course-sidebar__section-title">Предмет</div>
       <nav class="subject-switch" aria-label="Выбрать предмет">
-        <a href="#/" data-subject-link="anatomy">Анатомия</a>
-        <a href="#/histology" data-subject-link="histology">Гистология</a>
+        <a href="#/" data-subject-link="anatomy" data-nav-icon="anatomy">Анатомия</a>
+        <a href="#/histology" data-subject-link="histology" data-nav-icon="microscope">Гистология</a>
       </nav>
       <div id="anatomySidebar">
-        <details class="course-picker" id="coursePicker">
-          <summary><span><small>Текущая база</small><strong id="courseSidebarCurrent"></strong></span><span class="course-picker__change">Сменить</span></summary>
-          <p class="course-sidebar__note">При переключении таймер экзамена продолжает идти.</p>
-          <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
-        </details>
         <nav class="course-sidebar__pages" aria-label="Разделы приложения">
-          <span class="course-sidebar__section-title">Учёба</span>
-          <a href="#/" data-sidebar-route="dashboard">Главная</a>
-          <a href="#/tests" data-sidebar-route="tests">Тесты</a>
-          <a href="#/exam" data-sidebar-route="exam">Экзамен</a>
-          <a href="#/anatomy-skills" data-sidebar-route="anatomy-skills" id="sidebarSkills" hidden>Практические навыки</a>
-          <span class="course-sidebar__section-title">Мой прогресс</span>
-          <a href="#/mistakes" data-sidebar-route="mistakes">Ошибки</a>
-          <a href="#/portfolio" data-sidebar-route="portfolio">Портфель избранного</a>
-          <a href="#/stats" data-sidebar-route="stats">Статистика</a>
-          <details class="course-more"><summary>Ещё</summary>
-            <a href="#/rewards" data-sidebar-route="rewards">Награды и оформление</a>
-            <a href="#/dungeon" data-sidebar-route="dungeon">Подземелье ⚔</a>
-            <a href="#/key" data-sidebar-route="key">Ключ</a>
-            <a href="#/settings" data-sidebar-route="settings">Настройки</a>
-          </details>
+          <a href="#/" data-sidebar-route="dashboard" data-nav-icon="home">Главная</a>
+          <a href="#/tests" data-sidebar-route="tests" data-nav-icon="book">Тесты</a>
+          <a href="#/exam" data-sidebar-route="exam" data-nav-icon="exam">Экзамен</a>
+          <a href="#/anatomy-skills" data-sidebar-route="anatomy-skills" data-nav-icon="skills" id="sidebarSkills" hidden>Практические навыки</a>
+          <a href="#/mistakes" data-sidebar-route="mistakes" data-nav-icon="mistakes">Ошибки</a>
+          <a href="#/portfolio" data-sidebar-route="portfolio" data-nav-icon="star">Портфель избранного</a>
+          <a href="#/stats" data-sidebar-route="stats" data-nav-icon="stats">Статистика</a>
+          <a href="#/rewards" data-sidebar-route="rewards" data-nav-icon="sparkles">Награды и оформление</a>
+          <a href="#/dungeon" data-sidebar-route="dungeon" data-nav-icon="dungeon">Подземелье</a>
+          <a href="#/key" data-sidebar-route="key" data-nav-icon="key">Ключ</a>
+          <a href="#/settings" data-sidebar-route="settings" data-nav-icon="settings">Настройки</a>
         </nav>
       </div>
       <div id="histologySidebar">
       <div class="course-sidebar__section-title">Гистология</div>
       <nav class="course-sidebar__pages" aria-label="Разделы гистологии">
-        <a href="#/histology?section=setup" data-histo-sidebar="setup">Препараты</a>
-        <a href="#/histology?section=atlas" data-histo-sidebar="atlas">Атлас</a>
-        <a href="#/histology?section=structures" data-histo-sidebar="structures">Структуры</a>
-        <a href="#/histology?section=theory" data-histo-sidebar="theory">Тесты по теории</a>
-        <a href="#/histology?section=errors" data-histo-sidebar="errors">Ошибки</a>
-        <a href="#/histology?section=stats" data-histo-sidebar="stats">Статистика</a>
-        <a href="#/settings">Настройки</a>
+        <a href="#/histology?section=setup" data-histo-sidebar="setup" data-nav-icon="microscope">Препараты</a>
+        <a href="#/histology?section=atlas" data-histo-sidebar="atlas" data-nav-icon="atlas">Атлас</a>
+        <a href="#/histology?section=structures" data-histo-sidebar="structures" data-nav-icon="structures">Структуры</a>
+        <a href="#/histology?section=theory" data-histo-sidebar="theory" data-nav-icon="book">Тесты по теории</a>
+        <a href="#/histology?section=errors" data-histo-sidebar="errors" data-nav-icon="mistakes">Ошибки</a>
+        <a href="#/histology?section=stats" data-histo-sidebar="stats" data-nav-icon="stats">Статистика</a>
+        <a href="#/rewards" data-sidebar-route="rewards" data-nav-icon="sparkles">Награды и оформление</a>
+        <a href="#/dungeon" data-sidebar-route="dungeon" data-nav-icon="dungeon">Подземелье</a>
+        <a href="#/key" data-sidebar-route="key" data-nav-icon="key">Ключ анатомии</a>
+        <a href="#/settings" data-sidebar-route="settings" data-nav-icon="settings">Настройки</a>
       </nav>
 
       </div>
-      <nav class="course-sidebar__pages" aria-label="Профиль"><a href="#/profile" data-sidebar-route="profile">Профиль</a></nav>
+      <nav class="course-sidebar__pages" aria-label="Профиль"><a href="#/profile" data-sidebar-route="profile" data-nav-icon="profile">Профиль</a></nav>
     </aside>
+    <nav class="course-rail" id="courseRail" aria-label="Быстрая навигация"></nav>
     <div class="content-shell">
       <nav class="context-nav" aria-label="Путь по разделам">
         <a id="contextSubject" href="#/">Анатомия</a><span aria-hidden="true">/</span>
-        <button type="button" id="contextBase" aria-label="Сменить базу"></button><span id="contextBaseSeparator" aria-hidden="true">/</span>
+        <button type="button" id="contextBase" aria-label="Выбрать базу в тестах"></button><span id="contextBaseSeparator" aria-hidden="true">/</span>
         <span class="context-nav__current" id="contextPage" aria-current="page"></span>
       </nav>
       <main id="app" class="main" tabindex="-1"></main>
@@ -161,18 +157,17 @@
   <script src="js/modules.js?v=20261102-keynotes1"></script>
   <script src="js/core.js?v=20261107-autosync1"></script>
   <script src="js/game.js?v=20261107-autosync1"></script>
-  <script src="js/ui.js?v=20261102-keynotes1"></script>
+  <script src="js/ui.js?v=20261107-nav3"></script>
   <script src="js/germ-squad.js?v=20261031-easter1"></script>
-  <script src="js/views-study.js?v=20261107-testsdesign1"></script>
+  <script src="js/views-study.js?v=20261107-nav3"></script>
   <script src="js/study-snapshot.js?v=3"></script>
   <script src="js/study-sync-engine.js?v=2"></script>
   <script src="js/profile-photo.js?v=1"></script>
   <script src="js/study-sync.js?v=12"></script>
   <script src="js/promo-codes.js?v=2"></script>
-  <script src="js/views-pages.js?v=20261107-autosync1"></script>
+  <script src="js/views-pages.js?v=20261107-nav3"></script>
   <script src="js/views-rewards.js?v=20261101-dungeon9"></script>
-  <script src="js/module-picker.js"></script>
   <script src="js/course-drawer.js?v=20261107-nav2"></script>
-  <script src="js/app.js?v=20261107-autosync1"></script>
+  <script src="js/app.js?v=20261107-nav3"></script>
 </body>
 </html>

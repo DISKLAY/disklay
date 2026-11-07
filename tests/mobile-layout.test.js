@@ -37,8 +37,9 @@ test('в верхней строке только основные раздел�
     assert.doesNotMatch(nav, new RegExp(`data-route="${name}"`));
     assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
   }
-  assert.match(html, /<details class="course-picker" id="coursePicker">/);
-  assert.match(html, /<details class="course-more">/);
+  assert.doesNotMatch(html, /id="coursePicker"|class="course-more"|>Учёба<|>Мой прогресс</);
+  assert.match(html, /class="icon-btn topbar-settings" href="#\/settings"/);
+  assert.match(html, /id="courseRail"/);
   assert.match(html, /class="context-nav" aria-label="Путь по разделам"/);
   assert.match(css, /\.nav \{[^}]*flex-wrap: wrap/s);
   assert.match(css, /@media \(max-width: 1100px\) \{\s*\.topbar__inner \{ flex-wrap: wrap/s);

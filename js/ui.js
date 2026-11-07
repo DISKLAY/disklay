@@ -7,6 +7,13 @@
   const esc = window.AT.utils.esc;
 
   const ICON_PATHS = {
+    anatomy: '<path d="M5 8a2.5 2.5 0 1 1 3-3l8 8a2.5 2.5 0 1 1 3 3 2.5 2.5 0 1 1-3 3l-8-8a2.5 2.5 0 1 1-3-3Z"/>',
+    skills: '<path d="M4 18c2-1 3-3 4-5l2-4c.5-1 1.7-.4 1.3.7L10.5 12l3-6c.5-1 1.8-.4 1.3.7L13 11l2.2-3.8c.6-1 1.8-.3 1.3.7L15 11.5l1.8-2.1c.7-.8 1.7.1 1.1 1l-3 5c-1.4 2.4-3 3.3-5.5 3.6L7 21"/>',
+    dungeon: '<path d="M5 20 19 4M15 4h4v4M3 17l4 4M19 20 5 6M5 3v3H2M17 17l4 4"/>',
+    microscope: '<path d="m10 3 5 5-2 2-5-5zM12 10a5 5 0 1 1-6 6M4 20h16M14 16h5M7 14h3"/>',
+    atlas: '<path d="M3.5 5.5c3-1 5.5-.6 8.5 1v13c-3-1.6-5.5-2-8.5-1zM20.5 5.5c-3-1-5.5-.6-8.5 1v13c3-1.6 5.5-2 8.5-1z"/>',
+    structures: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m6 6 3.8 3.8M15 15l3 3M18 6l-3.8 3.8"/>',
+    profile: '<circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c.6-4 3.1-6 7.5-6s6.9 2 7.5 6"/>',
     home: '<path d="M3.5 10.6 12 3.5l8.5 7.1"/><path d="M5.6 9.6V20a1 1 0 0 0 1 1h10.8a1 1 0 0 0 1-1V9.6"/>',
     train: '<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.1"/><path d="M12 3.8v2M12 18.2v2M3.8 12h2M18.2 12h2"/>',
     exam: '<circle cx="12" cy="13" r="8.2"/><path d="M12 9.2V13l2.6 2"/><path d="M9.4 2.4h5.2"/><path d="M12 2.4v2.4"/>',
