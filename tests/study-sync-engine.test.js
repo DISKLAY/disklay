@@ -17,3 +17,42 @@ test('wallet and cosmetics conflict on two devices until the user selects a vers
  await x.push(await x.inspect());let plan=await y.inspect();assert.equal(plan.state,'conflict');assert.equal(JSON.parse(b.data[r]).appearances.ruby,true);
  const {backup}=await y.pull(plan);assert.equal(JSON.parse(b.data[r]).appearances.ocean,true);assert.equal(JSON.parse(b.data[backup.backupKey]).records[r],'{"walletSpent":800,"appearances":{"ruby":true}}');
 });
+test('pending local edits flushed immediately before pull prevent overwrite',async()=>{
+ const c=cloud(),a=storage(),b=storage();save(a,{cloud:true});save(b,{local:true});
+ const x=E.makeEngine({store:a,snapshot:S,request:c.request,userId:'1'}),y=E.makeEngine({store:b,snapshot:S,request:c.request,userId:'1'});
+ await x.push(await x.inspect());const plan=await y.inspect();
+ await assert.rejects(y.pull(plan,()=>{save(b,{pending:'new'});return true;}),/changed/);
+ assert.deepEqual(JSON.parse(b.data[key]).progress,{pending:'new'});
+ assert.equal(Object.keys(b.data).filter(x=>x.startsWith('medzo-study-sync-local-backup-')).length,0);
+});
+test('pending local edits flushed just before push do not send an obsolete snapshot',async()=>{
+ const c=cloud(),s=storage();save(s,{initial:true});const engine=E.makeEngine({store:s,snapshot:S,request:c.request,userId:'1'});
+ const plan=await engine.inspect();await assert.rejects(engine.push(plan,()=>{save(s,{new:true});return true;}),/changed/);
+ assert.equal((await c.request({action:'get'})).revision,0);assert.deepEqual(JSON.parse(s.data[key]).progress,{new:true});
+});
+test('account switch while a cloud request is in flight cannot alter metadata or local data',async()=>{
+ let active=true,release;const s=storage(),block=new Promise(r=>release=r);save(s,{x:1});
+ const request=async()=>{await block;return {revision:1,snapshot:S.capture(s)}};
+ const engine=E.makeEngine({store:s,snapshot:S,request,userId:'1',isActive:()=>active});
+ const inflight=engine.inspect();active=false;release();await assert.rejects(inflight,/changed/);
+ assert.equal(s.getItem(E.META),null);assert.deepEqual(JSON.parse(s.data[key]).progress,{x:1});
+});
+test('automatic cloud loads retain the local backup and do not touch local session or dungeon',async()=>{
+ const c=cloud(),a=storage(),b=storage({'anatomy-dungeon-v1':'keep'});save(a,{cloud:true});save(b,{local:true});
+ const x=E.makeEngine({store:a,snapshot:S,request:c.request,userId:'1'}),y=E.makeEngine({store:b,snapshot:S,request:c.request,userId:'1'});
+ await x.push(await x.inspect());const p=await y.inspect();assert.equal(p.hasBaseline,false);
+ const result=await y.pull(p,async()=>true);assert.ok(b.data[result.backup.backupKey]);assert.equal(b.data['anatomy-dungeon-v1'],'keep');assert.equal(JSON.parse(b.data[key]).session.id,'local');
+});
+test('background restore removes temporary backup only after metadata is saved',async()=>{
+ const c=cloud(),a=storage(),b=storage();save(a,{cloud:true});save(b,{local:true});
+ const x=E.makeEngine({store:a,snapshot:S,request:c.request,userId:'1'}),y=E.makeEngine({store:b,snapshot:S,request:c.request,userId:'1'});
+ await x.push(await x.inspect());const result=await y.pull(await y.inspect(),()=>true,{ephemeralBackup:true});
+ assert.equal(result.metaSaved,true);assert.equal(b.getItem(result.backup.backupKey),null);
+});
+test('background restore keeps its backup if the metadata write fails',async()=>{
+ const c=cloud(),a=storage(),b=storage();save(a,{cloud:true});save(b,{local:true});
+ const x=E.makeEngine({store:a,snapshot:S,request:c.request,userId:'1'}),y=E.makeEngine({store:b,snapshot:S,request:c.request,userId:'1'});
+ await x.push(await x.inspect());const p=await y.inspect(),write=b.setItem;
+ b.setItem=(k,v)=>{if(k===E.META)throw Error('quota');write(k,v);};
+ const result=await y.pull(p,()=>true,{ephemeralBackup:true});assert.equal(result.metaSaved,false);assert.ok(b.getItem(result.backup.backupKey));
+});

@@ -9,7 +9,7 @@ function open(local,session,{mini=false}={}){
   const node={isConnected:true,querySelector:s=>s.includes('status')?status:s.includes('account')?account:s.includes('remember')?checkbox:actions,closest:()=>view,addEventListener:(name,fn)=>handlers[name]=fn};
   const win={MedzoTelegramLaunch:mini,Telegram:mini?{WebApp:{initData:'signed',ready(){},expand(){}}}:undefined,MedzoStudySnapshot:{},MedzoSyncEngine:{makeEngine:()=>({inspect:async()=>({state:'equal'})})},AT:{onCleanup:()=>{}},addEventListener:(name,fn)=>events[name]=fn};
   const doc={hidden:false,documentElement:{classList:{add(){}}},head:{appendChild:el=>{if(el.onload)el.onload();}},createElement:()=>({})};
-  const ctx={window:win,document:doc,localStorage:local,sessionStorage:session,Date,JSON,Promise,setInterval:()=>{},fetch:async(url,options)=>{let body=JSON.parse(options.body);calls.push(body.action);return {ok:true,json:async()=>body.action==='login'?token():{ok:true}};}};
+  const ctx={window:win,document:doc,localStorage:local,sessionStorage:session,Date,JSON,Promise,setInterval:()=>{},setTimeout:()=>1,clearTimeout:()=>{},fetch:async(url,options)=>{let body=JSON.parse(options.body);calls.push(body.action);return {ok:true,json:async()=>body.action==='login'?token():{ok:true}};}};
   vm.runInNewContext(code,ctx);win.MedzoStudySync.mount(node);
   return {calls,status,account,checkbox,events,click:action=>handlers.click({target:{closest:()=>({dataset:{sync:action}})}}),remember:value=>{checkbox.checked=value;handlers.change({target:{checked:value,matches:s=>s==='[data-sync-remember]'}});},api:win.MedzoStudySync};
 }

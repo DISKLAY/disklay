@@ -606,7 +606,7 @@
   views.profile = function () {
     let html = '<div class="view view--narrow"><div class="page-head"><h1>Профиль</h1></div>';
     html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Вход и синхронизация</h2>' +
-      '<p class="muted small">Не синхронизируются: подземелье, настройки и текущие сессии.</p>' +
+      '<p class="muted small">Прогресс, достижения, кошелёк и оформления синхронизируются автоматически. При первом сохранении данные устройства отправятся в пустое облако; при входе в существующий аккаунт загрузится облачная копия. Не синхронизируются: подземелье, настройки и текущие сессии.</p>' +
       '<label class="profile-remember" data-if-signed-out><input type="checkbox" data-sync-remember checked><span><strong>Запомнить меня</strong><small>С галочкой — до 90 дней; без неё — в этой вкладке, которую браузер может восстановить после закрытия.</small></span></label>' +
       '<div class="profile-photo" data-if-signed-in hidden><div class="profile-photo__avatar"><img alt="Фото профиля" data-profile-photo hidden><span aria-hidden="true" data-profile-placeholder>☺</span></div>' +
       '<div><strong>Фото профиля</strong><p class="muted small">Фото сохраняется в аккаунте и доступно на других устройствах. JPG, PNG или WebP до 8 МБ; изображение будет обрезано по центру.</p>' +

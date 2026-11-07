@@ -57,7 +57,7 @@
       });
     });
   }
-  // Apply only after explicit choice. Version 1 has no rewards and must never erase them.
+  // Version 1 has no rewards and must never erase them.
   // Before writing, save full copies of every affected record for recovery.
   function apply(storage,snapshot){
     if(!validate(snapshot))throw new Error('Неизвестный или повреждённый формат данных');

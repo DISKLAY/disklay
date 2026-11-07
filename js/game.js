@@ -134,7 +134,9 @@
         BANKS.forEach(id => { shared.cosmeticSpent[id] = Math.max(number(shared.cosmeticSpent[id]), number(latest.cosmeticSpent[id])); });
       }
       shared.walletSpent = Math.max(number(shared.walletSpent), number(latest.walletSpent));
-      localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); return true;
+      localStorage.setItem(SHARED_KEY, JSON.stringify(shared));
+      if (window.MedzoStudySync) window.MedzoStudySync.changed();
+      return true;
     } catch (e) { return false; }
   }
   function bankState(id) {

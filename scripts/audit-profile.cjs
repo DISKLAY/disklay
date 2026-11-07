@@ -6,12 +6,12 @@ const key='medzo-study-sync-session-v1';
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
  try {for(const width of [195,390,1440]) for(const remember of [true,false]){
-  const context=await browser.newContext({viewport:{width,height:900}}),errors=[];
+  const context=await browser.newContext({viewport:{width,height:900}}),errors=[];let cloud={revision:0,snapshot:{schema:1,records:{}}};
   await context.route('https://telegram.org/js/telegram-login.js',r=>r.fulfill({contentType:'application/javascript',body:'window.Telegram={Login:{auth:(options,cb)=>cb({id_token:"mock-token"})}};'}));
   await context.route('**/functions/v1/medzo-study-sync',async r=>{
    const request=r.request(),headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'POST,OPTIONS'};
    if(request.method()==='OPTIONS')return r.fulfill({status:204,headers});
-   const body=request.postDataJSON(),res=body.action==='config'?{botId:'12345'}:body.action==='challenge'?{nonce:'mock-nonce'}:body.action==='login'?{session:'mock-session',userId:'12345',expiresAt:Math.floor(Date.now()/1000)+3600}:body.action==='get'?{revision:0,snapshot:{schema:1,records:{}}}:{ok:true};
+   const body=request.postDataJSON();let res=body.action==='config'?{botId:'12345'}:body.action==='challenge'?{nonce:'mock-nonce'}:body.action==='login'?{session:'mock-session',userId:'12345',expiresAt:Math.floor(Date.now()/1000)+3600}:body.action==='get'?cloud:{ok:true};if(body.action==='put'){cloud={revision:body.revision+1,snapshot:body.snapshot};res={revision:cloud.revision};}
    return r.fulfill({headers,contentType:'application/json',body:JSON.stringify(res)});
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));

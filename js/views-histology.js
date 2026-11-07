@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const AT=window.AT, H=window.HistologyPrototype, esc=AT.utils.esc;
-  const storage={getItem:key=>window.localStorage.getItem(key),setItem:(key,value)=>window.localStorage.setItem(key,value)};
+  const storage={getItem:key=>window.localStorage.getItem(key),setItem:(key,value)=>{window.localStorage.setItem(key,value);if(window.MedzoStudySync && Object.hasOwn(window.MedzoStudySnapshot.keys,key))window.MedzoStudySync.changed();}};
   const game=H.create(storage), structureGame=H.createStructures(storage), theoryGame=H.createTheory(storage);
   let theoryScope='all', theorySlide='', theoryTopic='', atlasJump='';
   let lastSectionHash=null;

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const AT=window.AT, H=window.AnatomySkills, esc=AT.utils.esc;
-  let store;try {store=window.localStorage;} catch(e){store={getItem(){return null;},setItem(){throw e;}};}
+  let store;try {const local=window.localStorage;store={getItem:key=>local.getItem(key),setItem:(key,value)=>{local.setItem(key,value);if(window.MedzoStudySync)window.MedzoStudySync.changed();}};} catch(e){store={getItem(){return null;},setItem(){throw e;}};}
   const game=H.create(store);
   let screen='setup',search='',groupMenuOpen=false;
   const openSections=new Set();

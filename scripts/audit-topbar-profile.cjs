@@ -4,12 +4,12 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
 const jpeg='/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==';
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
 try{for(const width of [195,240,320,390,768,1440]){
- const ctx=await browser.newContext({viewport:{width,height:850}}),errors=[];
+ const ctx=await browser.newContext({viewport:{width,height:850}}),errors=[];let cloud={revision:0,snapshot:{schema:1,records:{}}};
  await ctx.addInitScript(()=>localStorage.setItem('medzo-study-sync-session-v1',JSON.stringify({session:'mock',userId:'123',expiresAt:Math.floor(Date.now()/1000)+3600})));
  await ctx.route('**/functions/v1/medzo-study-sync',async r=>{
    const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'POST,OPTIONS'};
    if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers});
-   const body=r.request().postDataJSON(),res=body.action==='photo-get'?{photo:jpeg}:body.action==='get'?{revision:0,snapshot:{schema:1,records:{}}}:body.action==='leaderboard-get'?{leaders:[],member:null}:{ok:true};
+   const body=r.request().postDataJSON();let res=body.action==='photo-get'?{photo:jpeg}:body.action==='get'?cloud:body.action==='leaderboard-get'?{leaders:[],member:null}:{ok:true};if(body.action==='put'){cloud={revision:body.revision+1,snapshot:body.snapshot};res={revision:cloud.revision};}
    return r.fulfill({headers,contentType:'application/json',body:JSON.stringify(res)});
  });
  const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.waitForSelector('.hero');
