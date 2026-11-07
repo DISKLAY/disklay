@@ -2267,3 +2267,7 @@ body { container: viewport-shell / inline-size; }
 /* The compact rail reduces available space slightly even on a tablet. */
 .dg-item { flex-wrap: wrap; }
 .dg-item-body { flex: 1 1 100px; overflow-wrap: anywhere; }
+/* В компактной панели медицинские значки читаются и в размере иконки. */
+.course-sidebar [data-nav-icon="anatomy"] > .icon,
+.course-sidebar [data-nav-icon="skills"] > .icon,
+.course-sidebar [data-nav-icon="microscope"] > .icon { width: 22px; height: 22px; stroke-width: 1.9; }
