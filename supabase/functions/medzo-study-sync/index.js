@@ -98,6 +98,22 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       const rows=await db(path+'&select=expires_at');
       if(!rows.length || Date.parse(rows[0].expires_at)<=Date.now())throw Error('revoked');
     } else if(body.action==='logout') return response(200,{ok:true});
+    if(body.action==='leaderboard-get'){
+      const rows=await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'});
+      const own=await db('medzo_leaderboard_members?user_id=eq.'+encodeURIComponent(id)+'&select=display_name,show_photo');
+      return response(200,{leaders:rows,member:own.length?{name:own[0].display_name,showPhoto:own[0].show_photo}:null});
+    }
+    if(body.action==='leaderboard-join'){
+      if(typeof body.name!=='string'||typeof body.showPhoto!=='boolean')return response(400,{error:'invalid_profile'});
+      const name=body.name.trim().normalize('NFC');
+      if(!name||name.length>48||/[\u0000-\u001f\u007f]/.test(name))return response(400,{error:'invalid_profile'});
+      await db('medzo_leaderboard_members?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,display_name:name,show_photo:body.showPhoto})});
+      return response(200,{ok:true});
+    }
+    if(body.action==='leaderboard-leave'){
+      await db('medzo_leaderboard_members?user_id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=representation'}});
+      return response(200,{ok:true});
+    }
     if(body.action==='photo-get'){
       const rows=await db('medzo_profile_photos?user_id=eq.'+encodeURIComponent(id)+'&select=jpeg_base64');
       return response(200,{photo:rows.length?rows[0].jpeg_base64:null});

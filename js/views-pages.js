@@ -614,6 +614,12 @@
       '<button type="button" class="btn btn--ghost" data-sync="photo-delete" data-profile-delete hidden>Удалить фото</button></div>' +
       '<p class="muted small" data-profile-status role="status" aria-live="polite"></p></div></div>' +
       '<p class="profile-account" data-sync-account hidden></p><p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
+      '<div class="leaderboard" data-if-signed-in hidden><h2 class="card__title">Общий рейтинг</h2>' +
+      '<p class="muted small">Участие добровольное. Имя, рейтинг и, по желанию, фото будут видны другим пользователям. Учитываются очки, сохранённые в облаке. Результаты начисляются в браузере и сервером не проверяются.</p>' +
+      '<form data-leaderboard-form><label>Имя в рейтинге <input type="text" name="leaderboard-name" maxlength="48" required autocomplete="nickname" placeholder="Имя или никнейм"></label>' +
+      '<label class="leaderboard__photo"><input type="checkbox" name="leaderboard-photo"> Показывать моё фото</label><div class="profile-photo__actions">' +
+      '<button class="btn btn--primary" type="submit" data-leaderboard-save>Участвовать</button><button class="btn btn--ghost" type="button" data-sync="leaderboard-leave" data-leaderboard-leave hidden>Выйти из рейтинга</button></div></form>' +
+      '<p class="muted small" data-leaderboard-status role="status" aria-live="polite"></p><ol class="leaderboard__list" data-leaderboard-list></ol></div>' +
       '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
       '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
     html += '</div>';
