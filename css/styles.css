@@ -2144,3 +2144,10 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
   .course-toggle { width: 40px; padding: 7px; }
   .course-toggle__text { display: none; }
 }
+.password-entry { display: grid; gap: 8px; margin: 14px 0; }
+.password-entry details { border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px; }
+.password-entry summary { cursor: pointer; font-weight: 700; }
+.password-entry form { display: grid; gap: 10px; margin-top: 12px; }
+.password-entry label { display: grid; gap: 4px; font-size: .9rem; }
+.password-entry input { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); }
+.password-entry button { justify-self: start; }

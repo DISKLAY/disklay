@@ -2,11 +2,12 @@
 (function () {
   'use strict';
   const endpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-study-sync';
+  const passwordEndpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-credentials';
   const SESSION='medzo-study-sync-session-v1';
   const S=window.MedzoStudySnapshot, E=window.MedzoSyncEngine;
   let auth=null, engine=null, plan=null, busy=false, listener=null, message='', challenge=null, config=null;
   let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
-  let photo=null, photoStatus='', photoVersion=0;
+  let photo=null, photoStatus='', photoVersion=0, accountName='';
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true;
   function updateHeader(){
     if(typeof document.getElementById!=='function')return;
@@ -33,13 +34,13 @@
   async function call(body, authenticated=true) {
     const headers={'Content-Type':'application/json'};
     if(authenticated && auth) headers.Authorization='Bearer '+auth.session;
-    const response=await fetch(endpoint,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store'});
+    const response=await fetch(authenticated && auth && String(auth.userId).startsWith('p_')?passwordEndpoint:endpoint,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store'});
     let result;try { result=await response.json(); } catch (_) { throw Error('network'); }
     if(!response.ok) { if(response.status===409) throw Error('changed'); if(response.status===401&&authenticated) throw Error('auth'); throw Error('network'); }
     return result;
   }
   function validAuth(data) {
-    return data && /^[1-9][0-9]{0,19}$/.test(String(data.userId)) && typeof data.session==='string' && Number.isSafeInteger(data.expiresAt) && data.expiresAt>Date.now()/1000+5;
+    return data && /^(?:[1-9][0-9]{0,19}|p_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(String(data.userId)) && typeof data.session==='string' && Number.isSafeInteger(data.expiresAt) && data.expiresAt>Date.now()/1000+5;
   }
   function connect(data, storageName, persist=true) {
     if(!validAuth(data))throw Error('auth');
@@ -49,10 +50,10 @@
       // A tab-only login must not erase a remembered login belonging to another tab.
       if(storageName==='local')sessionStorage.removeItem(SESSION);
     }
-    auth=data;authStorage=storageName;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;
+    auth=data;authStorage=storageName;accountName='';photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;
     engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body),userId:String(data.userId)});
   }
-  function clearAuth() {auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;}
+  function clearAuth() {accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;}
   function clearCurrentSession() {
     const store=authStorage==='local'?localStorage:authStorage==='session'?sessionStorage:null;
     // Never erase a newer session written by another tab while logout was in flight.
@@ -72,7 +73,7 @@
   window.addEventListener('storage',e=>{
     if(e.key!==SESSION || e.storageArea!==localStorage || authStorage==='session')return;
     if(!e.newValue){if(authStorage==='local'){clearAuth();message='Вход завершён в другой вкладке.';notify();}return;}
-    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();loadLeaderboard();}}catch(_){}
+    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();loadLeaderboard();loadAccount();}}catch(_){}
   });
   async function prepareLogin() {
     if(auth || window.MedzoTelegramLaunch)return;
@@ -93,12 +94,31 @@
     } catch(e) { plan=null;message=e.message==='auth'?'Не удалось подтвердить сессию. Проверьте интернет; если проблема не исчезнет, выйдите и войдите снова.':'Не удалось проверить синхронизацию. Учебные данные на устройстве не изменены.'; }
     finally { busy=false;notify(); }
   }
+  async function passwordSubmit(form,registration) {
+    if(auth||busy)return;
+    const username=form.elements.username.value,nickname=registration?form.elements.nickname.value:'',password=form.elements.password.value;
+    if(registration&&password!==form.elements.confirmation.value){message='Пароли не совпадают.';notify();return;}
+    busy=true;message='';notify();let created=false;
+    try {
+      async function credentials(data){
+        const response=await fetch(passwordEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),cache:'no-store'});
+        let result;try{result=await response.json();}catch(_){throw Error('unavailable');}
+        if(!response.ok)throw Error(result.error||'unavailable');return result;
+      }
+      if(registration){await credentials({action:'register',username,nickname,password});created=true;}
+      const result=await credentials({action:'login',username,password});
+      connect(result,remember?'local':'session');form.reset();message='';
+    } catch(e) {
+      message=created?'Аккаунт создан, но войти сразу не удалось. Войдите по логину и паролю ещё раз.':({username_taken:'Этот логин уже занят.',invalid_input:'Проверьте логин, имя и пароль. Пароль должен содержать от 10 символов и не более 72 байт.',invalid_credentials:'Неверный логин или пароль.',rate_limited:'Слишком много попыток. Подождите и попробуйте снова.',unavailable:'Не удалось связаться с сервисом регистрации. Попробуйте позже.'})[e.message]||'Не удалось выполнить вход. Проверьте интернет и попробуйте снова.';
+    } finally {busy=false;notify();}
+    if(engine)await Promise.all([inspect(),loadPhoto(),loadLeaderboard(),loadAccount()]);
+  }
   async function loginMini(initData,rememberLogin) {
     busy=true;notify();
     try { connect(await call({action:'login',initData},false),rememberLogin?'local':'session');message=''; }
     catch (_) { message='Не удалось войти через Telegram. Закройте и снова откройте приложение из бота.'; }
     finally { busy=false;notify(); }
-    if(engine){await Promise.all([inspect(),loadPhoto(),loadLeaderboard()]);}
+    if(engine){await Promise.all([inspect(),loadPhoto(),loadLeaderboard(),loadAccount()]);}
   }
   function login() {
     if(busy)return;
@@ -119,7 +139,7 @@
         try { connect(await call({action:'login',idToken:result.id_token,nonce},false),rememberLogin?'local':'session');message=''; }
         catch (_) { message='Вход не удалось проверить. Попробуйте ещё раз.';prepareLogin(); }
         finally { busy=false;notify(); }
-        if(engine){await Promise.all([inspect(),loadPhoto(),loadLeaderboard()]);}
+        if(engine){await Promise.all([inspect(),loadPhoto(),loadLeaderboard(),loadAccount()]);}
       });
     } catch (_) { message='Не удалось открыть Telegram. Разрешите всплывающие окна и повторите.';notify();prepareLogin(); }
   }
@@ -181,6 +201,10 @@
     catch(_){if(auth===active&&version===photoVersion)photoStatus='Не удалось удалить фото. Проверьте интернет.';}
     finally{busy=false;notify();}
   }
+  async function loadAccount(){
+    if(!auth||!String(auth.userId).startsWith('p_'))return;
+    const active=auth;try{const data=await call({action:'account-get'});if(auth===active&&typeof data.displayName==='string'&&data.displayName.length<=48)accountName=data.displayName;}catch(_){}notify();
+  }
   async function loadLeaderboard(){
     if(!auth)return;const active=auth,version=++leaderVersion;
     try{const data=await call({action:'leaderboard-get'});if(auth===active&&version===leaderVersion){leaders=Array.isArray(data.leaders)?data.leaders:[];member=data.member||null;leaderNeedsForm=true;leaderStatus='';}}
@@ -225,7 +249,7 @@
       if(!node.isConnected){listener=null;return;}
       const status=node.querySelector('[data-sync-status]'),actions=node.querySelector('[data-sync-actions]');
       const account=node.querySelector('[data-sync-account]');
-      if(account){account.hidden=!auth;account.textContent=auth?'Telegram подключён':'';}
+      if(account){account.hidden=!auth;account.textContent=auth?(String(auth.userId).startsWith('p_')?(accountName?'Аккаунт: '+accountName:'Аккаунт с паролем'):'Telegram подключён'):'';}
       const view=node.closest('.view');
       if(view)view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});
       if(view)view.querySelectorAll('[data-if-signed-in]').forEach(el=>{el.hidden=!auth || auth.expiresAt<=Date.now()/1000;});
@@ -238,8 +262,8 @@
       renderLeaderboard(node);
       let text=message;
       if(!text && busy)text='Проверяем…';
-      if(!text && !auth)text='Войдите через Telegram.';
-      if(!text && auth && !plan)text='Telegram подключён. Нажмите «Проверить», чтобы сравнить данные.';
+      if(!text && !auth)text='Войдите через Telegram или по логину и паролю.';
+      if(!text && auth && !plan)text='Вход выполнен. Нажмите «Проверить», чтобы сравнить данные.';
       if(!text && plan)text=({equal:'Учебные данные совпадают.',initial:'В облаке пока нет данных. Можно сохранить учебные данные этого устройства.', 'local-changed':'На устройстве есть новые учебные данные.','remote-changed':'В облаке есть обновления. Загрузите их, когда будете готовы.','conflict':'На устройстве и в облаке разные учебные данные. Выберите, какую версию сохранить; автоматической перезаписи не будет.'})[plan.state];
       status.textContent=text;
       let html=auth?'<button type="button" class="btn btn--ghost" data-sync="check">Проверить</button><button type="button" class="btn btn--ghost" data-sync="logout">Выйти</button>':'<button type="button" class="btn btn--primary" data-sync="login">Войти через Telegram</button>';
@@ -250,11 +274,11 @@
       actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy;});
     };
     node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect();if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
-    node.addEventListener('submit',e=>{if(e.target.matches('[data-leaderboard-form]')){e.preventDefault();joinLeaderboard(e.target);}});
+    node.addEventListener('submit',e=>{if(e.target.matches('[data-leaderboard-form]')){e.preventDefault();joinLeaderboard(e.target);}else if(e.target.matches('[data-password-login], [data-password-register]')){e.preventDefault();passwordSubmit(e.target,e.target.matches('[data-password-register]'));}});
     node.addEventListener('change',e=>{if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
     const checkbox=node.querySelector('[data-sync-remember]');if(checkbox)checkbox.checked=remember;
     window.AT.onCleanup(()=>{listener=null;});notify();
-    if(auth){inspect();loadPhoto();loadLeaderboard();}else prepareLogin();
+    if(auth){inspect();loadPhoto();loadLeaderboard();loadAccount();}else prepareLogin();
   }
   function mountVisibility(view) {
     listener=()=>{if(!view.isConnected){listener=null;return;}view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});};

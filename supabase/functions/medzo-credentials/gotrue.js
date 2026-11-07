@@ -19,7 +19,8 @@
         const email=reservedEmail||randomUUID()+'@accounts.medzo.invalid';
         if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}@accounts\.medzo\.invalid$/.test(email)&&reservedEmail)throw Error('invalid_internal_email');
         const result=await request('admin/users',{email,password,email_confirm:true,user_metadata:{display_name:nickname}});
-        if(!result.ok||typeof result.data.id!=='string')throw Error('provider_unavailable');
+        if(!result.ok){const e=Error('provider_unavailable');e.definitive=[400,422].includes(result.status);throw e;}
+        if(typeof result.data.id!=='string')throw Error('provider_unavailable');
         return {id:result.data.id,email};
       },
       async authenticate(account,password){
