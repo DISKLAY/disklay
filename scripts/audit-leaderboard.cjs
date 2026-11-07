@@ -14,10 +14,13 @@ try{for(const width of [195,320,390,768,1440]){
   if(data.action==='leaderboard-leave')member=null;
   return r.fulfill({headers,contentType:'application/json',body:JSON.stringify(result)});
  });
- const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'#/profile');
+ const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'#/stats');
  await page.locator('[name="leaderboard-name"]').fill('Аня');await page.locator('[name="leaderboard-photo"]').check();
  await page.locator('[data-leaderboard-list] li').waitFor();assert.match(await page.locator('[data-leaderboard-list] li').textContent(),/<img src=x/);assert.equal(await page.locator('[data-leaderboard-list] li img').count(),0);
  assert.equal(await page.locator('[name="leaderboard-name"]').inputValue(),'Аня');assert.equal(await page.locator('[name="leaderboard-photo"]').isChecked(),true);await page.locator('[data-leaderboard-save]').click();await page.getByText('Настройки рейтинга сохранены.').waitFor();assert.deepEqual(member,{name:'Аня',showPhoto:true});
  await page.locator('[data-leaderboard-leave]').click();await page.getByText('Вы больше не участвуете в рейтинге.').waitFor();assert.equal(member,null);
+ await page.goto(base+'#/histology?section=stats');await page.locator('[data-leaderboard-list] li').waitFor();
+ await page.locator('[name="leaderboard-name"]').fill('Борис');await page.locator('[data-leaderboard-save]').click();await page.getByText('Настройки рейтинга сохранены.').waitFor();assert.deepEqual(member,{name:'Борис',showPhoto:false});
+ await page.goto(base+'#/stats');await page.locator('[data-leaderboard-list] li').waitFor();assert.equal(await page.locator('[name="leaderboard-name"]').inputValue(),'Борис');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),true);assert.deepEqual(errors,[]);await context.close();console.log(width+'px: leaderboard OK');
 }}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

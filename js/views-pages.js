@@ -174,6 +174,17 @@
     return { title: 'Ошибки', html, mount };
   };
 
+  AT.leaderboardMarkup = function () {
+    return '<section class="card card--pad leaderboard" data-leaderboard><h2 class="card__title">Общий рейтинг пользователей</h2>' +
+      '<div class="leaderboard__personal"><span>Ваш рейтинг на устройстве</span><strong>' + (AT.game ? AT.game.totalRating().toLocaleString('ru-RU') : '0') + '</strong><small>Сумма очков анатомических баз</small></div>' +
+      '<p class="muted small">Участие добровольное. Имя, рейтинг и, по желанию, фото будут видны другим пользователям. Учитываются очки, сохранённые в облаке. Результаты начисляются в браузере и сервером не проверяются.</p>' +
+      '<div data-leaderboard-signed-out><p>Войдите в аккаунт, чтобы посмотреть таблицу и участвовать.</p><a class="btn btn--ghost" href="#/profile">Войти в профиль</a></div>' +
+      '<div data-leaderboard-signed-in hidden><form data-leaderboard-form><label>Имя в рейтинге <input type="text" name="leaderboard-name" maxlength="48" required autocomplete="nickname" placeholder="Имя или никнейм"></label>' +
+      '<label class="leaderboard__photo"><input type="checkbox" name="leaderboard-photo"> Показывать моё фото</label><div class="profile-photo__actions">' +
+      '<button class="btn btn--primary" type="submit" data-leaderboard-save>Участвовать</button><button class="btn btn--ghost" type="button" data-leaderboard-leave hidden>Выйти из рейтинга</button></div></form>' +
+      '<p class="muted small" data-leaderboard-status role="status" aria-live="polite"></p><ol class="leaderboard__list" data-leaderboard-list></ol></div></section>';
+  };
+
   /* ------------------------------------------------------------ статистика */
 
   views.stats = function () {
@@ -194,6 +205,7 @@
       card('Ключ', utils.pct(keyed, overall.total) + '%', keyed + ' из ' + overall.total + ' вопросов', 'key') +
       '</div>';
 
+    html += AT.leaderboardMarkup();
     html += '<div class="split">';
     html += '<section class="card card--pad"><h2 class="card__title">Прогресс по темам</h2><div class="topic-progress">';
     topics.forEach((t) => {
@@ -239,6 +251,7 @@
       icon('trash') + 'Сбросить весь прогресс</button></div></div>';
 
     const mount = (root) => {
+      if (window.MedzoStudySync) window.MedzoStudySync.mountLeaderboard(root.querySelector('[data-leaderboard]'));
       root.addEventListener('click', (e) => {
         const el = e.target.closest('[data-action="reset-progress"]');
         if (!el) return;
@@ -619,12 +632,6 @@
       '<details><summary>Создать аккаунт без почты</summary><p class="muted small">Логин: 4–32 латинские буквы, цифры или _. Пароль: не менее 10 символов. Имя видно в профиле.</p><p class="muted small"><strong>Важно:</strong> привязка Telegram и восстановление пароля пока не доступны. Если забыть пароль, восстановить аккаунт сейчас нельзя. Сохраните пароль в надёжном месте. Парольный и Telegram-аккаунты пока раздельные; их прогресс не объединяется автоматически.</p>' +
       '<form data-password-register><label>Логин<input name="username" autocomplete="username" required minlength="4" maxlength="32" pattern="[A-Za-z0-9_]+"></label><label>Имя или никнейм<input name="nickname" autocomplete="nickname" required maxlength="48"></label><label>Пароль<input type="password" name="password" autocomplete="new-password" required minlength="10" maxlength="72"></label><label>Повторите пароль<input type="password" name="confirmation" autocomplete="new-password" required minlength="10" maxlength="72"></label><button type="submit" class="btn btn--primary">Создать аккаунт</button></form></details></div>' +
       '<p class="profile-account" data-sync-account hidden></p><p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
-      '<div class="leaderboard" data-if-signed-in hidden><h2 class="card__title">Общий рейтинг</h2>' +
-      '<p class="muted small">Участие добровольное. Имя, рейтинг и, по желанию, фото будут видны другим пользователям. Учитываются очки, сохранённые в облаке. Результаты начисляются в браузере и сервером не проверяются.</p>' +
-      '<form data-leaderboard-form><label>Имя в рейтинге <input type="text" name="leaderboard-name" maxlength="48" required autocomplete="nickname" placeholder="Имя или никнейм"></label>' +
-      '<label class="leaderboard__photo"><input type="checkbox" name="leaderboard-photo"> Показывать моё фото</label><div class="profile-photo__actions">' +
-      '<button class="btn btn--primary" type="submit" data-leaderboard-save>Участвовать</button><button class="btn btn--ghost" type="button" data-sync="leaderboard-leave" data-leaderboard-leave hidden>Выйти из рейтинга</button></div></form>' +
-      '<p class="muted small" data-leaderboard-status role="status" aria-live="polite"></p><ol class="leaderboard__list" data-leaderboard-list></ol></div>' +
       '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
       '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
     html += '</div>';

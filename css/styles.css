@@ -2191,3 +2191,79 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
   .brand__text strong { font-size: .8rem; }
   .brand__flag { width: 16px; height: 10px; }
 }
+
+/* Боковая навигация: компактная рейка и раскрытая панель. */
+.app-layout { display: flex; align-items: flex-start; }
+.content-shell { flex: 1 1 0; }
+.course-sidebar:not([hidden]) {
+  position: sticky; z-index: 20; top: calc(var(--sidebar-top, 72px) + 12px); bottom: auto;
+  flex: 0 0 68px; width: 68px; height: auto; max-height: calc(100vh - var(--sidebar-top, 72px) - 24px);
+  margin: 12px 0 12px 12px; padding: 8px; overflow: auto; animation: none;
+  border: 1px solid var(--border); border-radius: 22px; background: var(--surface);
+  box-shadow: var(--shadow-sm); scrollbar-width: thin;
+  transition: width .2s var(--ease), flex-basis .2s var(--ease);
+}
+.course-sidebar.is-expanded:not([hidden]) { width: 260px; flex-basis: 260px; }
+.course-sidebar__heading { position: sticky; top: -8px; z-index: 2; min-height: 44px; padding: 0 0 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.course-sidebar__heading-text { min-width: 0; }
+.course-sidebar__toggle { display: grid; place-items: center; flex: none; width: 44px; height: 44px; margin-left: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); color: var(--text-2); }
+.course-sidebar__toggle:hover, .course-sidebar__toggle:focus-visible { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
+.course-sidebar__toggle svg { width: 20px; height: 20px; transition: transform .2s var(--ease); }
+.course-sidebar.is-expanded .course-sidebar__toggle svg { transform: rotate(180deg); }
+.course-sidebar__pages { gap: 3px; padding: 8px 0; }
+.course-sidebar__pages a, .subject-switch a { min-height: 44px; border-radius: 13px; transition: background .18s, color .18s; }
+.course-sidebar__pages a > .icon, .subject-switch a > .icon { width: 20px; height: 20px; flex: none; color: inherit; }
+.course-sidebar__pages a.is-active, .subject-switch a[aria-current="page"] { background: var(--primary-soft); color: var(--primary); }
+.subject-switch { grid-template-columns: minmax(0, 1fr); padding: 8px 0; gap: 3px; }
+.subject-switch a { flex-wrap: nowrap; gap: 12px; font-size: .82rem; }
+.subject-switch a .course-nav-label { color: inherit; font-size: inherit; }
+.course-sidebar:not(.is-expanded) .course-sidebar__heading-text,
+.course-sidebar:not(.is-expanded) .course-sidebar__section-title,
+.course-sidebar:not(.is-expanded) .course-nav-label { display: none; }
+.course-sidebar:not(.is-expanded) .course-sidebar__pages a,
+.course-sidebar:not(.is-expanded) .subject-switch a { justify-content: center; padding: 8px; }
+.course-sidebar:not(.is-expanded) .course-sidebar__heading { justify-content: center; }
+.course-sidebar:not(.is-expanded) .course-sidebar__toggle { margin: 0; }
+@media (max-width: 1100px) {
+  .course-sidebar:not([hidden]) { flex-basis: 54px; width: 54px; margin: 8px 0 8px 6px; padding: 4px; border-radius: 18px; max-height: calc(100vh - var(--sidebar-top, 64px) - 16px); }
+  .course-sidebar__heading { top: -4px; }
+  .course-sidebar.is-expanded:not([hidden]) { position: fixed; z-index: 101; inset: 8px auto 8px 6px; width: min(280px, calc(100% - 20px)); height: auto; max-height: none; margin: 0; padding: 10px; border-radius: 20px; box-shadow: var(--shadow-lg); }
+  .course-sidebar.is-expanded .course-sidebar__heading { top: -10px; }
+  .main { padding-inline: 10px; }
+  .context-nav { padding-inline: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .course-sidebar:not([hidden]), .course-sidebar__toggle svg { transition: none; } }
+.leaderboard { margin-top: 24px; border-top: 1px solid var(--border); }
+.leaderboard [hidden] { display: none !important; }
+.leaderboard [data-leaderboard-signed-out] { margin-top: 14px; }
+.leaderboard [data-leaderboard-signed-out] p { margin-bottom: 10px; color: var(--text-2); }
+.leaderboard + .split, .leaderboard + .histo-panel { margin-top: 24px; }
+.leaderboard__personal { display: flex; align-items: baseline; gap: 8px 14px; flex-wrap: wrap; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--primary-border); border-radius: 14px; background: var(--primary-soft); }
+.leaderboard__personal span { font-weight: 700; }
+.leaderboard__personal strong { font-size: 1.4rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+.leaderboard__personal small { color: var(--muted); }
+/* Without the former menu control, all header actions fit on one line even at high zoom. */
+@container (max-width: 250px) {
+  .topbar__inner { flex-wrap: nowrap; gap: 3px; padding-inline: 5px; }
+  .brand { flex: 1 1 0; min-width: 0; }
+  .topbar .icon-btn, .topbar-profile { width: 36px; height: 36px; min-height: 36px; }
+  .brand__text strong { font-size: .68rem; }
+  .brand__flag { width: 13px; height: 8px; }
+}
+
+.course-sidebar__heading strong { font-size: .85rem; overflow-wrap: normal; }
+/* На экстремально узком экране и при большом увеличении не отнимаем у заданий ширину. */
+body { container: viewport-shell / inline-size; }
+@container viewport-shell (max-width: 260px) {
+  .app-layout { display: block; }
+  .course-sidebar:not(.is-expanded):not([hidden]) { display: flex; align-items: center; width: auto; height: 58px; max-height: none; margin: 6px 8px; padding: 4px; overflow: hidden; top: calc(var(--sidebar-top, 64px) + 4px); }
+  .course-sidebar:not(.is-expanded) .course-sidebar__heading { position: static; flex: none; min-height: 44px; padding: 0 4px 0 0; border-bottom: 0; border-right: 1px solid var(--border); }
+  .course-sidebar:not(.is-expanded) #courseSidebarContents { display: flex; align-items: center; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+  .course-sidebar:not(.is-expanded) #courseSidebarContents::-webkit-scrollbar { height: 4px; }
+  .course-sidebar:not(.is-expanded) #courseSidebarContents > div, .course-sidebar:not(.is-expanded) #courseSidebarContents > nav { flex: none; }
+  .course-sidebar:not(.is-expanded) .course-sidebar__pages, .course-sidebar:not(.is-expanded) .subject-switch { display: flex; align-items: center; padding: 0 3px; border: 0; }
+  .course-sidebar:not(.is-expanded) .course-sidebar__pages a, .course-sidebar:not(.is-expanded) .subject-switch a { width: 44px; flex: none; }
+}
+/* The compact rail reduces available space slightly even on a tablet. */
+.dg-item { flex-wrap: wrap; }
+.dg-item-body { flex: 1 1 100px; overflow-wrap: anywhere; }

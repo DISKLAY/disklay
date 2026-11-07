@@ -126,7 +126,7 @@
 
     if (AT.game) {
       html += '<a class="game-overview" href="#/rewards"><span class="game-overview__icon">' + icon('sparkles') + '</span>' +
-        '<span class="game-overview__body"><strong>Награды и оформление</strong><span>Общий кошелёк: ' + AT.game.walletBalance() + ' · Общий рейтинг: ' + AT.game.totalRating() + '</span></span>' +
+        '<span class="game-overview__body"><strong>Награды и оформление</strong><span>Общий кошелёк: ' + AT.game.walletBalance() + '</span></span>' +
         '<span class="game-overview__arrow">' + icon('chevronRight') + '</span></a>';
     }
 

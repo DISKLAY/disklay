@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/medzo-mark-transparent.png?v=2" type="image/png">
-  <link rel="stylesheet" href="css/styles.css?v=20261107-nav3">
+  <link rel="stylesheet" href="css/styles.css?v=20261107-sidebar1">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -24,11 +24,6 @@
           <span class="brand__meta"><b>АРМ РНИМУ</b><span id="subjectBrandLabel">Анатомия</span></span>
         </span>
       </a>
-
-      <button type="button" class="course-toggle" id="courseToggle" aria-label="Открыть навигацию" aria-controls="courseSidebar" aria-expanded="false" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        <span class="course-toggle__text"><span>Меню</span><span class="course-toggle__current" id="courseToggleCurrent"></span></span>
-      </button>
 
       <select id="colloquiumSelect" hidden aria-label="Выберите раздел курса" title="Прогресс сохраняется отдельно; таймер экзамена при переключении продолжает идти">
           <optgroup label="1 семестр">
@@ -78,8 +73,9 @@
 
   <div class="app-layout">
     <button type="button" class="course-backdrop" id="courseBackdrop" aria-label="Закрыть навигацию" tabindex="-1" hidden></button>
-    <aside class="course-sidebar" id="courseSidebar" role="dialog" aria-modal="true" aria-labelledby="courseSidebarTitle" hidden>
-      <div class="course-sidebar__heading"><div><span id="subjectSidebarLabel">Анатомия</span><strong id="courseSidebarTitle">Навигация</strong></div><button type="button" class="course-sidebar__close" id="courseClose" aria-label="Закрыть навигацию">×</button></div>
+    <aside class="course-sidebar" id="courseSidebar" aria-label="Навигация">
+      <div class="course-sidebar__heading"><div class="course-sidebar__heading-text"><span id="subjectSidebarLabel">Анатомия</span><strong id="courseSidebarTitle">Навигация</strong></div><button type="button" class="course-sidebar__toggle" id="courseToggle" aria-label="Развернуть навигацию" aria-expanded="false" aria-controls="courseSidebarContents" title="Развернуть навигацию"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></div>
+      <div id="courseSidebarContents">
       <div class="course-sidebar__section-title">Предмет</div>
       <nav class="subject-switch" aria-label="Выбрать предмет">
         <a href="#/" data-subject-link="anatomy" data-nav-icon="anatomy">Анатомия</a>
@@ -117,8 +113,8 @@
 
       </div>
       <nav class="course-sidebar__pages" aria-label="Профиль"><a href="#/profile" data-sidebar-route="profile" data-nav-icon="profile">Профиль</a></nav>
+      </div>
     </aside>
-    <nav class="course-rail" id="courseRail" aria-label="Быстрая навигация"></nav>
     <div class="content-shell">
       <nav class="context-nav" aria-label="Путь по разделам">
         <a id="contextSubject" href="#/">Анатомия</a><span aria-hidden="true">/</span>
@@ -159,15 +155,15 @@
   <script src="js/game.js?v=20261107-autosync1"></script>
   <script src="js/ui.js?v=20261107-nav3"></script>
   <script src="js/germ-squad.js?v=20261031-easter1"></script>
-  <script src="js/views-study.js?v=20261107-nav3"></script>
+  <script src="js/views-study.js?v=20261107-sidebar1"></script>
   <script src="js/study-snapshot.js?v=3"></script>
   <script src="js/study-sync-engine.js?v=2"></script>
   <script src="js/profile-photo.js?v=1"></script>
-  <script src="js/study-sync.js?v=12"></script>
+  <script src="js/study-sync.js?v=20261107-sidebar1"></script>
   <script src="js/promo-codes.js?v=2"></script>
-  <script src="js/views-pages.js?v=20261107-nav3"></script>
-  <script src="js/views-rewards.js?v=20261101-dungeon9"></script>
-  <script src="js/course-drawer.js?v=20261107-nav2"></script>
-  <script src="js/app.js?v=20261107-nav3"></script>
+  <script src="js/views-pages.js?v=20261107-sidebar1"></script>
+  <script src="js/views-rewards.js?v=20261107-sidebar1"></script>
+  <script src="js/course-drawer.js?v=20261107-sidebar1"></script>
+  <script src="js/app.js?v=20261107-sidebar1"></script>
 </body>
 </html>

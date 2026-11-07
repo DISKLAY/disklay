@@ -1,8 +1,8 @@
 /* Optional browser layout audit. Start the static site first; see README. */
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core');
 const BASE_URL = process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/';
-const cases = [195, 240, 320, 375, 768, 1001, 1024, 1100, 1101, 1280, 1600].map(width => ({ width, zoom: 1 }));
-cases.push({ width: 390, zoom: 2 });
+const cases = process.env.AUDIT_ZOOM_ONLY ? [{width:390, zoom:2}] : [195, 240, 320, 375, 768, 1001, 1024, 1100, 1101, 1280, 1600].map(width => ({ width, zoom: 1 }));
+if (!process.env.AUDIT_ZOOM_ONLY) cases.push({ width: 390, zoom: 2 });
 const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards', 'key', 'settings', 'dungeon', 'histology'];
 
 (async () => {
@@ -33,6 +33,8 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
           if (document.documentElement.scrollWidth > viewport + 1) found.push('страница шире окна');
           for (const el of document.querySelectorAll('body *')) {
             if (el.closest('svg, .germ-squad-flight, .skip-link, .dg-path-line')) continue;
+            const horizontalRail = el.closest('.course-sidebar:not(.is-expanded) #courseSidebarContents');
+            if (horizontalRail && getComputedStyle(horizontalRail).overflowX === 'auto') continue;
             const style = getComputedStyle(el), rect = el.getBoundingClientRect();
             if (style.display === 'none' || style.visibility === 'hidden' || rect.width < 1 || rect.height < 1) continue;
             // These are deliberately scrollable, or use ellipsis/native input rendering.
@@ -70,7 +72,7 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
         if (name === 'histology') {
           await page.locator('#courseToggle').click();
           await scan('histology-sidebar');
-          await page.locator('#courseClose').click();
+          await page.locator('#courseToggle').click();
           await page.locator('[data-histo="start"]').click();
           await page.waitForSelector('.histo-image img');
           await scan('histology-choice');
@@ -162,6 +164,8 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
       await route('run');
       await page.waitForSelector('.option');
       await scan('training-question');
+      // Move off controls from prior screens so hover transforms cannot oscillate at a border.
+      await page.mouse.move(0, 0);
       await page.locator('.option').first().click();
       await page.locator('[data-action="check"]').click();
       await scan('training-feedback');
@@ -176,11 +180,11 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
       await scan('sidebar');
       const sidebarFits = await page.evaluate(() => {
         const r = document.querySelector('#courseSidebar').getBoundingClientRect();
-        const close = document.querySelector('#courseClose').getBoundingClientRect();
+        const close = document.querySelector('#courseToggle').getBoundingClientRect();
         return r.left >= -1 && r.right <= innerWidth + 1 && close.left >= 0 && close.right <= innerWidth;
       });
       if (!sidebarFits) failures.push(`${width}px (zoom ${zoom}): боковая панель или её кнопка закрытия за экраном`);
-      await page.locator('#courseClose').click();
+      await page.locator('#courseToggle').click();
       if (width === 1024 && zoom === 1) {
         for (const destination of ['dungeon', 'key', 'settings']) {
           await page.locator('#courseToggle').click();
@@ -188,7 +192,7 @@ const routes = ['', 'train', 'exam', 'mistakes', 'portfolio', 'stats', 'rewards'
           await page.waitForFunction(name => AT.route() === name, destination);
           const active = await page.locator(`#anatomySidebar [data-sidebar-route="${destination}"]`).getAttribute('aria-current');
           if (active !== 'page') failures.push(`Меню: не отмечен текущий раздел ${destination}`);
-          if (await page.locator('#courseSidebar').isVisible()) failures.push(`Меню не закрылось после перехода в ${destination}`);
+          if (await page.locator('#courseToggle').getAttribute('aria-expanded') !== 'false') failures.push(`Панель должна сворачиваться после перехода в ${destination}`);
         }
       }
       await page.evaluate(() => AT.ui.toast('Длинное уведомление с важной информацией для пользователя'));

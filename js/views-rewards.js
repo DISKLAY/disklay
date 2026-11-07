@@ -17,7 +17,7 @@
       '<section class="rewards-hero"><div class="rewards-hero__content"><span class="rewards-hero__eyebrow">ВАШ ПРОГРЕСС · ' + esc(bankContext) + '</span>' +
       '<h1>Учитесь и открывайте больше</h1><p>Отвечайте по ключу, получайте валюту и открывайте оформление.</p></div>' +
       '<div class="rewards-hero__metrics"><div><span>Общий кошелёк</span><strong>' + totalCoins + '</strong><small>для покупок</small></div>' +
-      '<div><span>Общий рейтинг</span><strong>' + game.totalRating() + '</strong><small>сумма всех баз</small></div></div></section>' +
+      '</div></section>' +
       '<div class="rewards-context">' + icon('info') + '<span>Валюта, достижения, оформление и личный рейтинг общие для всех баз на этом устройстве. Самооценка без ключа не начисляет очки. Неиспользованные усиления возвращены в кошелёк по последним ценам магазина, остаток активного бонуса — пропорционально.</span></div>';
 
     function appearanceCard([id, style]) {
