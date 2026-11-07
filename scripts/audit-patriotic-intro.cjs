@@ -1,0 +1,13 @@
+/* Animated intro: once, without stretching, disabled on mobile and reduced motion. */
+const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core');
+const assert = require('node:assert/strict');
+(async () => { const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
+try { for (const [width,reduced] of [[1440,false],[390,false],[1440,true]]) {
+const page=await browser.newPage({viewport:{width,height:900}}),requests=[],errors=[]; page.on('request',r=>{if(r.url().includes('patriotic-baikal.gif'))requests.push(r.url())});page.on('pageerror',e=>errors.push(e.message));
+await page.addInitScript(()=>localStorage.setItem('anatomy-colloquium-rewards-shared-v1',JSON.stringify({appearance:'patriotic',appearances:{patriotic:true}})));
+if(reduced)await page.emulateMedia({reducedMotion:'reduce'});await page.goto((process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/') + '');await page.waitForSelector('.hero');
+if(width>760&&!reduced){await page.waitForSelector('.hero__patriotic-intro.is-playing');assert.equal(requests.length,1); assert.equal(await page.locator('.hero__patriotic-intro img').evaluate(el=>getComputedStyle(el).objectFit),'contain');await page.setViewportSize({width:390,height:900});await page.waitForFunction(()=>!document.querySelector('.hero__patriotic-intro'));assert.ok(await page.locator('.hero').evaluate(el=>getComputedStyle(el).backgroundImage.includes('patriotic-shaman')));
+}else {await page.waitForTimeout(800);assert.equal(requests.length,0);assert.equal(await page.locator('.hero__patriotic-intro').count(),0)}
+assert.deepEqual(errors,[]);await page.close();console.log(width,reduced?'reduced':'normal','OK');}
+const page=await browser.newPage({viewport:{width:1440,height:900}});await page.addInitScript(()=>localStorage.setItem('anatomy-colloquium-rewards-shared-v1',JSON.stringify({appearance:'patriotic',appearances:{patriotic:true}})));await page.goto((process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/') + '');await page.waitForSelector('.hero__patriotic-intro.is-playing');await page.waitForFunction(()=>!document.querySelector('.hero__patriotic-intro'),null,{timeout:12000});assert.ok(await page.locator('.hero').evaluate(el=>getComputedStyle(el).backgroundImage.includes('patriotic-shaman')));await page.goto((process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/') + '#/tests');await page.goto((process.env.AUDIT_BASE_URL || 'http://127.0.0.1:8001/') + '#/');await page.waitForTimeout(400);assert.equal(await page.locator('.hero__patriotic-intro').count(),0);console.log('intro completes and plays once: OK');await page.close();
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
