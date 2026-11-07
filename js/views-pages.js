@@ -608,6 +608,11 @@
     html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Telegram и синхронизация</h2>' +
       '<p class="muted small">Не синхронизируются: игра, кошелёк, награды, оформление, настройки и текущие сессии.</p>' +
       '<label class="profile-remember" data-if-signed-out><input type="checkbox" data-sync-remember checked><span><strong>Запомнить меня</strong><small>С галочкой — до 90 дней; без неё — в этой вкладке, которую браузер может восстановить после закрытия.</small></span></label>' +
+      '<div class="profile-photo" data-if-signed-in hidden><div class="profile-photo__avatar"><img alt="Фото профиля" data-profile-photo hidden><span aria-hidden="true" data-profile-placeholder>☺</span></div>' +
+      '<div><strong>Фото профиля</strong><p class="muted small">Фото сохраняется в аккаунте и доступно на других устройствах. JPG, PNG или WebP до 8 МБ; изображение будет обрезано по центру.</p>' +
+      '<div class="profile-photo__actions"><label class="btn btn--ghost btn--file">Выбрать фото<input type="file" accept="image/jpeg,image/png,image/webp" data-profile-file></label>' +
+      '<button type="button" class="btn btn--ghost" data-sync="photo-delete" data-profile-delete hidden>Удалить фото</button></div>' +
+      '<p class="muted small" data-profile-status role="status" aria-live="polite"></p></div></div>' +
       '<p class="profile-account" data-sync-account hidden></p><p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
       '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
       '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';

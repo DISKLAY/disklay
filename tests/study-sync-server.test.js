@@ -33,3 +33,29 @@ test('persistent sessions last 90 days and are revoked on logout',async()=>{
   assert.equal((await call({action:'logout'},login.session)).status,200);
   assert.equal((await call({action:'get'},login.session)).status,401);
 });
+
+test('profile photos require a session, are scoped to the verified account and reject invalid data',async()=>{
+  const photos=new Map(),sessions=fakeSessions();
+  const handler=createHandler({get:k=>({TELEGRAM_BOT_TOKEN:bot,SUPABASE_SERVICE_ROLE_KEY:'server-secret',SUPABASE_URL:'https://db.test'})[k]},async(url,opts={})=>{
+    const result=sessions(url,opts);if(result)return result;
+    if(url.includes('/medzo_profile_photos')){
+      const u=new URL(url),id=u.searchParams.get('user_id')?.slice(3);
+      if(opts.method==='POST'){const row=JSON.parse(opts.body);photos.set(row.user_id,row.jpeg_base64);return new Response(JSON.stringify([row]));}
+      if(opts.method==='DELETE'){photos.delete(id);return new Response('[]');}
+      return new Response(JSON.stringify(photos.has(id)?[{jpeg_base64:photos.get(id)}]:[]));
+    }
+    throw Error('unexpected');
+  });
+  async function call(body,token){return handler(new Request('https://edge.test',{method:'POST',headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:JSON.stringify(body)}));}
+  const a=await(await call({action:'login',initData:await initData(123)})).json(),b=await(await call({action:'login',initData:await initData(456)})).json();
+  const photo=Buffer.from([255,216,255,224,0,1,2,3,4,255,217]).toString('base64');
+  assert.equal((await call({action:'photo-put',photo},null)).status,401);
+  assert.equal((await call({action:'photo-put',photo:'PHN2Zz5hbGVydCgxKTwvc3ZnPg=='},a.session)).status,400);
+  assert.equal((await call({action:'photo-put',photo},a.session)).status,200);
+  assert.equal((await(await call({action:'photo-get'},a.session)).json()).photo,photo);
+  assert.equal((await(await call({action:'photo-get'},b.session)).json()).photo,null);
+  assert.equal((await call({action:'photo-delete'},b.session)).status,200);
+  assert.equal((await(await call({action:'photo-get'},a.session)).json()).photo,photo);
+  assert.equal((await call({action:'photo-delete'},a.session)).status,200);
+  assert.equal((await(await call({action:'photo-get'},a.session)).json()).photo,null);
+});

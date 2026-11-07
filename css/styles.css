@@ -2072,3 +2072,44 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .profile-remember[hidden] { display:none; }
 .profile-account { color:var(--primary); font-weight:700; font-size:.9rem; }
 .profile-account[hidden] { display:none; }
+
+/* Сдержанный каталог учебных баз: структура видна без длинных списков. */
+.tests-view { max-width: 1440px; }
+.tests-head { position:relative; overflow:hidden; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:clamp(22px,3vw,34px); margin:8px 0 22px; border:1px solid var(--border); border-radius:22px; background:linear-gradient(130deg,var(--surface),var(--primary-soft)); }
+.tests-head h1 { margin:7px 0 5px; font-size:clamp(1.7rem,3vw,2.3rem); letter-spacing:-.035em; }
+.tests-head p { margin:0; color:var(--text-2); }
+.tests-head__eyebrow { color:var(--primary); font-size:.68rem; font-weight:800; letter-spacing:.14em; }
+.tests-head__mark { display:grid; place-items:center; flex:none; width:60px; height:60px; border-radius:19px; color:var(--primary); background:var(--surface); border:1px solid var(--primary-border); }
+.tests-head__mark .icon { width:28px; height:28px; }
+.test-groups { max-width:none; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:14px; }
+.test-group { min-width:0; overflow:hidden; border-radius:18px; box-shadow:var(--shadow-xs); }
+.test-group > summary { list-style:none; display:flex; align-items:center; gap:12px; min-width:0; padding:16px; }
+.test-group > summary::-webkit-details-marker { display:none; }
+.test-group__number { display:grid; place-items:center; flex:none; width:42px; height:42px; border-radius:13px; color:var(--primary); background:var(--primary-soft); font-size:.8rem; font-weight:800; }
+.test-group__heading { display:grid; flex:1; min-width:0; gap:3px; }
+.test-group__heading strong { overflow-wrap:anywhere; line-height:1.25; }
+.test-group__heading small { color:var(--muted); font-size:.73rem; font-weight:500; }
+.test-group__chevron { flex:none; color:var(--muted); font-size:1.25rem; line-height:1; transition:transform .18s; }
+.test-group[open] .test-group__chevron { transform:rotate(180deg); }
+.test-group__items { gap:8px; padding:0 12px 12px; }
+.test-base { min-width:0; padding:12px; gap:12px; border-radius:13px; transition:border-color .18s,background-color .18s,transform .18s; }
+.test-base:hover { transform:translateY(-1px); }
+.test-base__badge { display:grid; place-items:center; flex:none; width:38px; height:38px; border-radius:12px; color:var(--primary); background:var(--primary-soft); font-weight:800; }
+.test-base__text { display:grid; flex:1; min-width:0; gap:3px; }
+.test-base__text strong { font-size:.9rem; line-height:1.3; overflow-wrap:anywhere; }
+.test-base__label,.test-base__text small { color:var(--muted); font-size:.72rem; line-height:1.35; }
+.test-base__arrow { color:var(--primary); flex:none; font-size:1.2rem; }
+.test-base--credit .test-base__badge { color:#fff; background:rgba(255,255,255,.16); }
+.test-base--credit .test-base__label,.test-base--credit .test-base__text small { color:#d7e0ff; }
+.test-base--credit .test-base__arrow { color:#fff; }
+@media (max-width:760px) { .test-groups { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:280px) { .tests-head__mark { display:none; } .test-base { gap:8px; padding:9px; } .test-base__badge { width:30px; height:30px; } }
+
+/* Account avatar */
+.profile-photo { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; margin: 1rem 0; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface-2); }
+.profile-photo[hidden] { display: none; }
+.profile-photo__avatar { flex: 0 0 76px; width: 76px; height: 76px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-size: 2rem; }
+.profile-photo__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-photo__avatar img[hidden] { display: none; }
+.profile-photo__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 360px) { .profile-photo { flex-direction: column; } }
