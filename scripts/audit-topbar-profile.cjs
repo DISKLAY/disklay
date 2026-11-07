@@ -14,7 +14,8 @@ try{for(const width of [195,240,320,390,768,1440]){
  });
  const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.waitForSelector('.hero');
  const avatar=page.locator('#topbarProfile');await page.locator('#topbarProfilePhoto').waitFor({state:'visible'});
- const profileRect=await avatar.boundingBox(),brandRect=await page.locator('#subjectBrand').boundingBox();assert.ok(profileRect.x<brandRect.x,'profile should be left of the brand');
+ const profileRect=await avatar.boundingBox(),brandRect=await page.locator('#subjectBrand').boundingBox();assert.ok(profileRect.x>brandRect.x,'profile should be right of the brand');assert.ok(profileRect.y<brandRect.y+brandRect.height,'profile should stay on the top row');
+ const imageRect=await page.locator('#topbarProfilePhoto').boundingBox();assert.ok(Math.abs(imageRect.y-(profileRect.y+1))<1,'entire image must fit in the avatar');assert.ok(Math.abs(imageRect.height-(profileRect.height-2))<1);assert.equal(await page.locator('#topbarProfilePlaceholder').isHidden(),true);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),width+' overflow');
  await avatar.click();await page.waitForSelector('#studySync');assert.equal(await page.locator('#contextPage').textContent(),'Профиль');
  await page.locator('[data-sync="logout"]').click();await page.waitForSelector('[data-sync="login"]');assert.equal(await page.locator('#topbarProfilePhoto').isHidden(),true);assert.equal(await page.locator('#topbarProfilePlaceholder').isVisible(),true);
