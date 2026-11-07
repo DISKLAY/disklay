@@ -115,12 +115,13 @@
   let anatomyOralLoad = null, anatomyOralCss = null, anatomyOralReady = false;
   function loadAnatomyOral() {
     if (anatomyOralLoad) return anatomyOralLoad;
-    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=3').catch(err=>{anatomyOralCss=null;throw err;});
+    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=4').catch(err=>{anatomyOralCss=null;throw err;});
     const script=(window.AnatomyOralData?Promise.resolve():resource('script','js/anatomy-oral-data.js?v=2'))
+      .then(()=>window.AnatomyOralSource?undefined:resource('script','js/anatomy-oral-source.js?v=1'))
       .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=2'))
       .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=1'))
       .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=1'))
-      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=5'));
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=6'));
     anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
     return anatomyOralLoad;
   }
