@@ -889,7 +889,7 @@ test('патриотическое оформление показывает а�
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(study, /patrioticIntroPlayed/);
   assert.match(study, /assets\/patriotic-baikal\.gif/);
-  assert.match(css, /\.hero__patriotic-intro img \{[^}]*object-fit: fill/);
+  assert.match(css, /\.hero__patriotic-intro img \{[^}]*object-fit: cover/);
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__patriotic-intro \{ display: none; animation: none;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__patriotic-intro/);
 });
