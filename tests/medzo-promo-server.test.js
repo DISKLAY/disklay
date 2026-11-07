@@ -9,3 +9,12 @@ test('server keeps secret out of response and grants only the correct code',asyn
   assert.equal((await handler(req({code:secret},'https://evil.example'))).status,403);
 });
 test('verification is unavailable when secret missing; does not grant by default',async()=>{const noSecret=createHandler({get:()=>''});assert.equal((await noSecret(req({code:secret}))).status,503);assert.equal((await handler(new Request('https://example.test',{method:'OPTIONS',headers:{origin:'https://disklay.github.io'}}))).status,204);});
+test('future code is distinct and does not invalidate the legacy code',async()=>{
+  const future='ABCDE-FGHIJ-KLMNO-PQR89';
+  const both=createHandler({get:k=>({MEDZO_PRIVATE_PROMO:secret,MEDZO_FUTURE_PROMO:future})[k]||''});
+  assert.deepEqual(await (await both(req({code:future}))).json(),{reward:'all-appearances-future'});
+  assert.deepEqual(await (await both(req({code:secret}))).json(),{reward:'all-appearances'});
+  assert.equal((await both(req({code:'WRONG'}))).status,404);
+  const futureOnly=createHandler({get:k=>k==='MEDZO_FUTURE_PROMO'?future:''});
+  assert.equal((await futureOnly(req({code:future}))).status,200);
+});
