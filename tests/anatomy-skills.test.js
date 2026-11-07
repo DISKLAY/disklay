@@ -51,3 +51,22 @@ test('порядок сохраняется и применяется к общ�
  assert.ok(restored.start());assert.deepEqual(Array.from(restored.state.session.order),[1,2,3,4,5,6,7,8,9,10]);
  const legacy={};legacy[H.KEY]=JSON.stringify({session:{order:[23,1],index:1,answers:{},hints:{},finished:false}});const old=load(legacy).game;assert.equal(old.state.sequence,'random');assert.deepEqual(Array.from(old.state.session.order),[23,1]);
 });
+
+test('несколько тем сохраняются, сочетаются с фильтрами и доступны после перезагрузки',()=>{
+ const storage={}, {game,H}=load(storage,()=>0);
+ game.setOptions(['spine','skull'],'all',0,'ordered');
+ const expected=H.data.items.filter(item=>['spine','skull'].includes(item.group)).map(item=>item.id);
+ assert.deepEqual(Array.from(game.pool().map(x=>x.id)),Array.from(expected));
+ assert.ok(game.start()); assert.deepEqual(Array.from(game.state.session.order),Array.from(expected));
+ game.favorite(expected[0]); game.favorite(expected.at(-1));
+ const restored=load(storage).game; assert.deepEqual(Array.from(restored.state.group),['spine','skull']);
+ restored.setOptions(restored.state.group,'favorites',0,'ordered');
+ assert.deepEqual(Array.from(restored.pool().map(x=>x.id)),[expected[0],expected.at(-1)]);
+ restored.setOptions([], 'all', 0, 'random');assert.equal(restored.state.group,'all');assert.equal(restored.pool().length,330);
+ restored.setOptions(['skull','invalid','skull'],'all',0,'random');assert.equal(restored.state.group,'skull');
+});
+
+test('старый формат одной темы и сохранённый прогресс навыков совместимы',()=>{
+ const storage={}; const {H}=load(); storage[H.KEY]=JSON.stringify({group:'pelvis',favorites:{1:true},notes:{1:'заметка'},stats:{1:{attempts:1,known:0,last:'again'}}});
+ const game=load(storage).game;assert.equal(game.state.group,'pelvis');assert.equal(game.state.notes[1],'заметка');assert.equal(game.state.favorites[1],true);assert.equal(game.state.stats[1].last,'again');
+});

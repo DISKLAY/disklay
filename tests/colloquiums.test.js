@@ -194,7 +194,7 @@ test('семестры, зачёты и четвёртый коллоквиум 
     assert.equal(AT.colloquium.kind, kind);
     assert.match(AT.views.dashboard().html, new RegExp(semester + ' семестр'));
     if (kind === 'credit') {
-      assert.match(AT.views.dashboard().html, /Тренажёр к зачёту/);
+      assert.match(AT.views.dashboard().html, /1 семестр · Зачёт|2 семестр · Зачёт/);
       assert.match(AT.views.examSetup().html, /Формат пробного зачёта пока не определён/);
       assert.match(AT.views.settings().html, /Зачёт/);
     }
@@ -234,8 +234,8 @@ test('новые PDF перенесены целиком с подсветкой
 test('кнопка тренировки на главной зачёта выделена отдельным цветом', () => {
   for (const id of ['credit-1', 'credit-2']) {
     const html = app({}, id).views.dashboard().html;
-    assert.match(html, /href="#\/train" class="btn btn--primary btn--lg btn--credit"/);
-    assert.match(html, /href="#\/exam" class="btn btn--ghost btn--lg"/);
+    assert.match(html, /href="#\/tests" class="btn btn--primary btn--lg btn--credit"/);
+    assert.doesNotMatch(html, /href="#\/exam" class="btn btn--ghost btn--lg"/);
   }
   for (const id of ['1', '2', '3', '4', 'stom-2', 'stom-3']) {
     assert.doesNotMatch(app({}, id).views.dashboard().html, /btn--credit/);

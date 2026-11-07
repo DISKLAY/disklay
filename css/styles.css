@@ -2051,3 +2051,16 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .promo-form { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .promo-form label, .promo-form__row { min-width: 0; overflow-wrap: anywhere; }
 .appearance-card__footer { flex-wrap: wrap; }
+
+/* Компактный вход в базы и темы тестов. */
+.test-groups { display:grid; gap:12px; max-width:900px; }
+.test-group, .topic-picker { border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.test-group > summary, .topic-picker > summary, .dashboard-topics > summary { cursor:pointer; padding:16px; font-weight:700; color:var(--text); }
+.test-group__items { display:grid; gap:8px; padding:0 12px 12px; }
+.test-base { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:14px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); text-align:left; font:inherit; cursor:pointer; }
+.test-base:hover, .test-base:focus-visible, .test-base.is-current { border-color:var(--primary); }
+.test-base span:first-child { min-width:0; overflow-wrap:anywhere; }
+.topic-picker .chips { padding:0 12px 14px; }
+.dashboard-topics > summary { padding-left:0; }
+.test-base--credit { background:linear-gradient(120deg,#354eae,#4939a2); border-color:#4652ab; color:#fff; }
+.test-base--credit:hover, .test-base--credit:focus-visible, .test-base--credit.is-current { border-color:#a8bdff; outline-color:#657beb; }

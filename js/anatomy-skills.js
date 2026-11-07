@@ -14,6 +14,7 @@
       const saved=JSON.parse(store.getItem(KEY)||'{}');
       if(saved && typeof saved==='object') {
         if(saved.group==='all'||groups.has(saved.group))state.group=saved.group;
+        else if(Array.isArray(saved.group)){const valid=[...new Set(saved.group.filter(id=>groups.has(id)))];if(valid.length)state.group=valid.length===1?valid[0]:valid;}
         if(scopes.includes(saved.scope))state.scope=saved.scope;
         if([0,10,20,50].includes(saved.limit))state.limit=saved.limit;
         if(['random','ordered'].includes(saved.sequence))state.sequence=saved.sequence;
@@ -32,8 +33,8 @@
       }
     } catch(e) { /* damaged or disabled storage: safe default */ }
     function save(){try{store.setItem(KEY,JSON.stringify(state));failed=false;}catch(e){failed=true;}}
-    function setOptions(group,scope,limit,sequence){if(group==='all'||groups.has(group))state.group=group;if(scopes.includes(scope))state.scope=scope;if([0,10,20,50].includes(Number(limit)))state.limit=Number(limit);if(['random','ordered'].includes(sequence))state.sequence=sequence;save();}
-    function pool(){return data.items.filter(item=> (state.group==='all'||item.group===state.group) && (state.scope==='all'||(state.scope==='favorites'&&state.favorites[item.id])||(state.scope==='again'&&state.stats[item.id]?.last==='again')||(state.scope==='unseen'&&!state.stats[item.id])));}
+    function setOptions(group,scope,limit,sequence){if(group==='all'||groups.has(group))state.group=group;else if(Array.isArray(group)){const valid=[...new Set(group.filter(id=>groups.has(id)))];state.group=valid.length===0?'all':valid.length===1?valid[0]:valid;}if(scopes.includes(scope))state.scope=scope;if([0,10,20,50].includes(Number(limit)))state.limit=Number(limit);if(['random','ordered'].includes(sequence))state.sequence=sequence;save();}
+    function pool(){return data.items.filter(item=> (state.group==='all'||(Array.isArray(state.group)?state.group.includes(item.group):item.group===state.group)) && (state.scope==='all'||(state.scope==='favorites'&&state.favorites[item.id])||(state.scope==='again'&&state.stats[item.id]?.last==='again')||(state.scope==='unseen'&&!state.stats[item.id])));}
     function begin(ids,limit){
       if(!ids.length)return false;
       if(state.sequence==='ordered')ids.sort((a,b)=>a-b);

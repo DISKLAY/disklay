@@ -32,16 +32,17 @@
     return topicTitle(topicIds[0]) + ' +' + (topicIds.length - 1);
   }
 
+  let topicsOpen = false;
   function topicChips(selected, action) {
     const isAll = selected.indexOf('all') !== -1;
-    let html = '<div class="chips">';
-    html += '<button type="button" class="chip' + (isAll ? ' is-active' : '') + '" data-action="' + action + '" data-topic="all">Все темы</button>';
+    let html = '<details class="topic-picker" data-topic-picker'+(topicsOpen?' open':'')+'><summary>'+esc(sessionLabel(selected))+' · Выбрать</summary><div class="chips">';
+    html += '<button type="button" class="chip' + (isAll ? ' is-active' : '') + '" data-action="' + action + '" aria-pressed="' + isAll + '" data-topic="all">Все темы</button>';
     dataset.topics.forEach((t) => {
       const active = !isAll && selected.indexOf(t.id) !== -1;
       html += '<button type="button" class="chip' + (active ? ' is-active' : '') + '" data-action="' + action +
-        '" data-topic="' + t.id + '">' + esc(t.title) + '</button>';
+        '" aria-pressed="' + active + '" data-topic="' + t.id + '">' + esc(t.title) + '</button>';
     });
-    html += '</div>';
+    html += '</div></details>';
     return html;
   }
 
@@ -110,13 +111,11 @@
       '<div class="hero__titan-media" aria-hidden="true"></div>' +
       '<div class="hero__body">' +
       '<span class="eyebrow"><span class="eyebrow__dot"></span>Анатомия человека · ' + esc(courseLabel()) + '</span>' +
-      '<h1>Тренажёр к ' + (AT.colloquium.kind === 'credit' ? 'зачёту' : 'коллоквиуму') + '</h1>' +
+      '<h1>Анатомия</h1>' +
       '<p class="hero__module">' + esc(AT.colloquium.name) + '</p>' +
-      '<p class="hero__lead">' + total + ' заданий в этой базе. Учите по темам и разбирайте ошибки.' +
-      (AT.colloquium.examAvailable ? ' Проверяйте себя на время.' : '') + '</p>' +
       '<div class="hero__actions">' +
-      '<a href="#/train" class="btn btn--primary btn--lg' + (AT.colloquium.kind === 'credit' ? ' btn--credit' : '') + '">' + icon('play') + 'Тренироваться</a>' +
-      '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + (AT.colloquium.examAvailable ? 'Пробный экзамен' : AT.colloquium.kind === 'credit' ? 'Пробный зачёт · скоро' : 'Экзамен · скоро') + '</a>' +
+      '<a href="#/tests" class="btn btn--primary btn--lg' + (AT.colloquium.kind === 'credit' ? ' btn--credit' : '') + '">' + icon('play') + 'Тесты</a>' +
+      (AT.colloquium.examAvailable ? '<a href="#/exam" class="btn btn--ghost btn--lg">' + icon('exam') + 'Пробный экзамен</a>' : '') +
       '</div>' +
       '</div>' +
       '<div class="hero__aside">' +
@@ -169,9 +168,8 @@
       '<section class="section">' +
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
-      modeCard('Тренировка', 'Вопрос за вопросом с разбором', 'train', '#/train', 'primary') +
       (AT.colloquium.id === '1' ? modeCard('Практические навыки', 'Перевести и показать · 330 навыков', 'book', '#/anatomy-skills', 'teal') : '') +
-      modeCard(AT.colloquium.kind === 'credit' ? 'Пробный зачёт' : 'Экзамен', AT.colloquium.examAvailable ? examFormatText() : 'Скоро добавится', 'exam', '#/exam', 'violet') +
+      (AT.colloquium.examAvailable ? modeCard('Пробный экзамен', examFormatText(), 'exam', '#/exam', 'violet') : '') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       modeCard('Портфель избранного', 'Отмеченные вопросы из всех баз', 'star', '#/portfolio', 'primary') +
@@ -190,9 +188,9 @@
         '</div></section>';
     }
 
-    html += '<section class="section"><div class="section__head"><h2>Темы</h2>' +
+    html += '<details class="section dashboard-topics"><summary>Темы текущей базы</summary><div class="section__head"><h2>Темы</h2>' +
       '<span class="section__hint">' + dataset.total + ' ' + utils.plural(dataset.total, 'задание', 'задания', 'заданий') + '</span></div>' +
-      '<div class="topic-list">' + topics.map((t, i) => topicRow(t, i)).join('') + '</div></section>';
+      '<div class="topic-list">' + topics.map((t, i) => topicRow(t, i)).join('') + '</div></details>';
 
     html += '</div>';
 
@@ -278,6 +276,22 @@
       '<span class="topic__go">' + icon('chevronRight') + '</span></a>';
   }
 
+  /* Единый вход в тесты: показываем только выбранную группу баз. */
+  views.tests = function () {
+    const select = document.getElementById('colloquiumSelect');
+    const groups = Array.from(select.querySelectorAll('optgroup'));
+    const html = '<div class="view"><div class="page-head"><h1>Тесты</h1><p>Выберите коллоквиум или зачёт</p></div><div class="test-groups">' + groups.map(group =>
+      '<details class="test-group"'+(group.contains(select.selectedOptions[0])?' open':'')+'><summary>'+esc(group.label)+'</summary><div class="test-group__items">'+Array.from(group.children).map(option =>
+        '<button type="button" class="test-base'+(option.value===select.value?' is-current':'')+(option.value.startsWith('credit-')?' test-base--credit':'')+'" data-test-base="'+esc(option.value)+'"><span>'+esc(option.textContent.replace(/^Стом\s*·\s*/,'').replace(/^(\d+)\s*·/, 'Коллоквиум $1 ·'))+'</span><span aria-hidden="true">→</span></button>'
+      ).join('')+'</div></details>'
+    ).join('')+'</div></div>';
+    return {title:'Тесты',html,mount(root){root.querySelectorAll('[data-test-base]').forEach(button=>button.addEventListener('click',()=>{
+      const id=button.dataset.testBase;
+      if(id===select.value){AT.go('#/train');return;}
+      select.dataset.nextRoute='train';select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));
+    }));}};
+  };
+
   /* -------------------------------------------------------- настройка: тренировка */
 
   views.trainSetup = function () {
@@ -286,7 +300,7 @@
     const total = availableCount(s.topics, 'all');
 
     let html = '<div class="view">';
-    html += pageHead('Тренировка', keyApi.count() === dataset.total ? 'Режим с мгновенной проверкой и разбором каждого вопроса.' : 'Для вопросов без ключа доступна самооценка: правильные ответы не показываются.');
+    html += pageHead('Тренировка', keyApi.count() === dataset.total ? '' : 'Для вопросов без ключа доступна самооценка.', '#/tests');
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">Темы</div>' +
       topicChips(s.topics, 'toggle-topic-train') +
@@ -302,7 +316,7 @@
       '<div class="panel__footer">' +
       '<button class="btn btn--primary btn--lg" data-action="start-train"' + (available ? '' : ' disabled') + '>' +
       icon('play') + 'Начать' + '</button>' +
-      '<a class="btn btn--ghost" href="#/">Отмена</a>' +
+      '<a class="btn btn--ghost" href="#/tests">Назад</a>' +
       '</div></div>';
     html += '</div>';
     return { title: 'Тренировка', html, mount };
@@ -349,7 +363,7 @@
 
       '<div class="panel__footer">' +
       '<button class="btn btn--primary btn--lg" data-action="start-exam">' + icon('exam') + 'Начать экзамен</button>' +
-      '<a class="btn btn--ghost" href="#/">Отмена</a>' +
+      '<a class="btn btn--ghost" href="#/tests">Назад</a>' +
       '</div></div></div>';
     return { title: 'Экзамен', html, mount };
   };
@@ -367,6 +381,8 @@
     const view = root.querySelector('.view');
     if (!view) return;
 
+    const topicPicker = view.querySelector('[data-topic-picker]');
+    if (topicPicker) topicPicker.addEventListener('toggle', () => { topicsOpen = topicPicker.open; });
     view.addEventListener('click', (e) => {
       const el = e.target.closest('[data-action]');
       if (!el) return;
@@ -374,7 +390,10 @@
 
       if (action === 'toggle-topic-train') {
         setup.train.topics = toggleTopic(setup.train.topics, el.getAttribute('data-topic'));
+        topicsOpen = true;
+        const topic = el.getAttribute('data-topic');
         AT.rerender();
+        root.querySelector('[data-action="toggle-topic-train"][data-topic="'+topic+'"]')?.focus({preventScroll:true});
       } else if (action === 'set-scope') {
         setup.train.scope = el.getAttribute('data-scope');
         AT.rerender();

@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/medzo-mark-transparent.png?v=2" type="image/png">
-  <link rel="stylesheet" href="css/styles.css?v=20261107-nav2">
+  <link rel="stylesheet" href="css/styles.css?v=20261107-nav3">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -54,7 +54,7 @@
 
       <nav class="nav" id="mainNav" aria-label="Основная навигация">
         <a href="#/" data-route="dashboard">Главная</a>
-        <a href="#/train" data-route="train">Тренировка</a>
+        <a href="#/tests" data-route="tests">Тесты</a>
         <a href="#/mistakes" data-route="mistakes">Ошибки</a>
         <a href="#/portfolio" data-route="portfolio">Портфель</a>
       </nav>
@@ -82,13 +82,13 @@
       <div id="anatomySidebar">
         <details class="course-picker" id="coursePicker">
           <summary><span><small>Текущая база</small><strong id="courseSidebarCurrent"></strong></span><span class="course-picker__change">Сменить</span></summary>
-          <p class="course-sidebar__note">Прогресс хранится отдельно. Таймер экзамена при переключении продолжает идти.</p>
+          <p class="course-sidebar__note">При переключении таймер экзамена продолжает идти.</p>
           <nav id="courseSidebarNav" aria-label="Коллоквиумы и зачёты"></nav>
         </details>
         <nav class="course-sidebar__pages" aria-label="Разделы приложения">
           <span class="course-sidebar__section-title">Учёба</span>
           <a href="#/" data-sidebar-route="dashboard">Главная</a>
-          <a href="#/train" data-sidebar-route="train">Тренировка</a>
+          <a href="#/tests" data-sidebar-route="tests">Тесты</a>
           <a href="#/exam" data-sidebar-route="exam">Экзамен</a>
           <a href="#/anatomy-skills" data-sidebar-route="anatomy-skills" id="sidebarSkills" hidden>Практические навыки</a>
           <span class="course-sidebar__section-title">Мой прогресс</span>
@@ -114,7 +114,7 @@
         <a href="#/histology?section=stats" data-histo-sidebar="stats">Статистика</a>
         <a href="#/settings">Настройки и синхронизация</a>
       </nav>
-      <p class="course-sidebar__note">Сессии сохраняются при переходе между разделами.</p>
+
       </div>
     </aside>
     <div class="content-shell">
@@ -158,7 +158,7 @@
   <script src="js/game.js?v=20261101-dungeon9"></script>
   <script src="js/ui.js?v=20261102-keynotes1"></script>
   <script src="js/germ-squad.js?v=20261031-easter1"></script>
-  <script src="js/views-study.js?v=20261106-skills1"></script>
+  <script src="js/views-study.js?v=20261107-tests"></script>
   <script src="js/study-snapshot.js?v=1"></script>
   <script src="js/study-sync-engine.js?v=1"></script>
   <script src="js/study-sync.js?v=4"></script>
@@ -167,6 +167,6 @@
   <script src="js/views-rewards.js?v=20261101-dungeon9"></script>
   <script src="js/module-picker.js"></script>
   <script src="js/course-drawer.js?v=20261107-nav2"></script>
-  <script src="js/app.js?v=20261107-nav2"></script>
+  <script src="js/app.js?v=20261107-nav3"></script>
 </body>
 </html>
