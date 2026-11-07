@@ -2125,3 +2125,13 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .leaderboard__place { color: var(--muted); min-width: 1.5rem; font-variant-numeric: tabular-nums; }
 .leaderboard__score { margin-left: auto; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
 .leaderboard__avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; }
+
+/* Profile is always reachable from the left edge of the top bar. */
+.topbar-profile { flex: none; width: 42px; height: 42px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--primary-border); border-radius: 50%; background: var(--primary-soft); color: var(--primary); box-shadow: var(--shadow-xs); }
+.topbar-profile:hover { border-color: var(--primary); }
+.topbar-profile:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.topbar-profile__placeholder { width: 23px; height: 23px; }
+.topbar-profile img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.topbar-profile [hidden] { display: none; }
+@media (max-width: 360px) { .topbar__inner { gap: 6px; } .brand__mark { display: none; } }
+@media (max-width: 250px) { .topbar__inner { padding-inline: 5px; gap: 4px; } .brand__meta #subjectBrandLabel { display: none; } }
