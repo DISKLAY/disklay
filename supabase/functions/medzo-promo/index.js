@@ -8,14 +8,18 @@ function createHandler(env) { return async req=>{
   if(req.method==='OPTIONS')return origin===SITE?new Response(null,{status:204,headers:cors}):respond(403,{error:'forbidden'});
   if(req.method!=='POST'||(origin&&origin!==SITE))return respond(403,{error:'forbidden'});
   const secret=env.get('MEDZO_PRIVATE_PROMO')||'';
-  if(!/^[A-Z2-7]{5}(?:-[A-Z2-7]{5}){3}$/.test(secret))return respond(503,{error:'unavailable'});
+  const future=env.get('MEDZO_FUTURE_PROMO')||'';
+  const validLegacy=/^[A-Z2-7]{5}(?:-[A-Z2-7]{5}){3}$/.test(secret);
+  const validFuture=/^[A-Z2-9]{5}(?:-[A-Z2-9]{5}){3}$/.test(future);
+  if(!validLegacy&&!validFuture)return respond(503,{error:'unavailable'});
   try {
     if(Number(req.headers.get('content-length')||0)>1024)return respond(413,{error:'too_large'});
     const raw=await req.text();if(raw.length>1024)return respond(413,{error:'too_large'});
     const data=JSON.parse(raw||'{}');
     const code=typeof data.code==='string'?data.code.trim().toUpperCase():'';
-    if(!equal(code,secret))return respond(404,{error:'not_found'});
-    return respond(200,{reward:'all-appearances'});
+    if(validFuture && equal(code,future))return respond(200,{reward:'all-appearances-future'});
+    if(validLegacy && equal(code,secret))return respond(200,{reward:'all-appearances'});
+    return respond(404,{error:'not_found'});
   } catch (_) { return respond(400,{error:'invalid_request'}); }
 };}
 if(typeof Deno!=='undefined')Deno.serve(createHandler(Deno.env));

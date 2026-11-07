@@ -107,6 +107,8 @@
     patriotic: { title: 'Патриотическое', description: 'Русские мотивы, триколор и SHAMAN.', price: 5000, color: '#264d85', premium: true },
   };
   const SHARED_KEY = 'anatomy-colloquium-rewards-shared-v1';
+  // Stored inside appearances so existing schema-2 clients and both sync endpoints preserve it.
+  const ALL_FUTURE_APPEARANCES = '__medzo_all_future_v1';
   let shared = { achievements: {}, appearances: {}, cosmeticSpent: {}, walletSpent: 0, appearance: 'default' };
   function readShared() {
     try {
@@ -119,6 +121,9 @@
         if (typeof value.appearance === 'string') shared.appearance = value.appearance;
       }
     } catch (e) { /* При недоступном хранилище работаем с данными в памяти. */ }
+    if (shared.appearances[ALL_FUTURE_APPEARANCES] === true) {
+      Object.keys(APPEARANCES).filter(id => id !== 'default' && id !== 'meme').forEach(id => { shared.appearances[id] = true; });
+    }
     if (!Object.prototype.hasOwnProperty.call(APPEARANCES, shared.appearance) || (shared.appearance !== 'default' && !shared.appearances[shared.appearance])) shared.appearance = 'default';
     return shared;
   }
@@ -230,7 +235,7 @@
   function inspectAppearanceImport(file) {
     const owned = file && typeof file === 'object' && !Array.isArray(file) && file.sharedRewards && file.sharedRewards.appearances;
     if (!owned || typeof owned !== 'object' || Array.isArray(owned)) return { ok: false, message: 'В файле нет списка оформлений' };
-    const ids = Object.keys(owned).filter(id => owned[id] === true && id !== 'default' && id !== 'meme'); // Старые файлы могут содержать временно скрытое оформление.
+    const ids = Object.keys(owned).filter(id => owned[id] === true && id !== 'default' && id !== 'meme' && id !== ALL_FUTURE_APPEARANCES); // Старые файлы могут содержать временно скрытое оформление.
     if (!ids.length || ids.some(id => !Object.prototype.hasOwnProperty.call(APPEARANCES, id))) return { ok: false, message: 'Файл не содержит известных оформлений или создан для другой версии приложения' };
     if (Object.keys(owned).some(id => typeof owned[id] !== 'boolean')) return { ok: false, message: 'Неверный список оформлений' };
     return { ok: true, ids, titles: ids.map(id => APPEARANCES[id].title) };
@@ -244,6 +249,18 @@
     if (!saveShared()) { shared = previous; return { ok: false, message: 'Не удалось сохранить оформления' }; }
     syncAchievements();
     return { ok: true, message: 'Оформления добавлены. Выберите их в разделе «Награды».' };
+  }
+  // Only the server-verified promo path calls this. The entitlement is stored with
+  // purchases, so later versions can grant newly added appearances without a code.
+  function grantAllFutureAppearances() {
+    readShared();
+    if (shared.appearances[ALL_FUTURE_APPEARANCES] === true) return { ok: false, message: 'Промокод уже активирован: все текущие и будущие оформления открыты.' };
+    const previous = JSON.parse(JSON.stringify(shared));
+    shared.appearances[ALL_FUTURE_APPEARANCES] = true;
+    Object.keys(APPEARANCES).filter(id => id !== 'default' && id !== 'meme').forEach(id => { shared.appearances[id] = true; });
+    if (!saveShared()) { shared = previous; return { ok: false, message: 'Не удалось сохранить промокод' }; }
+    syncAchievements();
+    return { ok: true, message: 'Все текущие и будущие оформления открыты. Выберите их в разделе «Награды».' };
   }
   function walletBalance() {
     readShared();
@@ -329,7 +346,7 @@
     g.examScored = true;
     syncAchievements();
   }
-  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, walletBalance, buyAppearance, awardMicrobe, awardTraining, awardExam };
+  AT.game = { ensure, sessionGame, achievements, syncAchievements, totalRating, appearances: APPEARANCES, profile, applyAppearance, selectAppearance, inspectAppearanceImport, importAppearances, grantAllFutureAppearances, walletBalance, buyAppearance, awardMicrobe, awardTraining, awardExam };
   // Старый прогресс признаём только достижениями. Очки задним числом не начисляем.
   syncAchievements();
   AT.save(true);

@@ -34,3 +34,10 @@ test('partial writes roll back, including shared rewards, with a separate recove
  const b='histology-theory-v1',s=storage({[k]:'{"progress":{"old":true}}',[b]:'{"stats":{"old":true}}',[shared]:'{"walletSpent":40}'}),base=s.setItem;let failed=false;s.setItem=(key,v)=>{if(key===shared&&!failed){failed=true;throw Error('quota');}base(key,v);};assert.throws(()=>S.apply(s,{schema:2,records:{[k]:{progress:{new:true}},[b]:{stats:{new:true}},[shared]:{walletSpent:50}}}));
  assert.deepEqual(JSON.parse(s.data[k]),{progress:{old:true}});assert.deepEqual(JSON.parse(s.data[b]),{stats:{old:true}});assert.deepEqual(JSON.parse(s.data[shared]),{walletSpent:40});assert.ok(Object.keys(s.data).some(key=>key.startsWith('medzo-study-sync-local-backup-')));
 });
+test('future-appearance entitlement survives schema-2 capture and restore on another device',()=>{
+ const source=storage({[shared]:JSON.stringify({appearances:{__medzo_all_future_v1:true,ocean:true},walletSpent:17,appearance:'ocean'})});
+ const snap=S.capture(source);assert.ok(S.validate(snap));assert.ok(server.validSnapshot(snap));
+ const destination=storage();S.apply(destination,snap);
+ assert.equal(JSON.parse(destination.data[shared]).appearances.__medzo_all_future_v1,true);
+ assert.equal(JSON.parse(destination.data[shared]).walletSpent,17);
+});

@@ -893,3 +893,27 @@ test('патриотическое оформление использует п�
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__patriotic-intro \{ display: none; animation: none;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__patriotic-intro/);
 });
+
+test('промокод на будущие оформления сохраняет право и открывает новые без списания', () => {
+  const storage = {}; let AT = app(storage, '1');
+  AT.game.ensure().coins = 1234; AT.save(true);
+  assert.equal(AT.game.grantAllFutureAppearances().ok, true);
+  assert.equal(AT.game.walletBalance(), 1234);
+  assert.equal(AT.game.profile().appearances.patriotic, true);
+  assert.equal(AT.game.profile().appearances.__medzo_all_future_v1, true);
+  assert.equal(AT.game.grantAllFutureAppearances().ok, false);
+  AT = app(storage, '2');
+  AT.game.appearances.future_style = {title:'Будущее', price:5000};
+  assert.equal(AT.game.profile().appearances.future_style, true);
+  assert.equal(AT.game.selectAppearance('future_style').ok, true);
+  assert.equal(AT.game.walletBalance(), 1234);
+  assert.equal(AT.game.inspectAppearanceImport({sharedRewards:{appearances:AT.game.profile().appearances}}).ok, true);
+});
+
+test('ошибка записи не активирует промокод на будущие оформления', () => {
+  const storage = {}; const AT = app(storage);
+  // Simulate a storage failure via the VM-backed setter after initialization.
+  Object.defineProperty(storage, 'anatomy-colloquium-rewards-shared-v1', {set(){throw Error('quota');}, get(){return null;}});
+  assert.equal(AT.game.grantAllFutureAppearances().ok, false);
+  assert.equal(AT.game.profile().appearances.__medzo_all_future_v1, undefined);
+});

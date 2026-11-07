@@ -15,3 +15,11 @@ test('private promo failures never unlock and public codes still work offline',a
  assert.equal((await promo.redeemWithServer('MEDZO',g,async()=>{throw Error('network');},entries)).ok,true);
  assert.match((await promo.redeemWithServer('wrong',game(),async()=>{throw Error('network');})).message,/интернет/);
 });
+test('server-verified future code grants durable entitlement even if all current styles are already owned',async()=>{
+ const g=game();g.state.appearances.ocean=true;let calls=0;
+ g.grantAllFutureAppearances=()=>{calls++;return {ok:true,message:'all future'};};
+ assert.equal((await promo.redeemWithServer('ABC12-DEF34',g,async()=>Response.json({reward:'all-appearances-future'}))).ok,true);
+ assert.equal(calls,1);assert.equal(g.state.coins,123);
+ assert.equal((await promo.redeemWithServer('bad',g,async()=>Response.json({reward:'something-else'}))).ok,false);
+ assert.equal(calls,1);
+});

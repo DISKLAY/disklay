@@ -23,6 +23,7 @@
     if(response.status===404)return local;
     if(!response.ok)return {ok:false,message:'Не удалось проверить промокод. Попробуйте позже.'};
     let result;try{result=await response.json();}catch(_){return {ok:false,message:'Не удалось проверить промокод.'};}
+    if(result && result.reward==='all-appearances-future' && typeof game.grantAllFutureAppearances==='function')return game.grantAllFutureAppearances();
     if(!result||result.reward!=='all-appearances'||!game.appearances)return {ok:false,message:'Не удалось проверить промокод.'};
     const ids=Object.keys(game.appearances).filter(id=>id!=='default'&&id!=='meme');
     if(!ids.length)return {ok:false,message:'Нет доступных оформлений.'};
