@@ -13,10 +13,11 @@
       return {ok:response.ok,status:response.status,data};
     }
     return {
-      async create({password,nickname}){
+      async create({password,nickname,email:reservedEmail}){
         // The address is a random internal identifier, not a deliverable email.
         // No username or personal data is used as the address.
-        const email=randomUUID()+'@accounts.medzo.invalid';
+        const email=reservedEmail||randomUUID()+'@accounts.medzo.invalid';
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}@accounts\.medzo\.invalid$/.test(email)&&reservedEmail)throw Error('invalid_internal_email');
         const result=await request('admin/users',{email,password,email_confirm:true,user_metadata:{display_name:nickname}});
         if(!result.ok||typeof result.data.id!=='string')throw Error('provider_unavailable');
         return {id:result.data.id,email};

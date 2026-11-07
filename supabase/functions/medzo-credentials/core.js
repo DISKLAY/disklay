@@ -29,13 +29,13 @@
       if(!login||!name||!password(secret))return {ok:false,error:'invalid_input'};
       try {if(!await limiter.allow('register',login,context))return {ok:false,error:'rate_limited'};} catch (_) {return {ok:false,error:'unavailable'};}
       // reserve() must atomically prevent both concurrent and pre-existing names.
-      let reservation;try {reservation=await accounts.reserve(login);} catch (_) {return {ok:false,error:'unavailable'};}
+      let reservation;try {reservation=await accounts.reserve(login,name);} catch (_) {return {ok:false,error:'unavailable'};}
       if(!reservation)return {ok:false,error:'username_taken'};
       let identity=null;
       try {
         // The provider is responsible for secure password storage and a random,
         // non-deliverable internal identifier; never use a real person's email.
-        identity=await provider.create({password:secret,nickname:name});
+        identity=await provider.create({password:secret,nickname:name,email:reservation.email});
         if(!identity||typeof identity.id!=='string'||!identity.id)throw new Error('invalid_identity');
         await accounts.complete(reservation,identity,name);
         return {ok:true};
