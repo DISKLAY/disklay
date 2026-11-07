@@ -174,8 +174,29 @@
     return { title: 'Ошибки', html, mount };
   };
 
+  // Shared invitation on each subject's main screen. Participation remains opt-in.
+  AT.leaderboardInviteMarkup = function (subject) {
+    const ratingHref = subject === 'histology' ? '#/histology?section=stats&rating=1' : '#/stats?rating=1';
+    return '<section class="rating-invite" data-rating-invite aria-label="Общий рейтинг">' +
+      '<span class="rating-invite__icon" aria-hidden="true">' + icon('stats') + '</span>' +
+      '<div class="rating-invite__body">' +
+      '<div data-if-signed-out><h2>Присоединяйтесь к общему рейтингу</h2>' +
+      '<p>Войдите или создайте аккаунт, чтобы сохранить прогресс и по желанию участвовать в рейтинге. Имя выбираете вы, фото — только с вашего согласия. Учитываются очки анатомии.</p>' +
+      '<div class="rating-invite__actions"><a class="btn btn--primary" href="#/profile">Войти или зарегистрироваться</a>' +
+      '<a class="btn btn--ghost" href="' + ratingHref + '">О рейтинге</a></div></div>' +
+      '<div data-if-signed-in hidden><h2>Общий рейтинг</h2>' +
+      '<p>Посмотрите рейтинг или выберите имя для участия. Участие добровольное; фото показывается только по вашему выбору. Учитываются очки анатомии.</p>' +
+      '<div class="rating-invite__actions"><a class="btn btn--primary" href="' + ratingHref + '">Открыть рейтинг</a></div></div>' +
+      '</div></section>';
+  };
+  AT.focusLeaderboard = function (root) {
+    const target = root.querySelector('[data-leaderboard]');
+    if (!target) return;
+    requestAnimationFrame(() => { if (!target.isConnected) return; target.focus({preventScroll:true}); target.scrollIntoView({block:'start'}); });
+  };
+
   AT.leaderboardMarkup = function () {
-    return '<section class="card card--pad leaderboard" data-leaderboard><h2 class="card__title">Общий рейтинг пользователей</h2>' +
+    return '<section class="card card--pad leaderboard" data-leaderboard tabindex="-1"><h2 class="card__title">Общий рейтинг пользователей</h2>' +
       '<div class="leaderboard__personal"><span>Ваш рейтинг на устройстве</span><strong>' + (AT.game ? AT.game.totalRating().toLocaleString('ru-RU') : '0') + '</strong><small>Сумма очков анатомических баз</small></div>' +
       '<p class="muted small">Участие добровольное. Имя, рейтинг и, по желанию, фото будут видны другим пользователям. Учитываются очки, сохранённые в облаке. Результаты начисляются в браузере и сервером не проверяются.</p>' +
       '<div data-leaderboard-signed-out><p>Войдите в аккаунт, чтобы посмотреть таблицу и участвовать.</p><a class="btn btn--ghost" href="#/profile">Войти в профиль</a></div>' +
@@ -187,7 +208,7 @@
 
   /* ------------------------------------------------------------ статистика */
 
-  views.stats = function () {
+  views.stats = function (params) {
     const overall = analytics.overall();
     const topics = analytics.byTopic().filter((t) => t.total > 0);
     const sessions = AT.getState().sessions;
@@ -252,6 +273,7 @@
 
     const mount = (root) => {
       if (window.MedzoStudySync) window.MedzoStudySync.mountLeaderboard(root.querySelector('[data-leaderboard]'));
+      if (params && params.rating === '1') AT.focusLeaderboard(root);
       root.addEventListener('click', (e) => {
         const el = e.target.closest('[data-action="reset-progress"]');
         if (!el) return;
