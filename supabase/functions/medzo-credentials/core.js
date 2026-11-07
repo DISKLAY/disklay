@@ -27,9 +27,9 @@
     async function register(input,context) {
       const login=username(input?.username),name=nickname(input?.nickname),secret=input?.password;
       if(!login||!name||!password(secret))return {ok:false,error:'invalid_input'};
-      if(!await limiter.allow('register',login,context))return {ok:false,error:'rate_limited'};
+      try {if(!await limiter.allow('register',login,context))return {ok:false,error:'rate_limited'};} catch (_) {return {ok:false,error:'unavailable'};}
       // reserve() must atomically prevent both concurrent and pre-existing names.
-      const reservation=await accounts.reserve(login);
+      let reservation;try {reservation=await accounts.reserve(login);} catch (_) {return {ok:false,error:'unavailable'};}
       if(!reservation)return {ok:false,error:'username_taken'};
       let identity=null;
       try {
@@ -40,24 +40,22 @@
         await accounts.complete(reservation,identity.id,name);
         return {ok:true};
       } catch (_) {
-        // Compensate a failed bind without concealing a failed deletion. The
-        // adapter must retain the reservation for later cleanup if it fails.
-        let cleaned=!identity;
-        if(identity){try{await provider.remove(identity.id);cleaned=true;}catch(_){cleaned=false;}}
-        if(cleaned){try{await accounts.release(reservation);}catch(_){/* retained for cleanup */}}
+        // A provider/database timeout can occur after the operation committed.
+        // Retain the reservation and identity for explicit reconciliation;
+        // deleting either here could destroy a successfully-created account.
         return {ok:false,error:'unavailable'};
       }
     }
     async function login(input,context) {
       const login=username(input?.username),secret=input?.password;
       if(!login||typeof secret!=='string'||encoder.encode(secret).length>256)return {ok:false,error:'invalid_credentials'};
-      if(!await limiter.allow('login',login,context))return {ok:false,error:'rate_limited'};
+      try {if(!await limiter.allow('login',login,context))return {ok:false,error:'rate_limited'};} catch (_) {return {ok:false,error:'unavailable'};}
       try {
         const account=await accounts.find(login);
         // The provider must perform a comparable dummy verification for unknown
         // users rather than short-circuiting. It decides whether login succeeded.
         const result=await provider.authenticate(account||null,secret);
-        if(!account||!result||!result.ok)return {ok:false,error:'invalid_credentials'};
+        if(!account||!result||!result.ok||!result.identity||result.identity.id!==account.id)return {ok:false,error:'invalid_credentials'};
         return {ok:true,identity:result.identity};
       } catch (_) {return {ok:false,error:'unavailable'};}
     }
