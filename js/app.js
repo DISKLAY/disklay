@@ -120,7 +120,7 @@
       .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=2'))
       .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=1'))
       .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=1'))
-      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=4'));
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=5'));
     anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
     return anatomyOralLoad;
   }

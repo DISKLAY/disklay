@@ -3,12 +3,15 @@
   'use strict';
   const endpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-study-sync';
   const passwordEndpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-credentials';
+  const oralEndpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-oral-sync';
   const SESSION='medzo-study-sync-session-v1';
   const S=window.MedzoStudySnapshot, E=window.MedzoSyncEngine;
   let auth=null, engine=null, plan=null, busy=false, listener=null, message='', challenge=null, config=null;
   let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
   let photo=null, photoStatus='', photoVersion=0, accountName='',lastPhotoCheck=0;
   let bootstrap=false, bootstrapHash=Promise.resolve(null), syncAlert='', autoTimer=null, retryDelay=5000;
+  const O=window.MedzoOralSnapshot, ORAL_META='medzo-oral-sync-meta-v1', ORAL_OWNER='medzo-oral-sync-owner-v1';
+  let oralEngine=null,oralPlan=null,oralBusy=false,oralAlert='',oralTimer=null,oralRetry=5000,oralPreviousOwner=null;
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false, leaderMutating=false;
   function updateHeader(){
     if(typeof document.getElementById!=='function')return;
@@ -21,7 +24,7 @@
   function notify() {
     updateHeader();
     const alert=typeof document.getElementById==='function'?document.getElementById('syncAlert'):null;
-    if(alert){alert.hidden=!auth||!syncAlert;alert.textContent=syncAlert;}
+    if(alert){alert.hidden=!auth||!(syncAlert||oralAlert);alert.textContent=syncAlert||oralAlert;}
     if(listener) listener();
   }
   // A shared Web Lock represents each open Medzo tab. Avoid automatic cloud
@@ -44,6 +47,18 @@
     autoTimer=setTimeout(()=>{autoTimer=null;if(!auth)return;if(busy){schedule(1500);return;}inspect(true);},delay);
   }
 
+  function scheduleOral(delay=1500){
+    if(!auth||!oralEngine)return;
+    if(oralTimer!==null)clearTimeout(oralTimer);
+    oralTimer=setTimeout(()=>{oralTimer=null;inspectOral();},delay);
+  }
+  async function oralCall(body,expected){
+    if(!expected||expected!==auth)throw Error('changed');
+    const response=await fetch(oralEndpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+expected.session},body:JSON.stringify(body),cache:'no-store'});
+    let result;try{result=await response.json();}catch(_){throw Error('network');}
+    if(!response.ok){if(response.status===409)throw Error('changed');if(response.status===401)throw Error('auth');throw Error('network');}
+    return result;
+  }
   function loadScript(src) {
     return new Promise((resolve,reject)=>{
       const el=document.createElement('script');el.src=src;el.async=true;
@@ -77,6 +92,7 @@
       // A tab-only login must not erase a remembered login belonging to another tab.
       if(storageName==='local')sessionStorage.removeItem(SESSION);
     }
+    try{const saved=JSON.parse(localStorage.getItem(E.META||'medzo-study-sync-meta-v1')||'null');oralPreviousOwner=localStorage.getItem(ORAL_OWNER)||(saved&&saved.userId)||null;}catch(_){oralPreviousOwner=null;}
     auth=data;authStorage=storageName;bootstrap=true;syncAlert='';retryDelay=5000;lastPhotoCheck=0;accountName='';
     // Persist the original first-contact fingerprint, even across reloads/offline
     // use. A missing or interrupted fingerprint fails safely to manual conflict.
@@ -95,8 +111,11 @@
       }
     }catch(_){}photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;
     engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body,true,data),userId:String(data.userId),isActive:()=>auth===data});
+    oralPlan=null;oralAlert='';oralRetry=5000;
+    oralEngine=O?E.makeEngine({store:localStorage,snapshot:O,request:body=>oralCall(body,data),userId:String(data.userId),isActive:()=>auth===data,metaKey:ORAL_META}):null;
+    scheduleOral(0);
   }
-  function clearAuth() {if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=null;bootstrap=false;bootstrapHash=Promise.resolve(null);syncAlert='';accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;}
+  function clearAuth() {if(oralTimer!==null)clearTimeout(oralTimer);oralTimer=null;oralEngine=null;oralPlan=null;oralAlert='';if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=null;bootstrap=false;bootstrapHash=Promise.resolve(null);syncAlert='';accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;}
   function clearCurrentSession() {
     const store=authStorage==='local'?localStorage:authStorage==='session'?sessionStorage:null;
     // Never erase a newer session written by another tab while logout was in flight.
@@ -108,7 +127,10 @@
     // Give recent writes a chance to reach the account before revoking the session.
     const outcome=await inspect(true);
     if(outcome==='reloading'||auth!==active||busy)return;
-    if(syncAlert || (plan && plan.state!=='equal')){
+    if(oralBusy){oralAlert='Дождитесь завершения синхронизации оценок и повторите выход.';notify();return;}
+    if(oralEngine)await inspectOral();
+    if(auth!==active||busy||oralBusy)return;
+    if(syncAlert || oralAlert || (plan && plan.state!=='equal') || (oralPlan && oralPlan.state!=='equal')){
       if(!window.AT?.ui?.confirmDialog)return;
       const confirmed=await window.AT.ui.confirmDialog({title:'Выйти без синхронизации?',text:'Последние изменения могут остаться только на этом устройстве. Если они нужны на других устройствах, сначала завершите синхронизацию в профиле.',confirm:'Выйти',danger:true});
       if(!confirmed||auth!==active||busy)return;
@@ -124,6 +146,7 @@
   }
   window.addEventListener('storage',e=>{
     if(auth && e.key && (Object.hasOwn(S.keys||{},e.key)||e.key==='anatomy-colloquium-rewards-shared-v1'))schedule();
+    if(auth && O && e.key===O.KEY)scheduleOral();
     if(e.key!==SESSION || e.storageArea!==localStorage || authStorage==='session')return;
     if(!e.newValue){if(authStorage==='local'){clearAuth();message='Вход завершён в другой вкладке.';notify();}return;}
     try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();loadLeaderboard();loadAccount();schedule(0);}}catch(_){}
@@ -179,6 +202,45 @@
       else if(e.message==='local_save'||e.message==='metadata_storage'){syncAlert='Не удалось сохранить данные на устройстве. Синхронизация остановлена.';schedule(10000);}
       else {syncAlert=e.message==='auth'?'Не удалось подтвердить вход. Откройте профиль.':'Нет связи с облаком. Данные остаются на устройстве; повторим синхронизацию.';schedule(retryDelay);retryDelay=Math.min(retryDelay*2,60000);}
     } finally {busy=false;notify();}
+  }
+  function oralEmpty(x){return !Object.keys(x.cards).length&&!Object.values(x.tickets).some(t=>Object.values(t).some(g=>Object.keys(g).length));}
+  function oralOwner(){try{return localStorage.getItem(ORAL_OWNER)||oralPreviousOwner;}catch(_){return oralPreviousOwner;}}
+  function setOralOwner(active){try{if(auth===active){localStorage.setItem(ORAL_OWNER,String(active.userId));oralPreviousOwner=String(active.userId);}}catch(_){/* unavailable: next contact requires confirmation */}}
+  function redrawOral(){if(location.hash.startsWith('#/anatomy-oral')&&window.AT&&typeof window.AT.rerender==='function')window.AT.rerender();}
+  async function inspectOral(){
+    if(!oralEngine||!auth)return;
+    if(oralBusy){scheduleOral(1500);return;}
+    const active=auth,selected=oralEngine,current=()=>auth===active&&oralEngine===selected;
+    oralBusy=true;notify();
+    try{
+      const result=await selected.inspect();if(!current())return;oralPlan=result;
+      const differentOwner=oralOwner()!==null&&oralOwner()!==String(active.userId);
+      if(result.state==='initial'&&(!differentOwner||oralEmpty(result.local)) || result.state==='local-changed'){
+        await selected.push(result,current);if(!current())return;oralPlan=await selected.inspect();setOralOwner(active);oralAlert='';oralRetry=5000;
+      }else if(result.state==='remote-changed'||result.state==='conflict'&&!result.hasBaseline&&oralEmpty(result.local)){
+        if(await otherTabsOpen()){oralAlert='Оценки обновились в облаке. Закройте другие вкладки Medzo для загрузки.';scheduleOral(10000);}
+        else{await selected.pull(result,async()=>current()&&!(await otherTabsOpen()),{ephemeralBackup:result.state==='remote-changed'});if(!current())return;oralPlan=await selected.inspect();setOralOwner(active);oralAlert='';oralRetry=5000;redrawOral();}
+      }else if(result.state==='conflict'||result.state==='initial'){
+        oralAlert='Оценки карточек и билетов требуют выбора версии в профиле. Автоматической перезаписи не будет.';
+      }else{setOralOwner(active);oralAlert='';oralRetry=5000;}
+    }catch(e){if(!current())return;
+      if(e.message==='changed'){oralAlert='Оценки изменились во время синхронизации. Повторяем проверку.';scheduleOral(1500);}
+      else{oralAlert='Не удалось синхронизировать оценки карточек и билетов. Они сохранены на устройстве.';scheduleOral(oralRetry);oralRetry=Math.min(oralRetry*2,60000);}
+    }finally{oralBusy=false;notify();}
+  }
+  async function chooseOral(direction){
+    if(!oralPlan||!oralEngine||!auth||oralBusy)return;
+    const selected=oralEngine,active=auth,selection=oralPlan;
+    if(!window.AT?.ui?.confirmDialog)return;
+    const ok=await window.AT.ui.confirmDialog({title:direction==='pull'?'Загрузить оценки из облака?':'Сохранить оценки этого устройства?',text:direction==='pull'?'Текущие оценки на устройстве будут заменены; их резервная копия останется в браузере.':'Оценки в облаке будут заменены оценками этого устройства. Предыдущая облачная версия сохранится в истории.',confirm:direction==='pull'?'Загрузить':'Сохранить'});
+    if(!ok||auth!==active||selected!==oralEngine||oralBusy)return;
+    oralBusy=true;notify();
+    try{
+      if(direction==='pull'){await selected.pull(selection,()=>auth===active&&selected===oralEngine);if(auth===active){setOralOwner(active);redrawOral();}}
+      else{await selected.push(selection,()=>auth===active&&selected===oralEngine);if(auth===active)setOralOwner(active);}
+      if(auth===active){oralPlan=await selected.inspect();oralAlert='';}
+    }catch(_){if(auth===active){oralAlert='Оценки изменились или нет связи. Повторите проверку перед выбором.';scheduleOral(1500);}}
+    finally{oralBusy=false;notify();}
   }
   async function passwordSubmit(form,registration) {
     if(auth||busy)return;
@@ -358,9 +420,10 @@
         html+='<button type="button" class="btn btn--ghost" data-sync="push">Сохранить данные устройства в облако</button>';
         if(plan.remote.revision>0)html+='<button type="button" class="btn btn--ghost" data-sync="pull">Загрузить данные из облака</button>';
       }
-      actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy;});
+      if(auth && O){html+='<div class="small muted" style="flex-basis:100%">'+(oralAlert|| (oralBusy?'Синхронизируем оценки карточек и билетов…':'Оценки карточек и билетов синхронизируются отдельно.'))+'</div>';if(oralPlan && (oralPlan.state==='conflict'||oralPlan.state==='initial') && oralAlert){html+='<button type="button" class="btn btn--ghost" data-sync="oral-push">Сохранить оценки устройства</button>';html+='<button type="button" class="btn btn--ghost" data-sync="oral-pull">Загрузить оценки из облака</button>';}}
+      actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy||oralBusy;});
     };
-    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect(true);if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
+    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check'){inspect(true);inspectOral();}if(a==='oral-push')chooseOral('push');if(a==='oral-pull')chooseOral('pull');if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
     node.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;});
     node.addEventListener('submit',e=>{if(e.target.matches('[data-leaderboard-form]')){e.preventDefault();joinLeaderboard(e.target);}else if(e.target.matches('[data-password-login], [data-password-register]')){e.preventDefault();passwordSubmit(e.target,e.target.matches('[data-password-register]'));}});
     node.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
@@ -391,11 +454,11 @@
   // Local writes trigger a debounced upload; periodic checks and focus/online
   // also pick up work completed on other devices.
   function refreshPhoto(){if(auth && Date.now()-lastPhotoCheck>=60000)loadPhoto();}
-  setInterval(()=>{if(auth && !document.hidden){schedule(0);refreshPhoto();}},60000);
-  window.addEventListener('online',()=>schedule(0));
-  window.addEventListener('focus',()=>{schedule(0);refreshPhoto();});
-  if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule(0);});
-  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,changed:()=>schedule()};
+  setInterval(()=>{if(auth && !document.hidden){schedule(0);scheduleOral(0);refreshPhoto();}},60000);
+  window.addEventListener('online',()=>{schedule(0);scheduleOral(0);});
+  window.addEventListener('focus',()=>{schedule(0);scheduleOral(0);refreshPhoto();});
+  if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden){schedule(0);scheduleOral(0);}});
+  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,changed:()=>schedule(),oralChanged:()=>scheduleOral()};
   notify();
   if(auth){loadPhoto();schedule(0);}
 })();

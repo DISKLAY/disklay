@@ -12,12 +12,12 @@
     const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical(value)));
     return Array.from(new Uint8Array(bytes), x => x.toString(16).padStart(2, '0')).join('');
   }
-  function makeEngine({store, snapshot, request, userId, isActive=()=>true}) {
+  function makeEngine({store, snapshot, request, userId, isActive=()=>true, metaKey=META}) {
     const getMeta = () => {
-      try { const x = JSON.parse(store.getItem(META) || 'null'); return x && x.userId === userId ? x : null; }
+      try { const x = JSON.parse(store.getItem(metaKey) || 'null'); return x && x.userId === userId ? x : null; }
       catch (_) { return null; }
     };
-    const setMeta = (revision, hash) => {try {store.setItem(META, JSON.stringify({userId, revision, hash}));} catch (_) {throw Error('metadata_storage');}};
+    const setMeta = (revision, hash) => {try {store.setItem(metaKey, JSON.stringify({userId, revision, hash}));} catch (_) {throw Error('metadata_storage');}};
     async function inspect() {
       if (!isActive()) throw Error('changed');
       const remote = await request({action:'get'});
@@ -59,7 +59,7 @@
       if(metaSaved && options.ephemeralBackup){try{store.removeItem(backup.backupKey);}catch(_){/* retaining it is safe */}}
       return {backup, metaSaved};
     }
-    function forget() { store.removeItem(META); }
+    function forget() { store.removeItem(metaKey); }
     return {inspect, push, pull, forget};
   }
   const api = {makeEngine, canonical, digest, META};
