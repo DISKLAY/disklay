@@ -29,3 +29,8 @@
 .oral-answer { margin: 16px 0; line-height: 1.65; color: var(--text-2); }
 .oral-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 20px; }
 .oral-rating-grid + h3 { margin-top: 24px; }
+.oral-rating strong { display: flex; align-items: baseline; gap: 5px; overflow-wrap: anywhere; line-height: 1.4; }
+.oral-rating__number { color: var(--muted); flex: none; }
+.oral-rating small { display: block; color: var(--muted); line-height: 1.4; margin-bottom: 8px; }
+.oral-hint-toggle { padding: 0; margin: 0 0 8px; border: 0; background: transparent; color: var(--primary); font: inherit; font-size: .78rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.oral-skill-hint { margin: 0 0 8px; color: var(--text-2); line-height: 1.4; font-size: .82rem; }
