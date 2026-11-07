@@ -324,14 +324,13 @@ test('сезонные рисунки локальны, статичны и до
   }
 });
 
-test('аниме — одно из самых дорогих оформлений и покупается через общую оплату', () => {
+test('аниме покупается за 1500 через общую оплату', () => {
   const storage = {}; let AT = app(storage, '1'); AT.game.ensure().coins = 2500; AT.save(true);
   AT = app(storage, '2'); AT.game.ensure().coins = 9000; AT.save(true);
   const styles = AT.game.appearances;
-  const regularPrices = Object.entries(styles).filter(([, style]) => !style.premium).map(([, style]) => style.price);
-  assert.ok(styles.anime.price > Math.max(...regularPrices)); assert.equal(styles.anime.price, 5000);
+  assert.equal(styles.anime.price, 1500);
   assert.equal(AT.game.buyAppearance('anime', {'1':2500, '2':2500}).ok, true);
-  assert.equal(AT.game.walletBalance(), 6500);
+  assert.equal(AT.game.walletBalance(), 10000);
   AT = app(storage, '3'); assert.equal(AT.game.profile().appearances.anime, true);
   assert.equal(AT.game.profile().appearance, 'anime');
 });
@@ -772,11 +771,11 @@ test('оформления сериалов покупаются из общег
   AT = app(storage, '7'); AT.game.ensure().coins = 5000; AT.save(true);
   for (const id of ['rickmorty', 'breakingbad']) {
     assert.equal(AT.game.appearances[id].premium, true);
-    assert.equal(AT.game.appearances[id].price, 5000);
+    assert.equal(AT.game.appearances[id].price, 1500);
     assert.equal(AT.game.buyAppearance(id).ok, true);
     assert.equal(AT.game.profile().appearance, id);
   }
-  assert.equal(AT.game.walletBalance(), 1000);
+  assert.equal(AT.game.walletBalance(), 8000);
   AT = app(storage, '6');
   for (const id of ['rickmorty', 'breakingbad']) {
     assert.equal(AT.game.profile().appearances[id], true);
@@ -784,7 +783,7 @@ test('оформления сериалов покупаются из общег
     assert.equal(AT.game.selectAppearance(id).ok, true);
   }
   AT.resetProgress(); AT = app(storage, '5');
-  assert.equal(AT.game.walletBalance(), 1000);
+  assert.equal(AT.game.walletBalance(), 8000);
   assert.equal(AT.game.profile().appearance, 'breakingbad');
   assert.equal(AT.game.profile().appearances.rickmorty, true);
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
@@ -866,9 +865,9 @@ test('снимок переносит кошелёк, купленные офо�
 
 test('патриотическое оформление покупается и сохраняется между базами', () => {
   const storage = {}; let AT = app(storage, '1');
-  assert.equal(AT.game.appearances.patriotic.price, 5000);
+  assert.equal(AT.game.appearances.patriotic.price, 1500);
   assert.equal(AT.game.appearances.patriotic.premium, true);
-  AT.game.ensure().coins = 5000; AT.save(true);
+  AT.game.ensure().coins = 1500; AT.save(true);
   assert.equal(AT.game.buyAppearance('patriotic').ok, true);
   assert.equal(AT.game.walletBalance(), 0);
   AT = app(storage, '2');
@@ -916,4 +915,49 @@ test('ошибка записи не активирует промокод на 
   Object.defineProperty(storage, 'anatomy-colloquium-rewards-shared-v1', {set(){throw Error('quota');}, get(){return null;}});
   assert.equal(AT.game.grantAllFutureAppearances().ok, false);
   assert.equal(AT.game.profile().appearances.__medzo_all_future_v1, undefined);
+});
+
+
+test('особые оформления стоят 1500, отображаются в магазине и сохраняют прежние покупки', () => {
+  const ids = ['anime', 'rickmorty', 'breakingbad', 'patriotic'];
+  for (const id of ids) {
+    const storage = {}; let AT = app(storage);
+    const premium = Object.entries(AT.game.appearances).filter(([, style]) => style.premium);
+    assert.deepEqual(premium.map(([key]) => key).sort(), [...ids].sort());
+    assert.ok(premium.every(([, style]) => style.price === 1500));
+    AT.game.ensure().coins = 1499; AT.save(true);
+    assert.equal(AT.game.buyAppearance(id).ok, false);
+    const html = AT.views.rewards().html;
+    assert.match(html, new RegExp('data-appearance="' + id + '" disabled>1500 валюты'));
+    AT.game.ensure().coins = 1500; AT.save(true);
+    assert.match(AT.views.rewards().html, new RegExp('data-appearance="' + id + '">1500 валюты'));
+    assert.equal(AT.game.buyAppearance(id).ok, true);
+    assert.equal(AT.game.walletBalance(), 0);
+    AT = app(storage, '2');
+    assert.equal(AT.game.profile().appearances[id], true);
+    assert.equal(AT.game.walletBalance(), 0);
+  }
+  const oldStorage = {
+    'anatomy-colloquium-v1': JSON.stringify({game:{coins:6000}}),
+    'anatomy-colloquium-rewards-shared-v1': JSON.stringify({appearances:{anime:true},appearance:'anime',walletSpent:5000})
+  };
+  const old = app(oldStorage);
+  assert.equal(old.game.walletBalance(),1000);
+  assert.equal(old.game.profile().appearances.anime,true);
+  assert.equal(old.game.profile().appearance,'anime');
+});
+
+
+test('покупка особого оформления по новой цене синхронизируется с кошельком', () => {
+  const snapshot = require('../js/study-snapshot.js');
+  const origin = {}; const AT = app(origin);
+  AT.game.ensure().coins = 2000; AT.save(true);
+  assert.equal(AT.game.buyAppearance('rickmorty').ok, true);
+  const storageFor = o => ({getItem: k => Object.hasOwn(o,k) ? o[k] : null, setItem: (k,v) => {o[k]=String(v);}, removeItem: k => {delete o[k];}});
+  const destination = {};
+  snapshot.apply(storageFor(destination), snapshot.capture(storageFor(origin)));
+  const restored = app(destination, '2');
+  assert.equal(restored.game.walletBalance(), 500);
+  assert.equal(restored.game.profile().appearances.rickmorty, true);
+  assert.equal(restored.game.profile().appearance, 'rickmorty');
 });
