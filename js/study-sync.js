@@ -8,7 +8,15 @@
   let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
   let photo=null, photoStatus='', photoVersion=0;
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true;
-  function notify() { if(listener) listener(); }
+  function updateHeader(){
+    if(typeof document.getElementById!=='function')return;
+    const image=document.getElementById('topbarProfilePhoto'),fallback=document.getElementById('topbarProfilePlaceholder');
+    if(!image||!fallback)return;
+    const show=!!auth&&auth.expiresAt>Date.now()/1000&&typeof photo==='string'&&photo.length<=90000&&/^[A-Za-z0-9+/]*={0,2}$/.test(photo);
+    image.hidden=!show;fallback.hidden=show;
+    if(show){const src='data:image/jpeg;base64,'+photo;if(image.getAttribute('src')!==src)image.src=src;}else image.removeAttribute('src');
+  }
+  function notify() { updateHeader();if(listener) listener(); }
   function loadScript(src) {
     return new Promise((resolve,reject)=>{
       const el=document.createElement('script');el.src=src;el.async=true;
@@ -256,4 +264,6 @@
   setInterval(()=>{if(auth && !document.hidden)inspect(true);},30000);
   window.addEventListener('online',()=>{if(auth)inspect(true);});
   window.MedzoStudySync={mount,mountVisibility};
+  notify();
+  if(auth)loadPhoto();
 })();
