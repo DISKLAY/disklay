@@ -18,11 +18,12 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
    await p.keyboard.press('Escape');assert.equal(await p.locator('#courseSidebarContents').isVisible(),false);
    await p.locator('[data-mobile-nav="tests"]').click();await p.waitForSelector('.test-groups');
   }else{await p.goto(base+'#/tests');await p.waitForSelector('.test-groups');}
+  await p.goto(base+'#/anatomy-oral?section=notes');await p.waitForSelector('.oral-list');
   for(const link of ['colloquium-1-tickets.pdf','colloquium-1-oral-theory.pdf']){
    const el=p.locator('.oral-materials a[href$="'+link+'"]');assert.equal(await el.count(),1);
    const response=await p.request.get(new URL(await el.getAttribute('href'),base).href);assert.equal(response.status(),200);assert.match(response.headers()['content-type'],/pdf/);
   }
-  await p.locator('#contextBase').selectOption('2');await p.waitForFunction(()=>localStorage.getItem('anatomy-colloquium-selected')==='2');await p.waitForSelector('.hero');assert.equal(await p.locator('#contextBase').inputValue(),'2');
+  await p.goto(base+'#/tests');await p.waitForSelector('.test-groups');await p.locator('#contextBase').selectOption('2');await p.waitForFunction(()=>localStorage.getItem('anatomy-colloquium-selected')==='2');await p.waitForSelector('.hero');assert.equal(await p.locator('#contextBase').inputValue(),'2');
   if(width<=700){await p.locator('#courseToggle').click();await p.locator('[data-subject-link="histology"]').click();await p.waitForSelector('.histo-setup');assert.equal(await p.locator('[data-mobile-nav="tests"] span').innerText(),'Атлас');await p.locator('[data-mobile-nav="tests"]').click();await p.waitForSelector('#atlasSearch');await p.locator('[data-mobile-nav="mistakes"]').click();await p.waitForSelector('[data-histo="section"][data-value="errors"]');}
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${width}/${theme} overflow`);
   assert.deepEqual(errors,[]);await p.close();console.log(`${width}/${theme}: OK`);

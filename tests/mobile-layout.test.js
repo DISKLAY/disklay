@@ -30,13 +30,15 @@ test('в верхней строке только основные раздел�
   const html = read('index.html'), css = read('css/styles.css');
   const nav = html.match(/<nav class="nav" id="mainNav"[\s\S]*?<\/nav>/)[0];
   const sidebar = html.match(/<nav class="course-sidebar__pages"[\s\S]*?<\/nav>/)[0];
-  for (const name of ['dashboard', 'tests', 'mistakes', 'portfolio']) {
+  for (const name of ['dashboard', 'tests', 'portfolio']) {
     assert.match(nav, new RegExp(`data-route="${name}"`));
   }
-  for (const name of ['exam', 'stats', 'rewards', 'dungeon', 'key', 'settings']) {
+  for (const name of ['stats', 'rewards', 'dungeon', 'key', 'settings']) {
     assert.doesNotMatch(nav, new RegExp(`data-route="${name}"`));
     assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
   }
+  assert.doesNotMatch(sidebar, /data-sidebar-route="(?:exam|mistakes|anatomy-skills)"/);
+  assert.match(sidebar, /data-sidebar-route="anatomy-oral"/);
   assert.doesNotMatch(html, /id="coursePicker"|class="course-more"|>Учёба<|>Мой прогресс</);
   assert.match(html, /class="icon-btn topbar-settings" href="#\/settings"/);
   assert.doesNotMatch(html, /id="courseRail"/);

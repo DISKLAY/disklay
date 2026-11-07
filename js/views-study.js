@@ -157,9 +157,8 @@
       '<section class="section">' +
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
-      (AT.colloquium.id === '1' ? modeCard('Практические навыки', 'Перевести и показать · 330 навыков', 'book', '#/anatomy-skills', 'teal') + modeCard('Устная подготовка', 'Конспект, карточки и билеты', 'book', '#/anatomy-oral', 'violet') : '') +
-      (AT.colloquium.examAvailable ? modeCard('Пробный экзамен', examFormatText(), 'exam', '#/exam', 'violet') : '') +
-      modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
+      modeCard('Тренировка', 'Тесты, экзамен, навыки, билеты и ошибки', 'train', '#/tests', 'primary') +
+      modeCard('Теория · 1 коллоквиум', 'Конспект и исходные материалы', 'book', '#/anatomy-oral?section=notes', 'violet') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       modeCard('Портфель избранного', 'Отмеченные вопросы из всех баз', 'star', '#/portfolio', 'primary') +
       '</div></section>';
@@ -312,15 +311,15 @@
   views.tests = function () {
     const select = document.getElementById('colloquiumSelect');
     const groups = Array.from(select.querySelectorAll('optgroup'));
-    const html = '<div class="view tests-view"><header class="tests-head"><div><span class="tests-head__eyebrow">АНАТОМИЯ</span><h1>Тесты</h1><p>Выберите коллоквиум или зачёт</p></div><div class="tests-head__mark" aria-hidden="true">'+icon('book')+'</div></header>' + resumeBanner() + '<div class="test-groups">' + groups.map((group, index) =>
+    const html = '<div class="view tests-view"><header class="tests-head"><div><span class="tests-head__eyebrow">АНАТОМИЯ</span><h1>Тренировка</h1><p>Выберите базу, затем режим подготовки</p></div><div class="tests-head__mark" aria-hidden="true">'+icon('book')+'</div></header>' + resumeBanner() + '<div class="test-groups">' + groups.map((group, index) =>
       '<details class="test-group"'+(group.contains(select.selectedOptions[0])?' open':'')+'><summary><span class="test-group__number" aria-hidden="true">'+utils.pad(index+1)+'</span><span class="test-group__heading"><strong>'+esc(group.label)+'</strong><small>'+group.children.length+' '+utils.plural(group.children.length,'раздел','раздела','разделов')+'</small></span><span class="test-group__chevron" aria-hidden="true">⌄</span></summary><div class="test-group__items">'+Array.from(group.children).map(option => {
         const module=window.COLLOQUIUM_MODULES && window.COLLOQUIUM_MODULES[option.value];
         const credit=option.value.startsWith('credit-'),parts=option.textContent.replace(/^Стом\s*·\s*/,'').split(' · ');
         const label=credit?'Зачёт':'Коллоквиум '+parts[0],title=parts.slice(1).join(' · '),total=module&&module.questions?module.questions.length:0;
         return '<button type="button" class="test-base'+(option.value===select.value?' is-current':'')+(credit?' test-base--credit':'')+'" data-test-base="'+esc(option.value)+'"><span class="test-base__badge" aria-hidden="true">'+(credit?'✓':esc(parts[0]))+'</span><span class="test-base__text"><span class="test-base__label">'+esc(label)+'</span><strong>'+esc(title)+'</strong>'+(total?'<small>'+total+' '+utils.plural(total,'вопрос','вопроса','вопросов')+'</small>':'')+'</span><span class="test-base__arrow" aria-hidden="true">→</span></button>';
       }).join('')+'</div></details>'
-    ).join('')+'</div><section class="oral-materials" aria-labelledby="oral-materials-title"><div><span class="overline">1 КОЛЛОКВИУМ · ОСТЕОЛОГИЯ</span><h2 id="oral-materials-title">Билеты и устная теория</h2><p>Оригинальные материалы для подготовки. Билеты представлены фотографиями страниц; ответы в теории не прошли независимую проверку — сверяйтесь с учебником.</p></div><div class="oral-materials__links"><a class="btn btn--primary" href="#/anatomy-oral">Конспект, карточки и билеты →</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-tickets.pdf" target="_blank" rel="noopener">Открыть билеты · PDF ↗</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-oral-theory.pdf" target="_blank" rel="noopener">Открыть расписанную теорию · PDF ↗</a></div></section></div>';
-    return {title:'Тесты',html,mount(root){root.querySelectorAll('[data-test-base]').forEach(button=>button.addEventListener('click',()=>{
+    ).join('')+'</div></div>';
+    return {title:'Тренировка',html,mount(root){root.querySelectorAll('[data-test-base]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.dataset.testBase;
       if(id===select.value){AT.go('#/train');return;}
       select.dataset.nextRoute='train';select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));
@@ -335,7 +334,7 @@
     const total = availableCount(s.topics, 'all');
 
     let html = '<div class="view">';
-    html += pageHead('Тренировка', keyApi.count() === dataset.total ? '' : 'Для вопросов без ключа доступна самооценка.', '#/tests');
+    html += pageHead('Тренировка тестов', keyApi.count() === dataset.total ? '' : 'Для вопросов без ключа доступна самооценка.', '#/tests');
     html += '<div class="panel">' +
       '<div class="panel__block"><div class="panel__label">Темы</div>' +
       topicChips(s.topics, 'toggle-topic-train') +

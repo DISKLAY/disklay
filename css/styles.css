@@ -2354,3 +2354,14 @@ body { container: viewport-shell / inline-size; }
   .course-sidebar:not(.is-expanded):not([hidden]) { top: calc(var(--sidebar-top, 64px) + 6px); }
   .context-nav { padding-left: 48px; }
 }
+
+/* Общая навигация между тренировочными режимами анатомии. */
+.anatomy-training-nav { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 20px; padding:8px; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+.anatomy-training-nav a { min-width:0; min-height:42px; display:flex; align-items:center; justify-content:center; padding:8px 13px; border-radius:10px; color:var(--text-2); font-size:.82rem; font-weight:700; line-height:1.25; text-align:center; overflow-wrap:anywhere; }
+.anatomy-training-nav a:hover { background:var(--surface-3); }
+.anatomy-training-nav a.is-active { color:var(--primary); background:var(--primary-soft); }
+@media (max-width: 520px) { .anatomy-training-nav a { flex:1 1 auto; padding-inline:8px; } }
+/* Навигация находится в боковой панели, верхнюю строку не дублируем. */
+#mainNav { display:none; }
+.topbar .icon-btn { margin-left:0; }
+.topbar .topbar-settings { margin-left:auto; }
