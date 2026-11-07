@@ -2324,3 +2324,33 @@ body { container: viewport-shell / inline-size; }
 @keyframes patriotic-intro { 0%, 94% { opacity: 1; } 100% { opacity: 0; } }
 @media (max-width: 760px) { .hero__patriotic-intro { display: none; animation: none; } }
 @media (prefers-reduced-motion: reduce) { .hero__patriotic-intro { display: none; animation: none; } }
+
+/* Compact native course selector; the existing selection and progress remain the source of truth. */
+.context-nav select { min-width: 0; max-width: min(240px, 100%); padding: 5px 24px 5px 8px; border: 1px solid var(--border); border-radius: 9px; color: var(--text-2); background: var(--surface); font: inherit; font-weight: 650; }
+.oral-materials { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 22px; margin-top: 20px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.oral-materials h2 { margin: 5px 0 7px; font-size: 1.15rem; }
+.oral-materials p { max-width: 68ch; color: var(--text-2); font-size: .8rem; line-height: 1.5; }
+.oral-materials__links { display: flex; flex-wrap: wrap; gap: 8px; }
+.mobile-nav { display: none; }
+@media (max-width: 700px) {
+  .app-layout { display: block; }
+  .course-sidebar:not(.is-expanded):not([hidden]) { position: fixed; z-index: 30; top: 45%; left: 0; bottom: auto; display: block; width: 38px; height: 48px; max-height: none; margin: 0; padding: 0; overflow: hidden; border-radius: 0 14px 14px 0; }
+  .course-sidebar:not(.is-expanded) .course-sidebar__heading { position: static; display: block; min-height: 0; padding: 0; border: 0; }
+  .course-sidebar:not(.is-expanded) #courseSidebarContents { display: none; }
+  .course-sidebar:not(.is-expanded) .course-sidebar__toggle { width: 38px; height: 48px; border: 0; border-radius: 0; background: transparent; }
+  .mobile-nav { position: fixed; z-index: 40; inset: auto 0 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); padding: 5px 4px calc(5px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--surface); box-shadow: 0 -5px 20px rgba(0,0,0,.08); }
+  .mobile-nav a { min-width: 0; min-height: 49px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--text-2); border-radius: 10px; font-size: clamp(.55rem,2.7vw,.68rem); font-weight: 650; line-height: 1.1; text-align: center; }
+  .mobile-nav .icon { width: 20px; height: 20px; }
+  .mobile-nav a.is-active { color: var(--primary); background: var(--primary-soft); }
+  .footer { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(75px + env(safe-area-inset-bottom)); }
+  .context-nav select { max-width: min(180px, 100%); }
+}
+@media (max-width: 700px) {
+  .course-sidebar:not(.is-expanded) .course-sidebar__toggle { width: 100%; height: 46px; }
+  .mobile-nav a span { max-width: 100%; overflow-wrap: anywhere; }
+}
+@media (max-width: 700px) {
+  .course-sidebar:not(.is-expanded):not([hidden]) { top: calc(var(--sidebar-top, 64px) + 6px); }
+  .context-nav { padding-left: 48px; }
+}

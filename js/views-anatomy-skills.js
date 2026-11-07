@@ -35,7 +35,7 @@
       '<div class="ps-stats" aria-label="Ваш прогресс"><div><strong>'+learned+'</strong><span>знаю</span></div><div><strong>'+again+'</strong><span>повторить</span></div><div><strong>'+stats.length+'<em> / '+H.data.items.length+'</em></strong><span>оценено</span></div></div>';
     if(session)html+='<div class="ps-resume"><div><strong>'+(session.finished?'Последняя подборка':'Продолжить тренировку')+'</strong><p>Оценено '+Object.keys(session.answers).length+' из '+session.order.length+'</p></div><button class="btn btn--primary" type="button" data-ps="resume">'+(session.finished?'Посмотреть итог':'Продолжить →')+'</button></div>';
     html+='<section class="ps-panel ps-builder"><div class="ps-builder__head"><div><span class="ps-eyebrow">НАСТРОЙКА</span><h2>Новая тренировка</h2></div><span class="ps-builder__icon" aria-hidden="true">✦</span></div><div class="ps-filters">'+picker('group','Темы',s.group)+picker('scope','Подборка',s.scope)+picker('limit','Количество',s.limit)+picker('sequence','Порядок',s.sequence)+'</div>'+
-      '<div class="ps-start"><p>Доступно: <strong>'+game.pool().length+'</strong>'+(s.sequence==='ordered'&&s.limit&&game.pool().length>s.limit?' · первые '+s.limit:'')+'</p><button type="button" class="btn btn--primary" data-ps="start"'+(!game.pool().length?' disabled':'')+'>Начать тренировку <span aria-hidden="true">→</span></button></div></section>'+catalog()+
+      '<div class="ps-start"><p data-ps-available>Доступно: <strong>'+game.pool().length+'</strong>'+(s.sequence==='ordered'&&s.limit&&game.pool().length>s.limit?' · первые '+s.limit:'')+'</p><button type="button" class="btn btn--primary" data-ps="start"'+(!game.pool().length?' disabled':'')+'>Начать тренировку <span aria-hidden="true">→</span></button></div></section>'+catalog()+
       '<details class="ps-data"><summary>О данных</summary><p>Навыки и оценки сохраняются в этом браузере. Подсказки — ориентир, сверяйтесь с атласом. Самооценка не начисляет очки.</p><button type="button" data-ps="reset">Сбросить оценки</button></details>';
     return html;
   }
@@ -78,6 +78,26 @@
       const warn=()=>{if(game.storageFailed())AT.ui.toast('Не удалось сохранить навыки на устройстве','warn');};
       const closePicker=picker=>{if(picker.dataset.picker==='group')groupMenuOpen=false;picker.querySelector('[data-picker-trigger]').setAttribute('aria-expanded','false');picker.querySelector('.ps-picker__menu').hidden=true;};
       const closeMenus=()=>view.querySelectorAll('[data-picker]').forEach(closePicker);
+      // Update only filter controls: keep scroll position, focus, open menus and the catalogue intact.
+      function syncOptions() {
+        const state=game.state;
+        view.querySelectorAll('[data-picker]').forEach(picker=>{
+          const name=picker.dataset.picker, value=state[name];
+          const selected=Array.isArray(value)?value:[String(value)];
+          const entry=choices[name].find(([id])=>id===String(value))||choices[name][0];
+          const label=name==='group'&&selected.length>1?'Выбрано тем: '+selected.length:entry[1];
+          picker.querySelector('[data-picker-trigger] span').textContent=label;
+          picker.querySelectorAll('[data-ps-option]').forEach(option=>{
+            const active=name==='group'?selected.includes(option.dataset.value):option.dataset.value===entry[0];
+            option.classList.toggle('is-selected',active);option.setAttribute('aria-pressed',String(active));
+            option.querySelector('.ps-picker__check').textContent=active?'✓':'';
+          });
+        });
+        const count=game.pool().length, available=view.querySelector('[data-ps-available]');
+        if(available){available.replaceChildren('Доступно: ');const strong=document.createElement('strong');strong.textContent=count;available.append(strong);if(state.sequence==='ordered'&&state.limit&&count>state.limit)available.append(' · первые '+state.limit);}
+        const startButton=view.querySelector('[data-ps="start"]');if(startButton)startButton.disabled=!count;
+      }
+
       async function start(section){
         const s=game.state.session;
         if(s&&!s.finished){const ok=await AT.ui.confirmDialog({title:'Начать новую подборку?',text:'Текущая подборка будет заменена. Уже выставленные оценки и избранное сохранятся.',confirm:'Начать'});if(!ok)return;}
@@ -87,7 +107,7 @@
         const trigger=e.target.closest('[data-picker-trigger]');
         if(trigger){const picker=trigger.closest('[data-picker]'),wasOpen=trigger.getAttribute('aria-expanded')==='true';closeMenus();if(!wasOpen){if(picker.dataset.picker==='group')groupMenuOpen=true;trigger.setAttribute('aria-expanded','true');picker.querySelector('.ps-picker__menu').hidden=false;}return;}
         const opt=e.target.closest('[data-ps-option]');
-        if(opt){e.stopPropagation();const name=opt.dataset.psOption,instance=opt.closest('[data-picker]').dataset.pickerInstance,values={group:game.state.group,scope:game.state.scope,limit:game.state.limit,sequence:game.state.sequence};if(name==='group') { const id=opt.dataset.value, previous=Array.isArray(values.group)?values.group:values.group==='all'?[]:[values.group]; values.group=id==='all'?'all':previous.includes(id)?previous.filter(x=>x!==id):previous.concat(id); groupMenuOpen=true; } else values[name]=opt.dataset.value;game.setOptions(values.group,values.scope,values.limit,values.sequence);AT.rerender();const focus=name==='group'?root.querySelector('[data-ps-option="group"][data-value="'+opt.dataset.value+'"]'):root.querySelector('[data-picker="'+name+'"][data-picker-instance="'+instance+'"] [data-picker-trigger]');focus?.focus({preventScroll:true});warn();return;}
+        if(opt){e.stopPropagation();const name=opt.dataset.psOption,values={group:game.state.group,scope:game.state.scope,limit:game.state.limit,sequence:game.state.sequence};if(name==='group') { const id=opt.dataset.value, previous=Array.isArray(values.group)?values.group:values.group==='all'?[]:[values.group]; values.group=id==='all'?'all':previous.includes(id)?previous.filter(x=>x!==id):previous.concat(id); groupMenuOpen=true; } else values[name]=opt.dataset.value;game.setOptions(values.group,values.scope,values.limit,values.sequence);syncOptions();const picker=opt.closest('[data-picker]');if(name!=='group'){closePicker(picker);picker.querySelector('[data-picker-trigger]').focus({preventScroll:true});}warn();return;}
         const toggle=e.target.closest('[data-section-toggle]');
         if(toggle){const section=toggle.closest('[data-section]'),expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));section.querySelector('.ps-section__items').hidden=expanded;if(expanded)openSections.delete(section.dataset.section);else openSections.add(section.dataset.section);return;}
         const btn=e.target.closest('[data-ps]');if(!btn)return;const a=btn.dataset.ps,s=game.state.session;
