@@ -20,7 +20,7 @@
   function password(input) {
     if(typeof input!=='string')return false;
     const length=encoder.encode(input).length;
-    return Array.from(input).length>=10 && length<=256;
+    return Array.from(input).length>=10 && length<=72;
   }
   function create({accounts,provider,limiter}) {
     if(!accounts||!provider||!limiter||typeof limiter.allow!=='function')throw new Error('missing_adapters');
@@ -37,7 +37,7 @@
         // non-deliverable internal identifier; never use a real person's email.
         identity=await provider.create({password:secret,nickname:name});
         if(!identity||typeof identity.id!=='string'||!identity.id)throw new Error('invalid_identity');
-        await accounts.complete(reservation,identity.id,name);
+        await accounts.complete(reservation,identity,name);
         return {ok:true};
       } catch (_) {
         // A provider/database timeout can occur after the operation committed.
@@ -48,7 +48,7 @@
     }
     async function login(input,context) {
       const login=username(input?.username),secret=input?.password;
-      if(!login||typeof secret!=='string'||encoder.encode(secret).length>256)return {ok:false,error:'invalid_credentials'};
+      if(!login||typeof secret!=='string'||encoder.encode(secret).length>72)return {ok:false,error:'invalid_credentials'};
       try {if(!await limiter.allow('login',login,context))return {ok:false,error:'rate_limited'};} catch (_) {return {ok:false,error:'unavailable'};}
       try {
         const account=await accounts.find(login);
