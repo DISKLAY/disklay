@@ -30,7 +30,7 @@ test('в верхней строке только основные раздел�
   const html = read('index.html'), css = read('css/styles.css');
   const nav = html.match(/<nav class="nav" id="mainNav"[\s\S]*?<\/nav>/)[0];
   const sidebar = html.match(/<nav class="course-sidebar__pages"[\s\S]*?<\/nav>/)[0];
-  for (const name of ['dashboard', 'train', 'mistakes', 'portfolio']) {
+  for (const name of ['dashboard', 'tests', 'mistakes', 'portfolio']) {
     assert.match(nav, new RegExp(`data-route="${name}"`));
   }
   for (const name of ['exam', 'stats', 'rewards', 'dungeon', 'key', 'settings']) {

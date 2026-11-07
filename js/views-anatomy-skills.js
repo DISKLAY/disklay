@@ -3,7 +3,7 @@
   const AT=window.AT, H=window.AnatomySkills, esc=AT.utils.esc;
   let store;try {store=window.localStorage;} catch(e){store={getItem(){return null;},setItem(){throw e;}};}
   const game=H.create(store);
-  let screen='setup',search='';
+  let screen='setup',search='',groupMenuOpen=false;
   const openSections=new Set();
   const skillCount=n=>n+' '+(n%10===1&&n%100!==11?'навык':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'навыка':'навыков');
   const statusLabel=status=>status==='known'?'Знаю и могу показать':status==='again'?'Повторить':'Не оценено';
@@ -14,8 +14,12 @@
     sequence:[['random','Вперемешку'],['ordered','По порядку']]
   };
   function picker(name,label,value,instance='setup'){
-    const entries=choices[name],selected=entries.find(x=>x[0]===String(value))||entries[0], key=name+'-'+instance;
-    return '<div class="ps-picker" data-picker="'+name+'" data-picker-instance="'+instance+'"><span class="ps-picker__label" id="ps-label-'+key+'">'+label+'</span><button type="button" class="ps-picker__trigger" data-picker-trigger aria-labelledby="ps-label-'+key+' ps-value-'+key+'" aria-controls="ps-menu-'+key+'" aria-expanded="false"><span id="ps-value-'+key+'">'+esc(selected[1])+'</span><span class="ps-chevron" aria-hidden="true"></span></button><div class="ps-picker__menu" id="ps-menu-'+key+'" role="group" aria-labelledby="ps-label-'+key+'" hidden>'+entries.map(([id,text])=>'<button type="button" class="ps-picker__option'+(id===selected[0]?' is-selected':'')+'" data-ps-option="'+name+'" data-value="'+esc(id)+'" aria-pressed="'+(id===selected[0])+'"><span>'+esc(text)+'</span><span class="ps-picker__check" aria-hidden="true">'+(id===selected[0]?'✓':'')+'</span></button>').join('')+'</div></div>';
+    const entries=choices[name], selectedGroups=Array.isArray(value)?value:[String(value)];
+    const selected=entries.find(x=>x[0]===String(value))||entries[0], key=name+'-'+instance;
+    const labelText=name==='group' && selectedGroups.length>1 ? 'Выбрано тем: '+selectedGroups.length : selected[1];
+    const opened=name==='group' && groupMenuOpen;
+    return '<div class="ps-picker" data-picker="'+name+'" data-picker-instance="'+instance+'"><span class="ps-picker__label" id="ps-label-'+key+'">'+label+'</span><button type="button" class="ps-picker__trigger" data-picker-trigger aria-labelledby="ps-label-'+key+' ps-value-'+key+'" aria-controls="ps-menu-'+key+'" aria-expanded="'+opened+'"><span id="ps-value-'+key+'">'+esc(labelText)+'</span><span class="ps-chevron" aria-hidden="true"></span></button><div class="ps-picker__menu" id="ps-menu-'+key+'" role="group" aria-labelledby="ps-label-'+key+'"'+(opened?'':' hidden')+'>'+entries.map(([id,text])=>{const active=name==='group'?selectedGroups.includes(id):id===selected[0];return '<button type="button" class="ps-picker__option'+(active?' is-selected':'')+'" data-ps-option="'+name+'" data-value="'+esc(id)+'" aria-pressed="'+active+'"><span>'+esc(text)+'</span><span class="ps-picker__check" aria-hidden="true">'+(active?'✓':'')+'</span></button>';}).join('')+'</div></div>';
+
   }
   function catalog(){
     const s=game.state;
@@ -30,7 +34,7 @@
     let html='<header class="ps-head"><span class="ps-eyebrow">АНАТОМИЯ <span aria-hidden="true">/</span> 1 КОЛЛОКВИУМ</span><h1>Практические навыки</h1><p>Переведите термин и найдите структуру в атласе или на препарате.</p></header>'+
       '<div class="ps-stats" aria-label="Ваш прогресс"><div><strong>'+learned+'</strong><span>знаю</span></div><div><strong>'+again+'</strong><span>повторить</span></div><div><strong>'+stats.length+'<em> / '+H.data.items.length+'</em></strong><span>оценено</span></div></div>';
     if(session)html+='<div class="ps-resume"><div><strong>'+(session.finished?'Последняя подборка':'Продолжить тренировку')+'</strong><p>Оценено '+Object.keys(session.answers).length+' из '+session.order.length+'</p></div><button class="btn btn--primary" type="button" data-ps="resume">'+(session.finished?'Посмотреть итог':'Продолжить →')+'</button></div>';
-    html+='<section class="ps-panel ps-builder"><div class="ps-builder__head"><div><span class="ps-eyebrow">НАСТРОЙКА</span><h2>Новая тренировка</h2></div><span class="ps-builder__icon" aria-hidden="true">✦</span></div><div class="ps-filters">'+picker('group','Тема',s.group)+picker('scope','Подборка',s.scope)+picker('limit','Количество',s.limit)+picker('sequence','Порядок',s.sequence)+'</div>'+
+    html+='<section class="ps-panel ps-builder"><div class="ps-builder__head"><div><span class="ps-eyebrow">НАСТРОЙКА</span><h2>Новая тренировка</h2></div><span class="ps-builder__icon" aria-hidden="true">✦</span></div><div class="ps-filters">'+picker('group','Темы',s.group)+picker('scope','Подборка',s.scope)+picker('limit','Количество',s.limit)+picker('sequence','Порядок',s.sequence)+'</div>'+
       '<div class="ps-start"><p>Доступно: <strong>'+game.pool().length+'</strong>'+(s.sequence==='ordered'&&s.limit&&game.pool().length>s.limit?' · первые '+s.limit:'')+'</p><button type="button" class="btn btn--primary" data-ps="start"'+(!game.pool().length?' disabled':'')+'>Начать тренировку <span aria-hidden="true">→</span></button></div></section>'+catalog()+
       '<details class="ps-data"><summary>О данных</summary><p>Навыки и оценки сохраняются в этом браузере. Подсказки — ориентир, сверяйтесь с атласом. Самооценка не начисляет очки.</p><button type="button" data-ps="reset">Сбросить оценки</button></details>';
     return html;
@@ -72,7 +76,7 @@
     return {title:'Практические навыки',html,mount(root){
       const view=root.querySelector('.ps-view');
       const warn=()=>{if(game.storageFailed())AT.ui.toast('Не удалось сохранить навыки на устройстве','warn');};
-      const closePicker=picker=>{picker.querySelector('[data-picker-trigger]').setAttribute('aria-expanded','false');picker.querySelector('.ps-picker__menu').hidden=true;};
+      const closePicker=picker=>{if(picker.dataset.picker==='group')groupMenuOpen=false;picker.querySelector('[data-picker-trigger]').setAttribute('aria-expanded','false');picker.querySelector('.ps-picker__menu').hidden=true;};
       const closeMenus=()=>view.querySelectorAll('[data-picker]').forEach(closePicker);
       async function start(section){
         const s=game.state.session;
@@ -81,9 +85,9 @@
       }
       view.addEventListener('click',async e=>{
         const trigger=e.target.closest('[data-picker-trigger]');
-        if(trigger){const picker=trigger.closest('[data-picker]'),wasOpen=trigger.getAttribute('aria-expanded')==='true';closeMenus();if(!wasOpen){trigger.setAttribute('aria-expanded','true');picker.querySelector('.ps-picker__menu').hidden=false;}return;}
+        if(trigger){const picker=trigger.closest('[data-picker]'),wasOpen=trigger.getAttribute('aria-expanded')==='true';closeMenus();if(!wasOpen){if(picker.dataset.picker==='group')groupMenuOpen=true;trigger.setAttribute('aria-expanded','true');picker.querySelector('.ps-picker__menu').hidden=false;}return;}
         const opt=e.target.closest('[data-ps-option]');
-        if(opt){const name=opt.dataset.psOption,instance=opt.closest('[data-picker]').dataset.pickerInstance,values={group:game.state.group,scope:game.state.scope,limit:game.state.limit,sequence:game.state.sequence};values[name]=opt.dataset.value;game.setOptions(values.group,values.scope,values.limit,values.sequence);AT.rerender();root.querySelector('[data-picker="'+name+'"][data-picker-instance="'+instance+'"] [data-picker-trigger]')?.focus({preventScroll:true});warn();return;}
+        if(opt){e.stopPropagation();const name=opt.dataset.psOption,instance=opt.closest('[data-picker]').dataset.pickerInstance,values={group:game.state.group,scope:game.state.scope,limit:game.state.limit,sequence:game.state.sequence};if(name==='group') { const id=opt.dataset.value, previous=Array.isArray(values.group)?values.group:values.group==='all'?[]:[values.group]; values.group=id==='all'?'all':previous.includes(id)?previous.filter(x=>x!==id):previous.concat(id); groupMenuOpen=true; } else values[name]=opt.dataset.value;game.setOptions(values.group,values.scope,values.limit,values.sequence);AT.rerender();const focus=name==='group'?root.querySelector('[data-ps-option="group"][data-value="'+opt.dataset.value+'"]'):root.querySelector('[data-picker="'+name+'"][data-picker-instance="'+instance+'"] [data-picker-trigger]');focus?.focus({preventScroll:true});warn();return;}
         const toggle=e.target.closest('[data-section-toggle]');
         if(toggle){const section=toggle.closest('[data-section]'),expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));section.querySelector('.ps-section__items').hidden=expanded;if(expanded)openSections.delete(section.dataset.section);else openSections.add(section.dataset.section);return;}
         const btn=e.target.closest('[data-ps]');if(!btn)return;const a=btn.dataset.ps,s=game.state.session;

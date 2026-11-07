@@ -40,6 +40,7 @@
 
   const ROUTES = {
     dashboard: 'dashboard',
+    tests: 'tests',
     train: 'trainSetup',
     exam: 'examSetup',
     run: 'run',
@@ -104,8 +105,8 @@
     if (anatomySkillsLoad) return anatomySkillsLoad;
     if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=4').catch(err => { anatomySkillsCss = null; throw err; });
     const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
-      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=3'))
-      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=4'));
+      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=4'))
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=5'));
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }
@@ -148,7 +149,7 @@
     const separator = document.getElementById('contextBaseSeparator');
     const page = document.getElementById('contextPage');
     const option = document.getElementById('colloquiumSelect').selectedOptions[0];
-    const labels = {dashboard:'Главная', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', 'anatomy-skills':'Практические навыки'};
+    const labels = {dashboard:'Главная', tests:'Тесты', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', 'anatomy-skills':'Практические навыки'};
     const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
@@ -243,7 +244,7 @@
   function updateNav(name) {
     if (!nav) return;
     const session = AT.getState().session;
-    const active = name === 'run' || name === 'summary' ? (session && session.mode === 'exam' ? 'exam' : 'train') : name;
+    const active = name === 'run' || name === 'summary' ? (session && session.mode === 'exam' ? 'exam' : 'tests') : name === 'train' ? 'tests' : name;
     nav.querySelectorAll('[data-route]').forEach((link) => {
       const r = link.getAttribute('data-route');
       const isActive = r === active || (active === 'dashboard' && r === 'dashboard');
@@ -311,9 +312,11 @@
         // Сохраняем незавершённую сессию до перезагрузки и переключения банка.
         AT.save(true);
         localStorage.setItem('anatomy-colloquium-selected', moduleSelect.value);
-        location.hash = '#/';
+        location.hash = moduleSelect.dataset.nextRoute === 'train' ? '#/train' : '#/';
+        delete moduleSelect.dataset.nextRoute;
         location.reload();
       } catch (e) {
+        delete moduleSelect.dataset.nextRoute;
         moduleSelect.value = AT.colloquium.id;
         ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
