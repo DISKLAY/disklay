@@ -1,0 +1,31 @@
+.oral-view { max-width: 1120px; margin: 0 auto; }
+.oral-view [hidden] { display: none !important; }
+.oral-head { margin-bottom: 20px; }
+.oral-head h1 { margin: 7px 0; font-size: clamp(2rem,4vw,3rem); letter-spacing: -.04em; }
+.oral-head p, .oral-note { color: var(--text-2); line-height: 1.55; }
+.oral-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+.oral-tabs a { padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-2); font-weight: 700; }
+.oral-tabs a.is-active { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
+.oral-panel { padding: clamp(16px,3vw,28px); border: 1px solid var(--border); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.oral-panel h2 { margin: 0 0 8px; }
+.oral-search { width: min(100%, 440px); min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); }
+.oral-list { display: grid; gap: 10px; margin-top: 18px; }
+.oral-list details { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.oral-list summary { cursor: pointer; font-weight: 700; line-height: 1.45; }
+.oral-list p { margin: 10px 0; line-height: 1.6; color: var(--text-2); }
+.oral-source { color: var(--primary); font-weight: 700; font-size: .8rem; }
+.oral-select { min-height: 44px; max-width: 100%; padding: 8px 12px; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; font: inherit; }
+.oral-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0; }
+.oral-ticket-image { display: block; max-width: min(100%, 700px); margin: 16px auto; border-radius: 12px; }
+.oral-image-link { display: block; }
+.oral-rating-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(220px,100%),1fr)); gap: 8px; margin: 14px 0 24px; }
+.oral-rating { padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.oral-rating strong { display: block; margin-bottom: 8px; }
+.oral-rate-actions, .oral-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.oral-rate-actions button, .oral-card-actions button { min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text-2); font: inherit; font-size: .78rem; font-weight: 700; }
+.oral-rate-actions button[aria-pressed="true"], .oral-card-actions button[aria-pressed="true"] { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
+.oral-card { margin-top: 16px; padding: clamp(20px,4vw,36px); border-radius: 16px; background: var(--surface-2); }
+.oral-card h2 { margin: 10px 0 16px; }
+.oral-answer { margin: 16px 0; line-height: 1.65; color: var(--text-2); }
+.oral-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 20px; }
+.oral-rating-grid + h3 { margin-top: 24px; }
