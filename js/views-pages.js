@@ -603,6 +603,21 @@
 
   /* -------------------------------------------------------------- настройки */
 
+  views.profile = function () {
+    let html = '<div class="view view--narrow"><div class="page-head"><h1>Профиль</h1></div>';
+    html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Telegram и синхронизация</h2>' +
+      '<p class="muted small">Не синхронизируются: игра, кошелёк, награды, оформление, настройки и текущие сессии.</p>' +
+      '<label class="profile-remember" data-if-signed-out><input type="checkbox" data-sync-remember checked><span><strong>Запомнить меня</strong><small>С галочкой — до 90 дней; без неё — в этой вкладке, которую браузер может восстановить после закрытия.</small></span></label>' +
+      '<p class="profile-account" data-sync-account hidden></p><p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
+      '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
+      '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
+    html += '</div>';
+    return {title:'Профиль',html,mount(root){
+      const node=root.querySelector('#studySync');
+      if(node && window.MedzoStudySync)window.MedzoStudySync.mount(node);
+    }};
+  };
+
   views.settings = function () {
     const settings = AT.getState().settings;
     const theme = AT.ui.getThemePref();
@@ -628,12 +643,6 @@
         'В тренировке и экзамене варианты меняют порядок. Для новых сессий этой базы; зависимые от порядка варианты не перемешиваются.', settings.shuffleAnswers) +
       '</section>';
 
-    html += '<section class="card card--pad" id="studySync"><h2 class="card__title">Синхронизация учёбы</h2>' +
-      '<p class="muted small">Не синхронизируются: игра, кошелёк, награды, оформление, настройки и текущие сессии.</p>' +
-      '<p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
-      '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
-      '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
-
     html += '<section class="card card--pad"><h2 class="card__title">Промокод</h2>' +
       '<form id="promoForm" class="promo-form"><label for="promoCode">Промокод на оформление</label>' +
       '<div class="promo-form__row"><input id="promoCode" name="promoCode" type="text" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Введите промокод">' +
@@ -655,8 +664,7 @@
 
     const mount = (root) => {
       const view = root.querySelector('.view--narrow') || root;
-      const syncNode = view.querySelector('#studySync');
-      if (syncNode && window.MedzoStudySync) window.MedzoStudySync.mount(syncNode);
+      if (window.MedzoStudySync) window.MedzoStudySync.mountVisibility(view);
       view.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;

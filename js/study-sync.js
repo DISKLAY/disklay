@@ -5,7 +5,7 @@
   const SESSION='medzo-study-sync-session-v1';
   const S=window.MedzoStudySnapshot, E=window.MedzoSyncEngine;
   let auth=null, engine=null, plan=null, busy=false, listener=null, message='', challenge=null, config=null;
-  let miniLoaded=false, miniFailed=false, loginLoaded=false;
+  let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
   function notify() { if(listener) listener(); }
   function loadScript(src) {
     return new Promise((resolve,reject)=>{
@@ -28,19 +28,42 @@
     if(!response.ok) { if(response.status===409) throw Error('changed'); if(response.status===401&&authenticated) throw Error('auth'); throw Error('network'); }
     return result;
   }
-  function connect(data) {
-    if(!data || !/^[1-9][0-9]{0,19}$/.test(String(data.userId)) || typeof data.session!=='string' || !Number.isSafeInteger(data.expiresAt)) throw Error('auth');
-    localStorage.setItem(SESSION,JSON.stringify(data));sessionStorage.removeItem(SESSION);auth=data;
+  function validAuth(data) {
+    return data && /^[1-9][0-9]{0,19}$/.test(String(data.userId)) && typeof data.session==='string' && Number.isSafeInteger(data.expiresAt) && data.expiresAt>Date.now()/1000+5;
+  }
+  function connect(data, storageName, persist=true) {
+    if(!validAuth(data))throw Error('auth');
+    if(persist) {
+      const target=storageName==='local'?localStorage:sessionStorage;
+      target.setItem(SESSION,JSON.stringify(data));
+      // A tab-only login must not erase a remembered login belonging to another tab.
+      if(storageName==='local')sessionStorage.removeItem(SESSION);
+    }
+    auth=data;authStorage=storageName;
     engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body),userId:String(data.userId)});
   }
+  function clearAuth() {auth=null;engine=null;plan=null;authStorage=null;}
+  function clearCurrentSession() {
+    const store=authStorage==='local'?localStorage:authStorage==='session'?sessionStorage:null;
+    // Never erase a newer session written by another tab while logout was in flight.
+    if(store) {try {const stored=JSON.parse(store.getItem(SESSION)||'null');if(stored && auth && stored.session===auth.session)store.removeItem(SESSION);} catch (_) { /* leave unknown storage untouched */ }}
+    clearAuth();
+  }
   async function logout() {
-    if(!auth||busy)return;busy=true;notify();
-    try { await call({action:'logout'});auth=null;engine=null;plan=null;localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);message='Вы вышли. Локальные учебные данные не изменены.'; }
-    catch (e) { if(e.message==='auth'){auth=null;engine=null;plan=null;localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);message='Сессия завершена. Учебные данные на устройстве не изменены.';}else message='Не удалось выйти. Проверьте интернет и повторите.'; }
+    if(!auth||busy)return;const active=auth;busy=true;notify();
+    try { await call({action:'logout'});if(auth===active){clearCurrentSession();message='Вы вышли. Локальные учебные данные не изменены.';} }
+    catch (e) { if(e.message==='auth' && auth===active){clearCurrentSession();message='Сессия завершена. Учебные данные на устройстве не изменены.';}else if(auth===active)message='Не удалось выйти. Проверьте интернет и повторите.'; }
     finally { busy=false;notify(); }
   }
-  try { const old=JSON.parse(localStorage.getItem(SESSION)||sessionStorage.getItem(SESSION)||'null');if(old&&old.expiresAt>Date.now()/1000+5)connect(old);else {localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);} } catch (_) { auth=null; }
-  window.addEventListener('storage',e=>{if(e.key!==SESSION)return;if(!e.newValue){auth=null;engine=null;plan=null;message='Вход завершён в другой вкладке.';notify();}else try{const next=JSON.parse(e.newValue);if(!auth||next.session!==auth.session){connect(next);plan=null;message='';notify();}}catch(_){} });
+  // Do not silently turn a tab-only session into a persistent one.
+  for(const [name,store] of [['session',sessionStorage],['local',localStorage]]) {
+    try {const saved=JSON.parse(store.getItem(SESSION)||'null');if(validAuth(saved)){connect(saved,name,false);break;}if(saved)store.removeItem(SESSION);} catch (_) { /* ignore unavailable or malformed storage */ }
+  }
+  window.addEventListener('storage',e=>{
+    if(e.key!==SESSION || e.storageArea!==localStorage || authStorage==='session')return;
+    if(!e.newValue){if(authStorage==='local'){clearAuth();message='Вход завершён в другой вкладке.';notify();}return;}
+    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();}}catch(_){}
+  });
   async function prepareLogin() {
     if(auth || window.MedzoTelegramLaunch)return;
     try {
@@ -60,17 +83,18 @@
     } catch(e) { plan=null;message=e.message==='auth'?'Не удалось подтвердить сессию. Проверьте интернет; если проблема не исчезнет, выйдите и войдите снова.':'Не удалось проверить синхронизацию. Учебные данные на устройстве не изменены.'; }
     finally { busy=false;notify(); }
   }
-  async function loginMini(initData) {
+  async function loginMini(initData,rememberLogin) {
     busy=true;notify();
-    try { connect(await call({action:'login',initData},false));message=''; }
+    try { connect(await call({action:'login',initData},false),rememberLogin?'local':'session');message=''; }
     catch (_) { message='Не удалось войти через Telegram. Закройте и снова откройте приложение из бота.'; }
     finally { busy=false;notify(); }
     if(engine)await inspect();
   }
   function login() {
     if(busy)return;
+    const rememberLogin=remember;
     const mini=window.Telegram && window.Telegram.WebApp;
-    if(mini && mini.initData){loginMini(mini.initData);return;}
+    if(mini && mini.initData){loginMini(mini.initData,rememberLogin);return;}
     if(window.MedzoTelegramLaunch && !miniLoaded){message=miniFailed?'Не удалось загрузить Telegram. Проверьте интернет и откройте приложение заново.':'Ожидаем загрузки Telegram. Попробуйте ещё раз через несколько секунд.';notify();return;}
     if(window.MedzoTelegramLaunch){message='Данные Telegram недоступны. Откройте Medzo заново из бота.';notify();return;}
     if(!loginLoaded||!config||!challenge||Date.now()-challenge.at>100000||!window.Telegram || !window.Telegram.Login) {
@@ -82,7 +106,7 @@
       window.Telegram.Login.auth({client_id:Number(config.botId),scope:['profile'],lang:'ru',nonce},async result=>{
         if(!result||!result.id_token){message='Вход отменён или не завершён. Попробуйте ещё раз.';notify();prepareLogin();return;}
         busy=true;notify();
-        try { connect(await call({action:'login',idToken:result.id_token,nonce},false));message=''; }
+        try { connect(await call({action:'login',idToken:result.id_token,nonce},false),rememberLogin?'local':'session');message=''; }
         catch (_) { message='Вход не удалось проверить. Попробуйте ещё раз.';prepareLogin(); }
         finally { busy=false;notify(); }
         if(engine)await inspect();
@@ -126,12 +150,14 @@
     listener=()=>{
       if(!node.isConnected){listener=null;return;}
       const status=node.querySelector('[data-sync-status]'),actions=node.querySelector('[data-sync-actions]');
+      const account=node.querySelector('[data-sync-account]');
+      if(account){account.hidden=!auth;account.textContent=auth?'Telegram подключён':'';}
       const view=node.closest('.view');
       if(view)view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});
       let text=message;
       if(!text && busy)text='Проверяем…';
       if(!text && !auth)text='Войдите через Telegram.';
-      if(!text && auth && !plan)text='Нажмите «Проверить», чтобы сравнить данные.';
+      if(!text && auth && !plan)text='Telegram подключён. Нажмите «Проверить», чтобы сравнить данные.';
       if(!text && plan)text=({equal:'Учебные данные совпадают.',initial:'В облаке пока нет данных. Можно сохранить учебные данные этого устройства.', 'local-changed':'На устройстве есть новые учебные данные.','remote-changed':'В облаке есть обновления. Загрузите их, когда будете готовы.','conflict':'На устройстве и в облаке разные учебные данные. Выберите, какую версию сохранить; автоматической перезаписи не будет.'})[plan.state];
       status.textContent=text;
       let html=auth?'<button type="button" class="btn btn--ghost" data-sync="check">Проверить</button><button type="button" class="btn btn--ghost" data-sync="logout">Выйти</button>':'<button type="button" class="btn btn--primary" data-sync="login">Войти через Telegram</button>';
@@ -142,12 +168,17 @@
       actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy;});
     };
     node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect();if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();});
-    node.addEventListener('change',e=>{if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
+    node.addEventListener('change',e=>{if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
+    const checkbox=node.querySelector('[data-sync-remember]');if(checkbox)checkbox.checked=remember;
     window.AT.onCleanup(()=>{listener=null;});notify();
     if(auth)inspect();else prepareLogin();
+  }
+  function mountVisibility(view) {
+    listener=()=>{if(!view.isConnected){listener=null;return;}view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});};
+    window.AT.onCleanup(()=>{listener=null;});notify();
   }
   // Only a known common baseline permits unattended upload; conflicts are never overwritten.
   setInterval(()=>{if(auth && !document.hidden)inspect(true);},30000);
   window.addEventListener('online',()=>{if(auth)inspect(true);});
-  window.MedzoStudySync={mount};
+  window.MedzoStudySync={mount,mountVisibility};
 })();
