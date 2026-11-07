@@ -529,3 +529,12 @@ test('поиск ключей не перерисовывает страницу
   await new Promise(resolve=>setTimeout(resolve,220));
   assert.equal(htmlWrites,2); assert.equal(rerenders,0);
 });
+
+test('в подвале можно предложить свои тестовые базы и нет надписи о локальном хранении', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const footer = html.match(/<footer class="footer">[\s\S]*?<\/footer>/)[0];
+  assert.match(footer, /предложить свою базу тестов для добавления на платформу/);
+  assert.doesNotMatch(footer, /Данные хранятся локально/);
+  assert.match(footer, /https:\/\/t\.me\/D1sklay/);
+  assert.match(footer, /mailto:davidka\.khachatryan\.00@gmail\.com/);
+});
