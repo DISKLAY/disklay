@@ -18,3 +18,5 @@
 ## Экспериментальная мини-игра
 
 - `dungeon-hall.webp`, `dungeon-crypt.webp`, `dungeon-grove.webp`, `dungeon-abyss.webp`, `dungeon-forge.webp`, `dungeon-library.webp` — фоны локаций, созданные генератором изображений для мини-игры и сжаты в WebP; персонажи нарисованы пиксельными SVG в коде приложения.
+
+- **Патриотическое оформление** — фотография SHAMAN с российским флагом (`patriotic-shaman.webp`) и коллаж на фоне (`patriotic-background.webp`) предоставлены пользователем; преобразованы в WebP. Авторы и права на публичное использование не подтверждены.

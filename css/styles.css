@@ -1781,7 +1781,7 @@ kbd {
 
 /* Декоративные цвета следуют выбранному оформлению; цвета верных и неверных ответов остаются смысловыми. */
 [data-accent]:not([data-accent="default"]) { --violet: var(--primary); --violet-soft: var(--primary-soft); --teal: var(--primary); --teal-soft: var(--primary-soft); }
-[data-accent]:not([data-accent="default"]):not([data-accent="anime"]):not([data-accent="rickmorty"]):not([data-accent="breakingbad"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
+[data-accent]:not([data-accent="default"]):not([data-accent="anime"]):not([data-accent="rickmorty"]):not([data-accent="breakingbad"]):not([data-accent="patriotic"]) .hero:not(.hero--credit) { background: radial-gradient(520px 300px at 88% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 65%), radial-gradient(620px 380px at 6% 100%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%), var(--surface); }
 [data-accent]:not([data-accent="default"]) .progress:not(.progress--ok):not(.progress--mid):not(.progress--low) span { background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 65%, white)); }
 [data-accent]:not([data-accent="default"]) .rewards-hero { background: linear-gradient(125deg, color-mix(in srgb, var(--primary) 24%, #161927), color-mix(in srgb, var(--primary) 38%, #211a2a)); }
 /* Нейтральные поверхности и подписи тоже учитывают выбранную палитру. */
@@ -2271,3 +2271,41 @@ body { container: viewport-shell / inline-size; }
 .course-sidebar [data-nav-icon="anatomy"] > .icon,
 .course-sidebar [data-nav-icon="skills"] > .icon,
 .course-sidebar [data-nav-icon="microscope"] > .icon { width: 22px; height: 22px; stroke-width: 1.9; }
+
+/* Патриотическое оформление: изображения предоставлены пользователем. */
+[data-accent="patriotic"] {
+  --primary: #28508a; --primary-strong: #183a70; --primary-soft: #eaf0fa; --primary-border: #b2c6e2;
+}
+[data-theme="dark"][data-accent="patriotic"] {
+  --primary: #a8c8fb; --primary-strong: #c7ddff; --primary-soft: #1b2e4a; --primary-border: #536f99;
+}
+[data-accent="patriotic"] body { isolation: isolate; background-image: none; }
+[data-accent="patriotic"] body::before {
+  content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh;
+  z-index: -1; pointer-events: none;
+  background: linear-gradient(rgba(248,247,243,.73), rgba(248,247,243,.73)), url('../assets/patriotic-background.webp') center / cover no-repeat;
+}
+[data-theme="dark"][data-accent="patriotic"] body::before {
+  background-image: linear-gradient(rgba(13,17,28,.79), rgba(13,17,28,.79)), url('../assets/patriotic-background.webp');
+}
+[data-accent="patriotic"] .btn--primary:not(.btn--credit) { --btn-bg: linear-gradient(125deg, #24477e, #3868a0); }
+[data-accent="patriotic"] .hero:not(.hero--credit) {
+  color: #fff; border-color: #6c7794;
+  background: linear-gradient(90deg, rgba(13,28,54,.97), rgba(13,28,54,.84) 38%, rgba(13,28,54,.22) 100%), url('../assets/patriotic-shaman.webp') center 37% / cover no-repeat;
+}
+[data-accent="patriotic"] .hero:not(.hero--credit)::after { display: none; }
+[data-accent="patriotic"] .hero:not(.hero--credit) :is(.hero__body, .hero__aside) { position: relative; z-index: 1; }
+[data-accent="patriotic"] .hero:not(.hero--credit) :is(.eyebrow, .hero__ring-note, .ring__label span, .hero__lead) { color: #e7effa; }
+[data-accent="patriotic"] .hero:not(.hero--credit) .hero__module { color: #d4e4ff; }
+[data-accent="patriotic"] .hero:not(.hero--credit) .ring__track { stroke: rgba(255,255,255,.3); }
+[data-accent="patriotic"] .hero:not(.hero--credit) .ring__value { stroke: #d4e4ff; }
+[data-accent="patriotic"] .hero:not(.hero--credit) .btn--ghost { --btn-fg: #fff; --btn-border: rgba(255,255,255,.65); }
+[data-accent="patriotic"] .hero:not(.hero--credit) .btn--ghost:hover { --btn-bg: rgba(255,255,255,.12); }
+[data-accent="patriotic"] .hero:not(.hero--credit) :focus-visible { outline-color: #fff; }
+.appearance-preview--patriotic { background: url('../assets/patriotic-shaman.webp') center 35% / cover no-repeat; }
+.appearance-preview--patriotic span { display: none; }
+@media (max-width: 760px) {
+  [data-accent="patriotic"] .hero:not(.hero--credit) {
+    background: linear-gradient(rgba(13,28,54,.78), rgba(13,28,54,.86)), url('../assets/patriotic-shaman.webp') center / cover no-repeat;
+  }
+}
