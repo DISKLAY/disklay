@@ -55,6 +55,7 @@
     profile: 'profile',
     histology: 'histology',
     'anatomy-skills': 'anatomySkills',
+    'anatomy-oral': 'anatomyOral',
   };
 
   // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
@@ -111,6 +112,17 @@
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }
+  let anatomyOralLoad = null, anatomyOralCss = null, anatomyOralReady = false;
+  function loadAnatomyOral() {
+    if (anatomyOralLoad) return anatomyOralLoad;
+    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=1').catch(err=>{anatomyOralCss=null;throw err;});
+    const script=(window.AnatomyOralData?Promise.resolve():resource('script','js/anatomy-oral-data.js?v=1'))
+      .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=1'))
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=1'));
+    anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
+    return anatomyOralLoad;
+  }
+
   function syncSubject(histology, section) {
     document.body.dataset.subject = histology ? 'histology' : 'anatomy';
     const brand = document.getElementById('subjectBrand');
@@ -148,7 +160,7 @@
     const separator = document.getElementById('contextBaseSeparator');
     const page = document.getElementById('contextPage');
     const option = document.getElementById('colloquiumSelect').selectedOptions[0];
-    const labels = {dashboard:'Главная', tests:'Тесты', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки'};
+    const labels = {dashboard:'Главная', tests:'Тесты', train:'Тренировка', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Устная подготовка'};
     const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
@@ -196,6 +208,16 @@
         root.querySelector('#skillsRetry').addEventListener('click', render);
       });
       return;
+    }
+
+    if (viewName === 'anatomyOral' && !anatomyOralReady) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Устная подготовка</h1><p>Загружаем материалы…</p></div></div>';
+      updateNav(route.name);
+      loadAnatomyOral().then(() => { if (parseHash().name === 'anatomy-oral') render(); }).catch(err => {
+        console.error(err); if (parseHash().name !== 'anatomy-oral') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить материалы</h1><button class="btn btn--primary" id="oralRetry">Повторить</button></div></div>';
+        root.querySelector('#oralRetry').addEventListener('click', render);
+      }); return;
     }
 
     if (viewName === 'dungeon' && !dungeonReady) {

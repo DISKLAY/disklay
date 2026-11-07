@@ -157,7 +157,7 @@
       '<section class="section">' +
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
-      (AT.colloquium.id === '1' ? modeCard('Практические навыки', 'Перевести и показать · 330 навыков', 'book', '#/anatomy-skills', 'teal') : '') +
+      (AT.colloquium.id === '1' ? modeCard('Практические навыки', 'Перевести и показать · 330 навыков', 'book', '#/anatomy-skills', 'teal') + modeCard('Устная подготовка', 'Конспект, карточки и билеты', 'book', '#/anatomy-oral', 'violet') : '') +
       (AT.colloquium.examAvailable ? modeCard('Пробный экзамен', examFormatText(), 'exam', '#/exam', 'violet') : '') +
       modeCard('Работа над ошибками', mistakes ? mistakes + ' ' + utils.plural(mistakes, 'вопрос', 'вопроса', 'вопросов') + ' ждут разбора' : 'Пока пусто', 'mistakes', '#/mistakes', 'rose') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
@@ -319,7 +319,7 @@
         const label=credit?'Зачёт':'Коллоквиум '+parts[0],title=parts.slice(1).join(' · '),total=module&&module.questions?module.questions.length:0;
         return '<button type="button" class="test-base'+(option.value===select.value?' is-current':'')+(credit?' test-base--credit':'')+'" data-test-base="'+esc(option.value)+'"><span class="test-base__badge" aria-hidden="true">'+(credit?'✓':esc(parts[0]))+'</span><span class="test-base__text"><span class="test-base__label">'+esc(label)+'</span><strong>'+esc(title)+'</strong>'+(total?'<small>'+total+' '+utils.plural(total,'вопрос','вопроса','вопросов')+'</small>':'')+'</span><span class="test-base__arrow" aria-hidden="true">→</span></button>';
       }).join('')+'</div></details>'
-    ).join('')+'</div><section class="oral-materials" aria-labelledby="oral-materials-title"><div><span class="overline">1 КОЛЛОКВИУМ · ОСТЕОЛОГИЯ</span><h2 id="oral-materials-title">Билеты и устная теория</h2><p>Оригинальные материалы для подготовки. Билеты представлены фотографиями страниц; ответы в теории не прошли независимую проверку — сверяйтесь с учебником.</p></div><div class="oral-materials__links"><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-tickets.pdf" target="_blank" rel="noopener">Открыть билеты · PDF ↗</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-oral-theory.pdf" target="_blank" rel="noopener">Открыть расписанную теорию · PDF ↗</a></div></section></div>';
+    ).join('')+'</div><section class="oral-materials" aria-labelledby="oral-materials-title"><div><span class="overline">1 КОЛЛОКВИУМ · ОСТЕОЛОГИЯ</span><h2 id="oral-materials-title">Билеты и устная теория</h2><p>Оригинальные материалы для подготовки. Билеты представлены фотографиями страниц; ответы в теории не прошли независимую проверку — сверяйтесь с учебником.</p></div><div class="oral-materials__links"><a class="btn btn--primary" href="#/anatomy-oral">Конспект, карточки и билеты →</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-tickets.pdf" target="_blank" rel="noopener">Открыть билеты · PDF ↗</a><a class="btn btn--ghost" href="assets/anatomy/colloquium-1-oral-theory.pdf" target="_blank" rel="noopener">Открыть расписанную теорию · PDF ↗</a></div></section></div>';
     return {title:'Тесты',html,mount(root){root.querySelectorAll('[data-test-base]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.dataset.testBase;
       if(id===select.value){AT.go('#/train');return;}
