@@ -46,7 +46,25 @@ function validPhoto(value){
 const moduleIds=['1','2','3','4','5','6','7','credit-1','credit-2','stom-2','stom-3'];
 const anatomyFields=['key','keyMeta','progress','favorites','comments','sessions','seen'];
 const allowed=Object.fromEntries(moduleIds.map(id=>[id==='1'?'anatomy-colloquium-v1':'anatomy-colloquium-v1-'+id,anatomyFields]).concat(Object.entries({'histology-prototype-v1':['stats','favorites','imageStats'],'histology-structures-v1':['stats'],'histology-theory-v1':['stats'],'anatomy-practical-skills-1-v1':['favorites','stats','notes']})));
-function validSnapshot(x){return x&&x.schema===1&&x.records&&typeof x.records==='object'&&!Array.isArray(x.records)&&Object.keys(x).every(k=>k==='schema'||k==='records')&&Object.entries(x.records).every(([k,v])=>Object.hasOwn(allowed,k)&&v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(f=>allowed[k].includes(f)));}
+const rewardFields=['coins','rating','verified','achievements','cosmeticSpentApplied','appearanceReceipts','inventory'];
+const legacyBoosts=['hint-train','hint-exam','double-train','double-exam'];
+const sharedKey='anatomy-colloquium-rewards-shared-v1',sharedFields=['achievements','appearances','cosmeticSpent','walletSpent','appearance'];
+const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+const anatomyKeys=moduleIds.map(id=>id==='1'?'anatomy-colloquium-v1':'anatomy-colloquium-v1-'+id);
+function validSnapshot(x){
+  if(!object(x)||(x.schema!==1&&x.schema!==2)||!object(x.records)||Object.keys(x).some(k=>k!=='schema'&&k!=='records'))return false;
+  return Object.entries(x.records).every(([k,v])=>{
+    if(!object(v))return false;
+    if(k===sharedKey)return x.schema===2&&Object.keys(v).every(f=>sharedFields.includes(f));
+    if(!Object.hasOwn(allowed,k))return false;
+    return Object.keys(v).every(f=>{
+      if(allowed[k].includes(f))return true;
+      if(f!=='game'||x.schema!==2||!anatomyKeys.includes(k)||!object(v.game))return false;
+      return Object.keys(v.game).every(g=>rewardFields.includes(g)&&(g!=='inventory'||(object(v.game.inventory)&&Object.keys(v.game.inventory).every(i=>legacyBoosts.includes(i)))));
+    });
+  });
+}
+
 function createHandler(env,fetchFn=fetch){return async function(req){
   const origin=req.headers.get('origin');const cors=origin===SITE?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Allow-Headers':'content-type, authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS'}:{};
   const response=(status,body)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
