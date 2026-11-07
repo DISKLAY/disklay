@@ -26,7 +26,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
   await form.locator('button').click();await page.getByText('Пароли не совпадают.').waitFor();assert.equal(registrations,0);
   await form.locator('[name="confirmation"]').fill('Password12345');await form.locator('button').click();await page.locator('[data-sync="logout"]').waitFor();await page.getByText('Аккаунт: Студент').waitFor();
   const key='medzo-study-sync-session-v1';assert.equal(await page.evaluate(key=>!!localStorage.getItem(key),key),remember);assert.equal(await page.evaluate(key=>!!sessionStorage.getItem(key),key),!remember);
-  await page.getByText('В облаке пока нет данных.',{exact:false}).waitFor();await page.evaluate(()=>{window.AT.ui.confirmDialog=async()=>true});await page.locator('[data-sync="push"]').click();await page.getByText('Данные сохранены в облаке.').waitFor();assert.equal(saved.revision,1);
+  await page.getByText('Учебные данные совпадают.').waitFor();assert.equal(saved.revision,1);
   await page.reload();await page.locator('[data-sync="logout"]').waitFor();await page.locator('[data-sync="logout"]').click();await page.locator('[data-sync="login"]').waitFor();
   await page.locator('summary').filter({hasText:'Войти по логину'}).click();let login=page.locator('[data-password-login]');await login.locator('[name="username"]').fill('student');await login.locator('[name="password"]').fill('not right');await login.locator('button').click();await page.getByText('Неверный логин или пароль.').waitFor();
   await login.locator('[name="password"]').fill('Password12345');await login.locator('button').click();await page.locator('[data-sync="logout"]').waitFor();

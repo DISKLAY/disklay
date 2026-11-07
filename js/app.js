@@ -97,7 +97,7 @@
       .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=1'))
       .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=22'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=25'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=26'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
@@ -107,7 +107,7 @@
     if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=4').catch(err => { anatomySkillsCss = null; throw err; });
     const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
       .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=4'))
-      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=5'));
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=6'));
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }

@@ -7,13 +7,14 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});let serverPhoto=null;
  try{for(const width of [195,390,1440]){
-  const context=await browser.newContext({viewport:{width,height:900}}),errors=[];
+  const context=await browser.newContext({viewport:{width,height:900}}),errors=[];let cloud={revision:0,snapshot:{schema:1,records:{}}};
   await context.addInitScript(session=>localStorage.setItem('medzo-study-sync-session-v1',JSON.stringify(session)),session);
   await context.route('**/functions/v1/medzo-study-sync',async r=>{
    const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'POST,OPTIONS'};
    if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers});
-   const {action,photo}=r.request().postDataJSON();let result={ok:true};
-   if(action==='get')result={revision:0,snapshot:{schema:1,records:{}}};
+   const body=r.request().postDataJSON(),{action,photo}=body;let result={ok:true};
+   if(action==='get')result=cloud;
+   if(action==='put'){cloud={revision:body.revision+1,snapshot:body.snapshot};result={revision:cloud.revision};}
    if(action==='photo-get')result={photo:serverPhoto};
    if(action==='photo-put'){assert.ok(photo.startsWith('/9j/'));serverPhoto=photo;}
    if(action==='photo-delete')serverPhoto=null;

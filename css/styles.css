@@ -2151,3 +2151,5 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 .password-entry label { display: grid; gap: 4px; font-size: .9rem; }
 .password-entry input { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); }
 .password-entry button { justify-self: start; }
+
+.sync-alert:not([hidden]) { display: block; padding: 10px 16px; text-align: center; font-size: .86rem; font-weight: 600; color: var(--text); background: var(--primary-soft); border-bottom: 1px solid var(--primary-border); text-decoration: underline; text-underline-offset: 3px; }

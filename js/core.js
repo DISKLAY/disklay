@@ -196,6 +196,7 @@
         // Учитываем покупки из других вкладок, прежде чем сохранить локальный кошелёк.
         if (window.AT && window.AT.game) window.AT.game.ensure();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (window.MedzoStudySync) window.MedzoStudySync.changed();
         return true;
       } catch (e) {
         console.warn('Не удалось сохранить прогресс', e);
@@ -205,6 +206,10 @@
     if (immediate) return write();
     saveTimer = setTimeout(write, 200);
   }
+
+  // Flush only a pending debounced save. Writing an unchanged in-memory state
+  // here could overwrite a newer update made in another tab.
+  function flushPending() { return saveTimer ? save(true) : true; }
 
   /* -------------------------------------------------------------- key logic */
 
@@ -671,6 +676,7 @@
         if (!saved || typeof saved !== 'object' || !saved.favorites || typeof saved.favorites !== 'object') return false;
         delete saved.favorites[qid];
         localStorage.setItem(key, JSON.stringify(saved));
+        if (window.MedzoStudySync) window.MedzoStudySync.changed();
         return true;
       } catch (e) { return false; }
     },
@@ -911,6 +917,7 @@
     resetProgress,
     getState: () => state,
     save,
+    flushPending,
     normalizeAnswers,
     lookupQuestion,
   };

@@ -1,4 +1,4 @@
-/* Telegram sign-in and explicit conflict resolution for study data. */
+/* Automatic account sync with conflict detection and local recovery backups. */
 (function () {
   'use strict';
   const endpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-study-sync';
@@ -7,8 +7,9 @@
   const S=window.MedzoStudySnapshot, E=window.MedzoSyncEngine;
   let auth=null, engine=null, plan=null, busy=false, listener=null, message='', challenge=null, config=null;
   let miniLoaded=false, miniFailed=false, loginLoaded=false, remember=true, authStorage=null;
-  let photo=null, photoStatus='', photoVersion=0, accountName='';
-  let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true;
+  let photo=null, photoStatus='', photoVersion=0, accountName='',lastPhotoCheck=0;
+  let bootstrap=false, bootstrapHash=Promise.resolve(null), syncAlert='', autoTimer=null, retryDelay=5000;
+  let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false;
   function updateHeader(){
     if(typeof document.getElementById!=='function')return;
     const image=document.getElementById('topbarProfilePhoto'),fallback=document.getElementById('topbarProfilePlaceholder');
@@ -17,7 +18,32 @@
     image.hidden=!show;fallback.toggleAttribute('hidden',show);
     if(show){const src='data:image/jpeg;base64,'+photo;if(image.getAttribute('src')!==src)image.src=src;}else image.removeAttribute('src');
   }
-  function notify() { updateHeader();if(listener) listener(); }
+  function notify() {
+    updateHeader();
+    const alert=typeof document.getElementById==='function'?document.getElementById('syncAlert'):null;
+    if(alert){alert.hidden=!auth||!syncAlert;alert.textContent=syncAlert;}
+    if(listener) listener();
+  }
+  // A shared Web Lock represents each open Medzo tab. Avoid automatic cloud
+  // restores while another tab may still hold older, unsaved in-memory state.
+  const locks=window.navigator?.locks;
+  let tabReady=Promise.resolve(false);
+  if(locks&&typeof locks.request==='function'&&typeof locks.query==='function'){
+    tabReady=new Promise(resolve=>{
+      try{locks.request('medzo-open-tab',{mode:'shared'},()=>{resolve(true);return new Promise(()=>{});}).catch(()=>resolve(false));}catch(_){resolve(false);}
+    });
+  }
+  async function otherTabsOpen(){
+    if(!await tabReady)return false;
+    try{const state=await locks.query();return state.held.filter(x=>x.name==='medzo-open-tab').length>1;}catch(_){return false;}
+  }
+  function flushPending(){return !window.AT || typeof window.AT.flushPending!=='function' || window.AT.flushPending();}
+  function schedule(delay=1500){
+    if(!auth)return;
+    if(autoTimer!==null)clearTimeout(autoTimer);
+    autoTimer=setTimeout(()=>{autoTimer=null;if(!auth)return;if(busy){schedule(1500);return;}inspect(true);},delay);
+  }
+
   function loadScript(src) {
     return new Promise((resolve,reject)=>{
       const el=document.createElement('script');el.src=src;el.async=true;
@@ -31,10 +57,11 @@
     if(app && app.initData) { app.ready(); app.expand(); document.documentElement.classList.add('telegram-mini-app'); }
     notify();
   }).catch(()=>{miniFailed=true;notify();});
-  async function call(body, authenticated=true) {
+  async function call(body, authenticated=true, expected=auth) {
     const headers={'Content-Type':'application/json'};
-    if(authenticated && auth) headers.Authorization='Bearer '+auth.session;
-    const response=await fetch(authenticated && auth && String(auth.userId).startsWith('p_')?passwordEndpoint:endpoint,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store'});
+    if(authenticated && (!expected || expected!==auth))throw Error('changed');
+    if(authenticated) headers.Authorization='Bearer '+expected.session;
+    const response=await fetch(authenticated && expected && String(expected.userId).startsWith('p_')?passwordEndpoint:endpoint,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store'});
     let result;try { result=await response.json(); } catch (_) { throw Error('network'); }
     if(!response.ok) { if(response.status===409) throw Error('changed'); if(response.status===401&&authenticated) throw Error('auth'); throw Error('network'); }
     return result;
@@ -50,10 +77,26 @@
       // A tab-only login must not erase a remembered login belonging to another tab.
       if(storageName==='local')sessionStorage.removeItem(SESSION);
     }
-    auth=data;authStorage=storageName;accountName='';photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;
-    engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body),userId:String(data.userId)});
+    auth=data;authStorage=storageName;bootstrap=true;syncAlert='';retryDelay=5000;lastPhotoCheck=0;accountName='';
+    // Persist the original first-contact fingerprint, even across reloads/offline
+    // use. A missing or interrupted fingerprint fails safely to manual conflict.
+    const marker='medzo-sync-bootstrap-v1-'+String(data.userId);
+    bootstrapHash=Promise.resolve(null);
+    try{
+      const existing=localStorage.getItem(marker);
+      if(existing!==null){const saved=JSON.parse(existing);bootstrapHash=Promise.resolve(typeof saved.hash==='string'?saved.hash:null);}
+      else if(flushPending()){
+        const initial=S.capture(localStorage),pending=JSON.stringify({pending:true});
+        localStorage.setItem(marker,pending);
+        bootstrapHash=E.digest(initial).then(hash=>{
+          if(auth!==data||!bootstrap||localStorage.getItem(marker)!==pending)return null;
+          localStorage.setItem(marker,JSON.stringify({hash}));return hash;
+        }).catch(()=>null);
+      }
+    }catch(_){}photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;
+    engine=E.makeEngine({store:localStorage,snapshot:S,request:body=>call(body,true,data),userId:String(data.userId),isActive:()=>auth===data});
   }
-  function clearAuth() {accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;}
+  function clearAuth() {if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=null;bootstrap=false;bootstrapHash=Promise.resolve(null);syncAlert='';accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;}
   function clearCurrentSession() {
     const store=authStorage==='local'?localStorage:authStorage==='session'?sessionStorage:null;
     // Never erase a newer session written by another tab while logout was in flight.
@@ -61,7 +104,16 @@
     clearAuth();
   }
   async function logout() {
-    if(!auth||busy)return;const active=auth;busy=true;notify();
+    if(!auth||busy)return;const active=auth;
+    // Give recent writes a chance to reach the account before revoking the session.
+    const outcome=await inspect(true);
+    if(outcome==='reloading'||auth!==active||busy)return;
+    if(syncAlert || (plan && plan.state!=='equal')){
+      if(!window.AT?.ui?.confirmDialog)return;
+      const confirmed=await window.AT.ui.confirmDialog({title:'Выйти без синхронизации?',text:'Последние изменения могут остаться только на этом устройстве. Если они нужны на других устройствах, сначала завершите синхронизацию в профиле.',confirm:'Выйти',danger:true});
+      if(!confirmed||auth!==active||busy)return;
+    }
+    busy=true;notify();
     try { await call({action:'logout'});if(auth===active){clearCurrentSession();message='Вы вышли. Локальные учебные данные не изменены.';} }
     catch (e) { if(e.message==='auth' && auth===active){clearCurrentSession();message='Сессия завершена. Учебные данные на устройстве не изменены.';}else if(auth===active)message='Не удалось выйти. Проверьте интернет и повторите.'; }
     finally { busy=false;notify(); }
@@ -71,9 +123,10 @@
     try {const saved=JSON.parse(store.getItem(SESSION)||'null');if(validAuth(saved)){connect(saved,name,false);break;}if(saved)store.removeItem(SESSION);} catch (_) { /* ignore unavailable or malformed storage */ }
   }
   window.addEventListener('storage',e=>{
+    if(auth && e.key && (Object.hasOwn(S.keys||{},e.key)||e.key==='anatomy-colloquium-rewards-shared-v1'))schedule();
     if(e.key!==SESSION || e.storageArea!==localStorage || authStorage==='session')return;
     if(!e.newValue){if(authStorage==='local'){clearAuth();message='Вход завершён в другой вкладке.';notify();}return;}
-    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();loadLeaderboard();loadAccount();}}catch(_){}
+    try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();loadLeaderboard();loadAccount();schedule(0);}}catch(_){}
   });
   async function prepareLogin() {
     if(auth || window.MedzoTelegramLaunch)return;
@@ -84,15 +137,48 @@
       config=values[0];challenge={nonce:values[1].nonce,at:Date.now()};notify();
     } catch (_) { message='Не удалось подготовить вход. Проверьте интернет и нажмите «Войти» ещё раз.';notify(); }
   }
+  function clearBootstrap(active){
+    try{if(active)localStorage.removeItem('medzo-sync-bootstrap-v1-'+String(active.userId));}catch(_){}
+    bootstrap=false;
+  }
   async function inspect(auto=false) {
-    if(!engine||busy)return;
+    if(!engine||busy){if(auto&&auth)schedule(1500);return;}
+    const active=auth,selectedEngine=engine;
+    const stillCurrent=()=>auth===active&&engine===selectedEngine;
+    const guard=()=>stillCurrent()&&flushPending();
     busy=true;notify();
     try {
-      const result=await engine.inspect();plan=result;
-      if(auto&&result.state==='local-changed') { await engine.push(result);plan=await engine.inspect();loadLeaderboard(); }
-      message='';
-    } catch(e) { plan=null;message=e.message==='auth'?'Не удалось подтвердить сессию. Проверьте интернет; если проблема не исчезнет, выйдите и войдите снова.':'Не удалось проверить синхронизацию. Учебные данные на устройстве не изменены.'; }
-    finally { busy=false;notify(); }
+      if(!guard())throw Error('local_save');
+      const result=await selectedEngine.inspect();
+      if(!stillCurrent())return;
+      plan=result;
+      if(auto && (result.state==='initial'||result.state==='local-changed')) {
+        await selectedEngine.push(result,guard);
+        if(!stillCurrent())return;
+        plan=await selectedEngine.inspect();clearBootstrap(active);syncAlert='';retryDelay=5000;message='';loadLeaderboard();
+      } else if(auto && (result.state==='remote-changed'||(bootstrap&&result.state==='conflict'&&!result.hasBaseline&&(await bootstrapHash)===result.localHash))) {
+        // A schema-1 cloud copy cannot describe rewards; require an explicit choice.
+        if(result.remote.snapshot.schema===1){
+          syncAlert='Старая облачная копия не содержит наград. Откройте профиль и выберите, какие данные сохранить.';
+        } else if(await otherTabsOpen()){
+          syncAlert='Облако обновилось. Закройте другие вкладки Medzo, чтобы безопасно загрузить данные.';
+          schedule(10000);
+        } else {
+          const beforeApply=async()=>!(await otherTabsOpen())&&guard();
+          await selectedEngine.pull(result,beforeApply,{ephemeralBackup:result.state==='remote-changed'});
+          if(!stillCurrent())return;
+          clearBootstrap(active);syncAlert='';location.reload();return 'reloading';
+        }
+      } else if(result.state==='conflict'){
+        bootstrap=false;
+        syncAlert='На устройстве и в облаке разные изменения. Откройте профиль и выберите, какие данные сохранить.';
+      } else {clearBootstrap(active);syncAlert='';retryDelay=5000;message='';}
+    } catch(e) {
+      if(!stillCurrent())return;
+      if(e.message==='changed'){syncAlert='Данные изменились во время синхронизации. Повторяем проверку.';schedule(1500);}
+      else if(e.message==='local_save'||e.message==='metadata_storage'){syncAlert='Не удалось сохранить данные на устройстве. Синхронизация остановлена.';schedule(10000);}
+      else {syncAlert=e.message==='auth'?'Не удалось подтвердить вход. Откройте профиль.':'Нет связи с облаком. Данные остаются на устройстве; повторим синхронизацию.';schedule(retryDelay);retryDelay=Math.min(retryDelay*2,60000);}
+    } finally {busy=false;notify();}
   }
   async function passwordSubmit(form,registration) {
     if(auth||busy)return;
@@ -111,14 +197,14 @@
     } catch(e) {
       message=created?'Аккаунт создан, но войти сразу не удалось. Войдите по логину и паролю ещё раз.':({username_taken:'Этот логин уже занят.',invalid_input:'Проверьте логин, имя и пароль. Пароль должен содержать от 10 символов и не более 72 байт.',invalid_credentials:'Неверный логин или пароль.',rate_limited:'Слишком много попыток. Подождите и попробуйте снова.',unavailable:'Не удалось связаться с сервисом регистрации. Попробуйте позже.'})[e.message]||'Не удалось выполнить вход. Проверьте интернет и попробуйте снова.';
     } finally {busy=false;notify();}
-    if(engine)await Promise.all([inspect(),loadPhoto(),loadLeaderboard(),loadAccount()]);
+    if(engine)await Promise.all([inspect(true),loadPhoto(),loadLeaderboard(),loadAccount()]);
   }
   async function loginMini(initData,rememberLogin) {
     busy=true;notify();
     try { connect(await call({action:'login',initData},false),rememberLogin?'local':'session');message=''; }
     catch (_) { message='Не удалось войти через Telegram. Закройте и снова откройте приложение из бота.'; }
     finally { busy=false;notify(); }
-    if(engine){await Promise.all([inspect(),loadPhoto(),loadLeaderboard(),loadAccount()]);}
+    if(engine){await Promise.all([inspect(true),loadPhoto(),loadLeaderboard(),loadAccount()]);}
   }
   function login() {
     if(busy)return;
@@ -139,7 +225,7 @@
         try { connect(await call({action:'login',idToken:result.id_token,nonce},false),rememberLogin?'local':'session');message=''; }
         catch (_) { message='Вход не удалось проверить. Попробуйте ещё раз.';prepareLogin(); }
         finally { busy=false;notify(); }
-        if(engine){await Promise.all([inspect(),loadPhoto(),loadLeaderboard(),loadAccount()]);}
+        if(engine){await Promise.all([inspect(true),loadPhoto(),loadLeaderboard(),loadAccount()]);}
       });
     } catch (_) { message='Не удалось открыть Telegram. Разрешите всплывающие окна и повторите.';notify();prepareLogin(); }
   }
@@ -156,8 +242,8 @@
     if(direction==='pull' && !window.AT.save(true)){busy=false;message='Не удалось сохранить текущие данные. Загрузка отменена.';notify();return;}
     busy=true;notify();
     try {
-      if(direction==='pull') { await selectedEngine.pull(selection);location.reload();return; }
-      await selectedEngine.push(selection);plan=await selectedEngine.inspect();message='Данные сохранены в облаке.';loadLeaderboard();
+      if(direction==='pull') { await selectedEngine.pull(selection,()=>selectedEngine===engine&&flushPending());clearBootstrap(auth);location.reload();return; }
+      await selectedEngine.push(selection);plan=await selectedEngine.inspect();clearBootstrap(auth);syncAlert='';message='Данные сохранены в облаке.';loadLeaderboard();
     } catch(e) { plan=null;message=e.message==='changed'?'Данные изменились после проверки. Ничего не заменено — проверьте ещё раз.':'Не удалось завершить операцию. Проверьте подключение и повторите проверку.'; }
     finally { busy=false;notify(); }
   }
@@ -178,7 +264,7 @@
   }
   async function loadPhoto() {
     if(!auth)return;
-    const active=auth,version=++photoVersion;
+    lastPhotoCheck=Date.now();const active=auth,version=++photoVersion;
     try {const result=await call({action:'photo-get'});if(auth===active&&version===photoVersion){photo=typeof result.photo==='string'?result.photo:null;photoStatus='';}}
     catch (_){if(auth===active&&version===photoVersion)photoStatus='Не удалось загрузить фото. Проверьте интернет.';}
     notify();
@@ -215,7 +301,7 @@
     if(!auth||busy)return;const active=auth,version=++leaderVersion;
     const name=form.elements['leaderboard-name'].value,showPhoto=form.elements['leaderboard-photo'].checked;
     busy=true;leaderStatus='Сохраняем…';notify();
-    try{await call({action:'leaderboard-join',name,showPhoto});if(auth===active&&version===leaderVersion){await loadLeaderboard();leaderStatus='Настройки рейтинга сохранены.';}}
+    try{await call({action:'leaderboard-join',name,showPhoto});if(auth===active&&version===leaderVersion){if(form.elements['leaderboard-name'].value===name&&form.elements['leaderboard-photo'].checked===showPhoto)leaderDirty=false;await loadLeaderboard();leaderStatus='Настройки рейтинга сохранены.';}}
     catch(_){if(auth===active&&version===leaderVersion)leaderStatus='Не удалось сохранить. Проверьте имя и подключение.';}
     finally{busy=false;notify();}
   }
@@ -228,7 +314,7 @@
   function renderLeaderboard(node){
     const form=node.querySelector('[data-leaderboard-form]'),list=node.querySelector('[data-leaderboard-list]'),status=node.querySelector('[data-leaderboard-status]');
     if(!form||!form.elements||!list||!list.replaceChildren)return;
-    if(leaderNeedsForm){form.elements['leaderboard-name'].value=member?.name||'';form.elements['leaderboard-photo'].checked=!!member?.showPhoto;leaderNeedsForm=false;}
+    if(leaderNeedsForm&&!leaderDirty){form.elements['leaderboard-name'].value=member?.name||'';form.elements['leaderboard-photo'].checked=!!member?.showPhoto;leaderNeedsForm=false;}
     const save=node.querySelector('[data-leaderboard-save]'),leave=node.querySelector('[data-leaderboard-leave]');
     if(save){save.textContent=member?'Сохранить':'Участвовать';save.disabled=busy;}
     if(leave){leave.hidden=!member;leave.disabled=busy;}
@@ -260,11 +346,12 @@
       if(photoDelete){photoDelete.hidden=!photo;photoDelete.disabled=busy;}
 
       renderLeaderboard(node);
-      let text=message;
+      let text=auth&&syncAlert?syncAlert:message;
       if(!text && busy)text='Проверяем…';
       if(!text && !auth)text='Войдите через Telegram или по логину и паролю.';
-      if(!text && auth && !plan)text='Вход выполнен. Нажмите «Проверить», чтобы сравнить данные.';
-      if(!text && plan)text=({equal:'Учебные данные совпадают.',initial:'В облаке пока нет данных. Можно сохранить учебные данные этого устройства.', 'local-changed':'На устройстве есть новые учебные данные.','remote-changed':'В облаке есть обновления. Загрузите их, когда будете готовы.','conflict':'На устройстве и в облаке разные учебные данные. Выберите, какую версию сохранить; автоматической перезаписи не будет.'})[plan.state];
+      if(!text && syncAlert)text=syncAlert;
+      if(!text && auth && !plan)text='Синхронизация выполняется автоматически.';
+      if(!text && plan)text=({equal:'Учебные данные совпадают.',initial:'Готовим первое сохранение в облако.', 'local-changed':'Сохраняем изменения с устройства.','remote-changed':'Загружаем обновления из облака.','conflict':'На устройстве и в облаке разные учебные данные. Выберите, какую версию сохранить; автоматической перезаписи не будет.'})[plan.state];
       status.textContent=text;
       let html=auth?'<button type="button" class="btn btn--ghost" data-sync="check">Проверить</button><button type="button" class="btn btn--ghost" data-sync="logout">Выйти</button>':'<button type="button" class="btn btn--primary" data-sync="login">Войти через Telegram</button>';
       if(auth && plan && plan.state!=='equal') {
@@ -273,21 +360,26 @@
       }
       actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy;});
     };
-    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect();if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
+    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check')inspect(true);if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
+    node.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;});
     node.addEventListener('submit',e=>{if(e.target.matches('[data-leaderboard-form]')){e.preventDefault();joinLeaderboard(e.target);}else if(e.target.matches('[data-password-login], [data-password-register]')){e.preventDefault();passwordSubmit(e.target,e.target.matches('[data-password-register]'));}});
-    node.addEventListener('change',e=>{if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
+    node.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
     const checkbox=node.querySelector('[data-sync-remember]');if(checkbox)checkbox.checked=remember;
     window.AT.onCleanup(()=>{listener=null;});notify();
-    if(auth){inspect();loadPhoto();loadLeaderboard();loadAccount();}else prepareLogin();
+    if(auth){schedule(0);loadPhoto();loadLeaderboard();loadAccount();}else prepareLogin();
   }
   function mountVisibility(view) {
     listener=()=>{if(!view.isConnected){listener=null;return;}view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});};
     window.AT.onCleanup(()=>{listener=null;});notify();
   }
-  // Only a known common baseline permits unattended upload; conflicts are never overwritten.
-  setInterval(()=>{if(auth && !document.hidden)inspect(true);},30000);
-  window.addEventListener('online',()=>{if(auth)inspect(true);});
-  window.MedzoStudySync={mount,mountVisibility};
+  // Local writes trigger a debounced upload; periodic checks and focus/online
+  // also pick up work completed on other devices.
+  function refreshPhoto(){if(auth && Date.now()-lastPhotoCheck>=60000)loadPhoto();}
+  setInterval(()=>{if(auth && !document.hidden){schedule(0);refreshPhoto();}},60000);
+  window.addEventListener('online',()=>schedule(0));
+  window.addEventListener('focus',()=>{schedule(0);refreshPhoto();});
+  if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule(0);});
+  window.MedzoStudySync={mount,mountVisibility,changed:()=>schedule()};
   notify();
-  if(auth)loadPhoto();
+  if(auth){loadPhoto();schedule(0);}
 })();
