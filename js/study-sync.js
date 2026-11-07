@@ -448,7 +448,8 @@
     window.AT.onCleanup(()=>{listener=null;});notify();if(auth)loadLeaderboard();
   }
   function mountVisibility(view) {
-    listener=()=>{if(!view.isConnected){listener=null;return;}view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=!!auth && auth.expiresAt>Date.now()/1000;});};
+    if(!view)return;
+    listener=()=>{if(!view.isConnected){listener=null;return;}const signedIn=!!auth && auth.expiresAt>Date.now()/1000;view.querySelectorAll('[data-if-signed-out]').forEach(el=>{el.hidden=signedIn;});view.querySelectorAll('[data-if-signed-in]').forEach(el=>{el.hidden=!signedIn;});};
     window.AT.onCleanup(()=>{listener=null;});notify();
   }
   // Local writes trigger a debounced upload; periodic checks and focus/online

@@ -125,6 +125,8 @@
       '</div>' +
       '</section>';
 
+    if (AT.leaderboardInviteMarkup) html += AT.leaderboardInviteMarkup('anatomy');
+
     if (AT.game) {
       html += '<a class="game-overview" href="#/rewards"><span class="game-overview__icon">' + icon('sparkles') + '</span>' +
         '<span class="game-overview__body"><strong>Награды и оформление</strong><span>Общий кошелёк: ' + AT.game.walletBalance() + '</span></span>' +
@@ -183,6 +185,8 @@
     html += '</div>';
 
     const mount = (root) => {
+      const invite = root.querySelector('[data-rating-invite]');
+      if (invite && window.MedzoStudySync) window.MedzoStudySync.mountVisibility(invite);
       if (AT.colloquium.kind === 'credit' || !AT.game) return;
       // Декоративные интро не загружаются на мобильных и при снижении движения.
       const mobileMedia = window.matchMedia && window.matchMedia('(max-width: 760px)');

@@ -98,7 +98,7 @@
       .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=1'))
       .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=22'))
       .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=28'));
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=29'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
