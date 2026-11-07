@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/medzo-mark-transparent.png?v=2" type="image/png">
-  <link rel="stylesheet" href="css/styles.css?v=20261107-patriotic-fade1">
+  <link rel="stylesheet" href="css/styles.css?v=20261107-mobile-nav1">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -118,12 +118,16 @@
     <div class="content-shell">
       <nav class="context-nav" aria-label="Путь по разделам">
         <a id="contextSubject" href="#/">Анатомия</a><span aria-hidden="true">/</span>
-        <button type="button" id="contextBase" aria-label="Выбрать базу в тестах"></button><span id="contextBaseSeparator" aria-hidden="true">/</span>
+        <select id="contextBase" aria-label="Выбрать коллоквиум или зачёт" title="Сменить коллоквиум или зачёт"></select><span id="contextBaseSeparator" aria-hidden="true">/</span>
         <span class="context-nav__current" id="contextPage" aria-current="page"></span>
       </nav>
       <main id="app" class="main" tabindex="-1"></main>
     </div>
   </div>
+
+  <nav class="mobile-nav" aria-label="Быстрая навигация">
+    <a href="#/" data-mobile-nav="home"></a><a href="#/tests" data-mobile-nav="tests"></a><a href="#/mistakes" data-mobile-nav="mistakes"></a><a href="#/stats" data-mobile-nav="stats"></a>
+  </nav>
 
   <footer class="footer">
     <p>Тренажёр по медицине · АРМ РНИМУ</p>
@@ -155,7 +159,7 @@
   <script src="js/game.js?v=20261107-special1500"></script>
   <script src="js/ui.js?v=20261107-icons1"></script>
   <script src="js/germ-squad.js?v=20261031-easter1"></script>
-  <script src="js/views-study.js?v=20261107-baikal1"></script>
+  <script src="js/views-study.js?v=20261107-oral-materials1"></script>
   <script src="js/study-snapshot.js?v=3"></script>
   <script src="js/study-sync-engine.js?v=2"></script>
   <script src="js/profile-photo.js?v=1"></script>
@@ -164,6 +168,6 @@
   <script src="js/views-pages.js?v=20261107-sidebar1"></script>
   <script src="js/views-rewards.js?v=20261107-sidebar1"></script>
   <script src="js/course-drawer.js?v=20261107-sidebar1"></script>
-  <script src="js/app.js?v=20261107-microatlas1"></script>
+  <script src="js/app.js?v=20261107-mobile-nav1"></script>
 </body>
 </html>

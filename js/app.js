@@ -107,7 +107,7 @@
     if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=4').catch(err => { anatomySkillsCss = null; throw err; });
     const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
       .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=4'))
-      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=6'));
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=7'));
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }
@@ -130,6 +130,18 @@
     });
   }
 
+  function updateMobileNav(route, histology) {
+    const items = histology
+      ? [['Препараты','microscope','#/histology?section=setup','setup'],['Атлас','atlas','#/histology?section=atlas','atlas'],['Ошибки','mistakes','#/histology?section=errors','errors'],['Статистика','stats','#/histology?section=stats','stats']]
+      : [['Главная','home','#/','dashboard'],['Тесты','book','#/tests','tests'],['Ошибки','mistakes','#/mistakes','mistakes'],['Статистика','stats','#/stats','stats']];
+    const session=AT.getState().session;
+    const active=histology?(route.params.section||'setup'):(route.name==='train'||((route.name==='run'||route.name==='summary')&&(!session||session.mode!=='exam'))?'tests':route.name);
+    document.querySelectorAll('[data-mobile-nav]').forEach((link,i)=>{
+      const [label,iconName,href,key]=items[i];link.href=href;link.innerHTML=ui.icon(iconName)+'<span>'+label+'</span>';link.setAttribute('aria-label',label);
+      link.classList.toggle('is-active',active===key);if(active===key)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+    });
+  }
+
   function updateContext(route, histology) {
     const subject = document.getElementById('contextSubject');
     const base = document.getElementById('contextBase');
@@ -141,7 +153,7 @@
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
     base.hidden = separator.hidden = histology || route.name === 'profile';
-    if (!histology && option) base.textContent = option.textContent;
+    if (!histology && option) base.value = option.value;
     page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (labels[route.name] || 'Страница');
   }
 
@@ -153,6 +165,7 @@
     const viewName = ROUTES[route.name] || 'notFound';
     if (viewName !== 'histology' && AT.views.histology && AT.views.histology.onLeave) AT.views.histology.onLeave();
     syncSubject(viewName === 'histology', route.params.section);
+    updateMobileNav(route, viewName === 'histology');
     updateContext(route, viewName === 'histology');
 
     if (viewName === 'trainSetup' && (route.params.topic || route.params.scope === 'favorites')) {
@@ -279,6 +292,10 @@
   /* ------------------------------------------------------------- глобальные */
 
   document.addEventListener('click', (e) => {
+    const link=e.target.closest('[data-mobile-nav]');
+    if(link && location.hash===link.getAttribute('href') && !e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey&&e.button===0 && AT.views.histology?.openSection){
+      const section=new URLSearchParams(link.hash.split('?')[1]||'').get('section');if(section){e.preventDefault();AT.views.histology.openSection(section);}
+    }
     const el = e.target.closest('[data-action="toggle-theme"]');
     if (!el) return;
     const next = ui.toggleTheme();
@@ -307,7 +324,11 @@
         ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
-    document.getElementById('contextBase').addEventListener('click', () => AT.go('#/tests'));
+    const quickSelect = document.getElementById('contextBase');
+    quickSelect.innerHTML = moduleSelect.innerHTML;
+    quickSelect.value = moduleSelect.value;
+    quickSelect.addEventListener('change', () => { moduleSelect.value = quickSelect.value; moduleSelect.dispatchEvent(new Event('change', {bubbles:true})); });
+    moduleSelect.addEventListener('change', () => { quickSelect.value = moduleSelect.value; });
     document.getElementById('sidebarSkills').hidden = AT.colloquium.id !== '1';
     const sidebar = document.getElementById('courseSidebar');
     sidebar.querySelectorAll('[data-nav-icon]').forEach(link => {
