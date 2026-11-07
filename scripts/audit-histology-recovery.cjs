@@ -1,4 +1,4 @@
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
+const {chromium}=require('./audit-browser.cjs'),assert=require('node:assert/strict');
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox'],headless:true});try{
  for(const [width,zoom] of [[390,1],[390,2],[1280,1]]){
   const page=await browser.newPage({viewport:{width,height:850}}),errors=[];page.on('pageerror',e=>errors.push(e.message));

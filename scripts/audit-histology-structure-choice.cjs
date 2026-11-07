@@ -1,5 +1,5 @@
 /* Browser regression: configure PLAYWRIGHT_MODULE, CHROMIUM_PATH and AUDIT_BASE_URL. */
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
+const {chromium}=require('./audit-browser.cjs'),assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8000/';
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox'],headless:true});try{
  for(const width of [195,390,1280]){

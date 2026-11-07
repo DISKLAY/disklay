@@ -41,3 +41,9 @@ test('future-appearance entitlement survives schema-2 capture and restore on ano
  assert.equal(JSON.parse(destination.data[shared]).appearances.__medzo_all_future_v1,true);
  assert.equal(JSON.parse(destination.data[shared]).walletSpent,17);
 });
+
+test('экскурсия привязана к браузеру и не входит в облачную копию',()=>{
+ const s=storage({'medzo-tour-seen-v1':'1',[k]:JSON.stringify({progress:{a:1}})});
+ const snap=S.capture(s);assert.equal(Object.hasOwn(snap.records,'medzo-tour-seen-v1'),false);
+ S.apply(s,{schema:2,records:{}});assert.equal(s.getItem('medzo-tour-seen-v1'),'1');
+});

@@ -1,5 +1,5 @@
 /* Animated intro: once, covering the hero, disabled on mobile and reduced motion. */
-const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core');
+const {chromium} = require('./audit-browser.cjs');
 const assert = require('node:assert/strict');
 (async () => { const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
 try { for (const [width,reduced] of [[1440,false],[390,false],[1440,true]]) {

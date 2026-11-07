@@ -700,6 +700,10 @@
       '<button class="btn btn--ghost btn--danger" data-action="reset-all">' + icon('trash') + 'Сбросить прогресс</button>' +
       '</div></section>';
 
+    html += '<section class="card card--pad"><h2 class="card__title">Знакомство с Medzo</h2>' +
+      '<p class="muted small">Краткая экскурсия по основным возможностям приложения.</p>' +
+      '<div class="card__actions"><button type="button" class="btn btn--ghost" data-action="open-tour">Посмотреть экскурсию</button></div></section>';
+
     html += '<section class="card card--pad"><h2 class="card__title">О тренажёре</h2>' +
       '<p class="muted small">' + (AT.colloquium.semester ? esc(AT.colloquium.semester) + ' семестр · ' : '') + (AT.colloquium.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id)) + ' · ' + esc(AT.colloquium.name) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + ' — ' + dataset.total + ' заданий. ' +
       (AT.colloquium.renumbered ? 'Вопросы пронумерованы по порядку; страница и исходный номер указаны в задании. ' : 'Нумерация сохранена как в PDF. ') +
@@ -714,7 +718,9 @@
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
         const action = btn.getAttribute('data-action');
-        if (action === 'set-theme') {
+        if (action === 'open-tour') {
+          if (window.MedzoTour) window.MedzoTour.open();
+        } else if (action === 'set-theme') {
           AT.ui.applyTheme(btn.getAttribute('data-theme'));
           AT.rerender();
         } else if (action === 'reset-all') {

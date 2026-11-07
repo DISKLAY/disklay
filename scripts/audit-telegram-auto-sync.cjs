@@ -1,4 +1,4 @@
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
+const {chromium}=require('./audit-browser.cjs'),assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/',key='anatomy-colloquium-v1';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn){const end=Date.now()+15000;while(Date.now()<end){if(fn())return;await delay(50);}throw Error('sync timeout');}

@@ -1,5 +1,5 @@
 /* Optional Playwright audit; provide PLAYWRIGHT_MODULE and CHROMIUM_PATH. */
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');
+const {chromium}=require('./audit-browser.cjs');
 const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});

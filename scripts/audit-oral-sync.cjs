@@ -1,4 +1,4 @@
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
+const {chromium}=require('./audit-browser.cjs'),assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/',key='anatomy-oral-1-v1',uid='p_12345678-1234-4234-8234-123456789abc';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,msg){for(let i=0;i<250;i++){if(await fn())return;await delay(80);}throw Error('Timeout: '+msg);}

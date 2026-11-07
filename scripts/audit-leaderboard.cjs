@@ -1,5 +1,5 @@
 /* Browser audit uses mocked services and fictitious accounts only. */
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
+const {chromium}=require('./audit-browser.cjs'),assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
 try{for(const width of [195,320,390,768,1440]){

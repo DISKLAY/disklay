@@ -1,5 +1,5 @@
 /* Browser audit with a mocked Telegram login and sync service; no real account is used. */
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');
+const {chromium}=require('./audit-browser.cjs');
 const assert=require('node:assert/strict');
 const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
 const key='medzo-study-sync-session-v1';
