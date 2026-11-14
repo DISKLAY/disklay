@@ -12,6 +12,8 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
    const b=r.request().postDataJSON();if(b.action==='put')oral={revision:b.revision+1,snapshot:b.snapshot};
    return r.fulfill({headers,json:b.action==='put'?{revision:oral.revision}:oral});
   });
+  let myo={revision:0,snapshot:{schema:1,skills:{},questions:{}}};
+  await ctx.route('**/functions/v1/medzo-myology-sync',async r=>{const b=r.request().postDataJSON();if(b.action==='put')myo={revision:b.revision+1,snapshot:b.snapshot};return r.fulfill({headers:{'Access-Control-Allow-Origin':'*'},json:b.action==='put'?{revision:myo.revision}:myo});});
   await ctx.route('**/functions/v1/medzo-study-sync',r=>{const body=r.request().postDataJSON();r.fulfill({headers:{'Access-Control-Allow-Origin':'*'},json:body.action==='config'?{botId:'12345'}:{nonce:'dummy'}})});
   await ctx.route('**/functions/v1/medzo-credentials',async r=>{
    let b=r.request().postDataJSON(),result={ok:true},status=200;
@@ -33,7 +35,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
   await form.locator('[name="confirmation"]').fill('Password12345');await form.locator('button').click();await page.locator('[data-sync="logout"]').waitFor();await page.getByText('Аккаунт: Студент').waitFor();
   const key='medzo-study-sync-session-v1';assert.equal(await page.evaluate(key=>!!localStorage.getItem(key),key),remember);assert.equal(await page.evaluate(key=>!!sessionStorage.getItem(key),key),!remember);
   await page.getByText('Учебные данные совпадают.').waitFor();assert.equal(saved.revision,1);
-  await page.reload();await page.locator('[data-sync="logout"]').waitFor();await page.waitForFunction(()=>document.querySelector('[data-sync-actions]')?.textContent.includes('Оценки карточек и билетов синхронизируются отдельно.'));await page.locator('[data-sync="logout"]').click();await page.locator('[data-sync="login"]').waitFor();
+  await page.reload();await page.locator('[data-sync="logout"]').waitFor();await page.waitForFunction(()=>document.querySelector('[data-sync-actions]')?.textContent.includes('Оценки карточек и билетов синхронизируются отдельно.'));await page.waitForFunction(()=>document.querySelector('[data-sync-actions]')?.textContent.includes('Оценки миологии синхронизируются отдельно.'));await page.locator('[data-sync="logout"]').click();await page.locator('[data-sync="login"]').waitFor();
   await page.locator('summary').filter({hasText:'Войти по логину'}).click();let login=page.locator('[data-password-login]');await login.locator('[name="username"]').fill('student');await login.locator('[name="password"]').fill('not right');await login.locator('button').click();await page.getByText('Неверный логин или пароль.').waitFor();
   await login.locator('[name="password"]').fill('Password12345');await login.locator('button').click();await page.locator('[data-sync="logout"]').waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1));assert.deepEqual(errors,[]);await ctx.close();console.log(`${width}px ${remember?'remembered':'tab-only'} registration, login, sync and logout OK`);

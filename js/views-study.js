@@ -161,6 +161,7 @@
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Тесты, экзамен, навыки, билеты и ошибки', 'train', '#/tests', 'primary') +
       modeCard('Теория · 1 коллоквиум', 'Конспект и исходные материалы', 'book', '#/anatomy-oral?section=notes', 'violet') +
+      modeCard('Миология · 2 коллоквиум', 'Практические навыки и вопросы', 'anatomy', '#/myology?section=questions', 'violet') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       modeCard('Портфель избранного', 'Отмеченные вопросы из всех баз', 'star', '#/portfolio', 'primary') +
       '</div></section>';

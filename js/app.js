@@ -56,6 +56,7 @@
     histology: 'histology',
     'anatomy-skills': 'anatomySkills',
     'anatomy-oral': 'anatomyOral',
+    myology: 'myology',
   };
 
   // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
@@ -121,9 +122,20 @@
       .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=2'))
       .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=1'))
       .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=1'))
-      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=6'));
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=7'));
     anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
     return anatomyOralLoad;
+  }
+
+  let myologyLoad = null, myologyCss = null, myologyReady = false;
+  function loadMyology() {
+    if (myologyLoad) return myologyLoad;
+    if (!myologyCss) myologyCss = resource('link', 'css/myology.css?v=1').catch(err => {myologyCss = null; throw err;});
+    const css = myologyCss;
+    const script = (window.MedzoMyologyData ? Promise.resolve() : resource('script', 'js/myology-data.js?v=1'))
+      .then(() => AT.views.myology ? undefined : resource('script', 'js/views-myology.js?v=1'));
+    myologyLoad = Promise.all([css, script]).then(() => {myologyReady = true;}).catch(err => {myologyLoad = null; throw err;});
+    return myologyLoad;
   }
 
   function syncSubject(histology, section) {
@@ -149,7 +161,7 @@
     const items = histology
       ? [['Препараты','slide','#/histology?section=setup','setup'],['Атлас','atlas','#/histology?section=atlas','atlas'],['Ошибки','mistakes','#/histology?section=errors','errors'],['Статистика','stats','#/histology?section=stats','stats']]
       : [['Главная','home','#/','dashboard'],['Тренировка','train','#/tests','tests'],['Теория','book','#/anatomy-oral?section=notes','anatomy-oral'],['Статистика','stats','#/stats','stats']];
-    const active=histology?(route.params.section||'setup'):(trainingRoute(route)?'tests':route.name);
+    const active=histology?(route.params.section||'setup'):(trainingRoute(route)?'tests':route.name==='myology'?'anatomy-oral':route.name);
     document.querySelectorAll('[data-mobile-nav]').forEach((link,i)=>{
       const [label,iconName,href,key]=items[i];link.href=href;link.innerHTML=ui.icon(iconName)+'<span>'+label+'</span>';link.setAttribute('aria-label',label);
       link.classList.toggle('is-active',active===key);if(active===key)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
@@ -162,11 +174,11 @@
     const separator = document.getElementById('contextBaseSeparator');
     const page = document.getElementById('contextPage');
     const option = document.getElementById('colloquiumSelect').selectedOptions[0];
-    const labels = {dashboard:'Главная', tests:'Тренировка · Базы', train:'Тренировка · Тесты', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Теория · 1 коллоквиум'};
+    const labels = {dashboard:'Главная', tests:'Тренировка · Базы', train:'Тренировка · Тесты', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Теория · 1 коллоквиум', myology:'Миология · 2 коллоквиум'};
     const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
-    base.hidden = separator.hidden = histology || ['profile','anatomy-oral','anatomy-skills'].includes(route.name);
+    base.hidden = separator.hidden = histology || ['profile','anatomy-oral','anatomy-skills','myology'].includes(route.name);
     if (!histology && option) base.value = option.value;
     const oralLabels = {cards:'Карточки · 1 коллоквиум', tickets:'Билеты · 1 коллоквиум'};
     page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (route.name === 'anatomy-oral' && oralLabels[route.params.section] || labels[route.name] || 'Страница');
@@ -175,11 +187,12 @@
   // Старые ссылки сохранены; все тренировочные экраны образуют один раздел.
   function trainingRoute(route) {
     return ['tests','train','exam','mistakes','anatomy-skills','run','summary'].includes(route.name) ||
-      (route.name === 'anatomy-oral' && ['cards','tickets'].includes(route.params.section));
+      (route.name === 'anatomy-oral' && ['cards','tickets'].includes(route.params.section)) ||
+      (route.name === 'myology' && (!route.params.section || route.params.section === 'skills'));
   }
   function trainingNav(route) {
     const tabs=[['tests','Базы','#/tests'],['train','Тесты','#/train'],['exam',AT.colloquium.kind === 'credit'?'Пробный зачёт':'Экзамен','#/exam'],
-      ['anatomy-skills','Навыки · 1','#/anatomy-skills'],['tickets','Билеты · 1','#/anatomy-oral?section=tickets'],
+      ['anatomy-skills','Навыки · 1','#/anatomy-skills'],['myology','Навыки · 2','#/myology?section=skills'],['tickets','Билеты · 1','#/anatomy-oral?section=tickets'],
       ['cards','Карточки · 1','#/anatomy-oral?section=cards'],['mistakes','Ошибки','#/mistakes']];
     const active=route.name==='anatomy-oral'?route.params.section:route.name;
     const nav=document.createElement('nav'); nav.className='anatomy-training-nav'; nav.setAttribute('aria-label','Разделы тренировки по анатомии');
@@ -238,6 +251,17 @@
       }); return;
     }
 
+    if (viewName === 'myology' && !myologyReady) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Миология · 2 коллоквиум</h1><p>Загружаем материалы…</p></div></div>';
+      updateNav(route.name);
+      loadMyology().then(() => {if (parseHash().name === 'myology') render();}).catch(err => {
+        console.error(err);if(parseHash().name !== 'myology')return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить материалы</h1><button class="btn btn--primary" id="myologyRetry">Повторить</button></div></div>';
+        root.querySelector('#myologyRetry').addEventListener('click', render);
+      });
+      return;
+    }
+
     if (viewName === 'dungeon' && !dungeonReady) {
       root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Подземелье</h1><p>Загружаем игру…</p></div></div>';
       updateNav(route.name);
@@ -284,7 +308,7 @@
 
   function updateNav(name) {
     if (!nav) return;
-    const active = trainingRoute(parseHash()) ? 'tests' : name;
+    const active = trainingRoute(parseHash()) ? 'tests' : name === 'myology' ? 'anatomy-oral' : name;
     nav.querySelectorAll('[data-route]').forEach((link) => {
       const r = link.getAttribute('data-route');
       const isActive = r === active || (active === 'dashboard' && r === 'dashboard');
