@@ -4,6 +4,7 @@
   const endpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-study-sync';
   const passwordEndpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-credentials';
   const oralEndpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-oral-sync';
+  const myoEndpoint='https://pgkimwwxoxizlmncdevq.supabase.co/functions/v1/medzo-myology-sync';
   const SESSION='medzo-study-sync-session-v1';
   const S=window.MedzoStudySnapshot, E=window.MedzoSyncEngine;
   let auth=null, engine=null, plan=null, busy=false, listener=null, message='', challenge=null, config=null;
@@ -12,6 +13,8 @@
   let bootstrap=false, bootstrapHash=Promise.resolve(null), syncAlert='', autoTimer=null, retryDelay=5000;
   const O=window.MedzoOralSnapshot, ORAL_META='medzo-oral-sync-meta-v1', ORAL_OWNER='medzo-oral-sync-owner-v1';
   let oralEngine=null,oralPlan=null,oralBusy=false,oralAlert='',oralTimer=null,oralRetry=5000,oralPreviousOwner=null;
+  const M=window.MedzoMyologySnapshot, MYO_META='medzo-myology-sync-meta-v1', MYO_OWNER='medzo-myology-sync-owner-v1';
+  let myoEngine=null,myoPlan=null,myoBusy=false,myoAlert='',myoTimer=null,myoRetry=5000,myoPreviousOwner=null;
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false, leaderMutating=false;
   function updateHeader(){
     if(typeof document.getElementById!=='function')return;
@@ -24,7 +27,7 @@
   function notify() {
     updateHeader();
     const alert=typeof document.getElementById==='function'?document.getElementById('syncAlert'):null;
-    if(alert){alert.hidden=!auth||!(syncAlert||oralAlert);alert.textContent=syncAlert||oralAlert;}
+    if(alert){alert.hidden=!auth||!(syncAlert||oralAlert||myoAlert);alert.textContent=syncAlert||oralAlert||myoAlert;}
     if(listener) listener();
   }
   // A shared Web Lock represents each open Medzo tab. Avoid automatic cloud
@@ -51,6 +54,18 @@
     if(!auth||!oralEngine)return;
     if(oralTimer!==null)clearTimeout(oralTimer);
     oralTimer=setTimeout(()=>{oralTimer=null;inspectOral();},delay);
+  }
+  function scheduleMyo(delay=1500){
+    if(!auth||!myoEngine)return;
+    if(myoTimer!==null)clearTimeout(myoTimer);
+    myoTimer=setTimeout(()=>{myoTimer=null;inspectMyo();},delay);
+  }
+  async function myoCall(body,expected){
+    if(!expected||expected!==auth)throw Error('changed');
+    const response=await fetch(myoEndpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+expected.session},body:JSON.stringify(body),cache:'no-store'});
+    let result;try{result=await response.json();}catch(_){throw Error('network');}
+    if(!response.ok){if(response.status===409)throw Error('changed');if(response.status===401)throw Error('auth');throw Error('network');}
+    return result;
   }
   async function oralCall(body,expected){
     if(!expected||expected!==auth)throw Error('changed');
@@ -92,7 +107,7 @@
       // A tab-only login must not erase a remembered login belonging to another tab.
       if(storageName==='local')sessionStorage.removeItem(SESSION);
     }
-    try{const saved=JSON.parse(localStorage.getItem(E.META||'medzo-study-sync-meta-v1')||'null');oralPreviousOwner=localStorage.getItem(ORAL_OWNER)||(saved&&saved.userId)||null;}catch(_){oralPreviousOwner=null;}
+    try{const saved=JSON.parse(localStorage.getItem(E.META||'medzo-study-sync-meta-v1')||'null');oralPreviousOwner=localStorage.getItem(ORAL_OWNER)||(saved&&saved.userId)||null;myoPreviousOwner=localStorage.getItem(MYO_OWNER)||(saved&&saved.userId)||null;}catch(_){oralPreviousOwner=null;myoPreviousOwner=null;}
     auth=data;authStorage=storageName;bootstrap=true;syncAlert='';retryDelay=5000;lastPhotoCheck=0;accountName='';
     // Persist the original first-contact fingerprint, even across reloads/offline
     // use. A missing or interrupted fingerprint fails safely to manual conflict.
@@ -114,8 +129,11 @@
     oralPlan=null;oralAlert='';oralRetry=5000;
     oralEngine=O?E.makeEngine({store:localStorage,snapshot:O,request:body=>oralCall(body,data),userId:String(data.userId),isActive:()=>auth===data,metaKey:ORAL_META}):null;
     scheduleOral(0);
+    myoPlan=null;myoAlert='';myoRetry=5000;
+    myoEngine=M?E.makeEngine({store:localStorage,snapshot:M,request:body=>myoCall(body,data),userId:String(data.userId),isActive:()=>auth===data,metaKey:MYO_META}):null;
+    scheduleMyo(0);
   }
-  function clearAuth() {if(oralTimer!==null)clearTimeout(oralTimer);oralTimer=null;oralEngine=null;oralPlan=null;oralAlert='';if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=null;bootstrap=false;bootstrapHash=Promise.resolve(null);syncAlert='';accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;}
+  function clearAuth() {if(myoTimer!==null)clearTimeout(myoTimer);myoTimer=null;myoEngine=null;myoPlan=null;myoAlert='';if(oralTimer!==null)clearTimeout(oralTimer);oralTimer=null;oralEngine=null;oralPlan=null;oralAlert='';if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=null;bootstrap=false;bootstrapHash=Promise.resolve(null);syncAlert='';accountName='';auth=null;engine=null;plan=null;authStorage=null;photo=null;photoStatus='';photoVersion++;leaders=[];member=null;leaderStatus='';leaderVersion++;leaderNeedsForm=true;leaderDirty=false;}
   function clearCurrentSession() {
     const store=authStorage==='local'?localStorage:authStorage==='session'?sessionStorage:null;
     // Never erase a newer session written by another tab while logout was in flight.
@@ -130,7 +148,10 @@
     if(oralBusy){oralAlert='Дождитесь завершения синхронизации оценок и повторите выход.';notify();return;}
     if(oralEngine)await inspectOral();
     if(auth!==active||busy||oralBusy)return;
-    if(syncAlert || oralAlert || (plan && plan.state!=='equal') || (oralPlan && oralPlan.state!=='equal')){
+    if(myoBusy){myoAlert='Дождитесь синхронизации оценок миологии и повторите выход.';notify();return;}
+    if(myoEngine)await inspectMyo();
+    if(auth!==active||busy||oralBusy||myoBusy)return;
+    if(syncAlert || oralAlert || myoAlert || (plan && plan.state!=='equal') || (oralPlan && oralPlan.state!=='equal') || (myoPlan && myoPlan.state!=='equal')){
       if(!window.AT?.ui?.confirmDialog)return;
       const confirmed=await window.AT.ui.confirmDialog({title:'Выйти без синхронизации?',text:'Последние изменения могут остаться только на этом устройстве. Если они нужны на других устройствах, сначала завершите синхронизацию в профиле.',confirm:'Выйти',danger:true});
       if(!confirmed||auth!==active||busy)return;
@@ -241,6 +262,45 @@
       if(auth===active){oralPlan=await selected.inspect();oralAlert='';}
     }catch(_){if(auth===active){oralAlert='Оценки изменились или нет связи. Повторите проверку перед выбором.';scheduleOral(1500);}}
     finally{oralBusy=false;notify();}
+  }
+  function myoEmpty(x){return !Object.keys(x.skills).length&&!Object.keys(x.questions).length;}
+  function myoOwner(){try{return localStorage.getItem(MYO_OWNER)||myoPreviousOwner;}catch(_){return myoPreviousOwner;}}
+  function setMyoOwner(active){try{if(auth===active){localStorage.setItem(MYO_OWNER,String(active.userId));myoPreviousOwner=String(active.userId);}}catch(_){/* require confirmation on next contact */}}
+  function redrawMyo(){window.dispatchEvent(new Event('medzo-myology-updated'));}
+  async function inspectMyo(){
+    if(!myoEngine||!auth)return;
+    if(myoBusy){scheduleMyo(1500);return;}
+    const active=auth,selected=myoEngine,current=()=>auth===active&&myoEngine===selected;
+    myoBusy=true;notify();
+    try{
+      const result=await selected.inspect();if(!current())return;myoPlan=result;
+      const differentOwner=myoOwner()!==null&&myoOwner()!==String(active.userId);
+      if(result.state==='initial'&&(!differentOwner||myoEmpty(result.local)) || result.state==='local-changed'){
+        await selected.push(result,current);if(!current())return;myoPlan=await selected.inspect();setMyoOwner(active);myoAlert='';myoRetry=5000;
+      }else if(result.state==='remote-changed'||result.state==='conflict'&&!result.hasBaseline&&myoEmpty(result.local)){
+        if(await otherTabsOpen()){myoAlert='Оценки миологии обновились в облаке. Закройте другие вкладки Medzo для загрузки.';scheduleMyo(10000);}
+        else{await selected.pull(result,async()=>current()&&!(await otherTabsOpen()),{ephemeralBackup:result.state==='remote-changed'});if(!current())return;myoPlan=await selected.inspect();setMyoOwner(active);myoAlert='';myoRetry=5000;redrawMyo();}
+      }else if(result.state==='conflict'||result.state==='initial'){
+        myoAlert='Оценки миологии требуют выбора версии в профиле. Автоматической перезаписи не будет.';
+      }else{setMyoOwner(active);myoAlert='';myoRetry=5000;}
+    }catch(e){if(!current())return;
+      if(e.message==='changed'){myoAlert='Оценки миологии изменились во время синхронизации. Повторяем проверку.';scheduleMyo(1500);}
+      else{myoAlert='Не удалось синхронизировать оценки миологии. Они сохранены на устройстве.';scheduleMyo(myoRetry);myoRetry=Math.min(myoRetry*2,60000);}
+    }finally{myoBusy=false;notify();}
+  }
+  async function chooseMyo(direction){
+    if(!myoPlan||!myoEngine||!auth||myoBusy)return;
+    const selected=myoEngine,active=auth,selection=myoPlan;
+    if(!window.AT?.ui?.confirmDialog)return;
+    const ok=await window.AT.ui.confirmDialog({title:direction==='pull'?'Загрузить оценки миологии из облака?':'Сохранить оценки миологии этого устройства?',text:direction==='pull'?'Текущие оценки будут заменены; резервная копия останется в браузере. Закройте другие вкладки Medzo.':'Оценки в облаке будут заменены; предыдущая версия сохранится в истории.',confirm:direction==='pull'?'Загрузить':'Сохранить'});
+    if(!ok||auth!==active||selected!==myoEngine||myoBusy)return;
+    myoBusy=true;notify();
+    try{
+      if(direction==='pull'){await selected.pull(selection,async()=>auth===active&&selected===myoEngine&&!(await otherTabsOpen()));if(auth===active){setMyoOwner(active);redrawMyo();}}
+      else{await selected.push(selection,()=>auth===active&&selected===myoEngine);if(auth===active)setMyoOwner(active);}
+      if(auth===active){myoPlan=await selected.inspect();myoAlert='';}
+    }catch(_){if(auth===active){myoAlert='Оценки миологии изменились, открыта другая вкладка или нет связи. Повторите проверку.';scheduleMyo(1500);}}
+    finally{myoBusy=false;notify();}
   }
   async function passwordSubmit(form,registration) {
     if(auth||busy)return;
@@ -421,9 +481,10 @@
         if(plan.remote.revision>0)html+='<button type="button" class="btn btn--ghost" data-sync="pull">Загрузить данные из облака</button>';
       }
       if(auth && O){html+='<div class="small muted" style="flex-basis:100%">'+(oralAlert|| (oralBusy?'Синхронизируем оценки карточек и билетов…':'Оценки карточек и билетов синхронизируются отдельно.'))+'</div>';if(oralPlan && (oralPlan.state==='conflict'||oralPlan.state==='initial') && oralAlert){html+='<button type="button" class="btn btn--ghost" data-sync="oral-push">Сохранить оценки устройства</button>';html+='<button type="button" class="btn btn--ghost" data-sync="oral-pull">Загрузить оценки из облака</button>';}}
-      actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy||oralBusy;});
+      if(auth && M){html+='<div class="small muted" style="flex-basis:100%">'+(myoAlert||(myoBusy?'Синхронизируем оценки миологии…':'Оценки миологии синхронизируются отдельно.'))+'</div>';if(myoPlan && (myoPlan.state==='conflict'||myoPlan.state==='initial') && myoAlert){html+='<button type="button" class="btn btn--ghost" data-sync="myo-push">Сохранить оценки миологии устройства</button>';if(myoPlan.remote.revision>0)html+='<button type="button" class="btn btn--ghost" data-sync="myo-pull">Загрузить оценки миологии из облака</button>';}}
+      actions.innerHTML=html;actions.querySelectorAll('button').forEach(b=>{b.disabled=busy||oralBusy||myoBusy;});
     };
-    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check'){inspect(true);inspectOral();}if(a==='oral-push')chooseOral('push');if(a==='oral-pull')chooseOral('pull');if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
+    node.addEventListener('click',e=>{const b=e.target.closest('[data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='login')login();if(a==='logout')logout();if(a==='check'){inspect(true);inspectOral();inspectMyo();}if(a==='oral-push')chooseOral('push');if(a==='oral-pull')chooseOral('pull');if(a==='myo-push')chooseMyo('push');if(a==='myo-pull')chooseMyo('pull');if(a==='push'||a==='pull')choose(a);if(a==='backup')backup();if(a==='photo-delete')deletePhoto();if(a==='leaderboard-leave')leaveLeaderboard();});
     node.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;});
     node.addEventListener('submit',e=>{if(e.target.matches('[data-leaderboard-form]')){e.preventDefault();joinLeaderboard(e.target);}else if(e.target.matches('[data-password-login], [data-password-register]')){e.preventDefault();passwordSubmit(e.target,e.target.matches('[data-password-register]'));}});
     node.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
@@ -455,11 +516,11 @@
   // Local writes trigger a debounced upload; periodic checks and focus/online
   // also pick up work completed on other devices.
   function refreshPhoto(){if(auth && Date.now()-lastPhotoCheck>=60000)loadPhoto();}
-  setInterval(()=>{if(auth && !document.hidden){schedule(0);scheduleOral(0);refreshPhoto();}},60000);
-  window.addEventListener('online',()=>{schedule(0);scheduleOral(0);});
-  window.addEventListener('focus',()=>{schedule(0);scheduleOral(0);refreshPhoto();});
-  if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden){schedule(0);scheduleOral(0);}});
-  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,changed:()=>schedule(),oralChanged:()=>scheduleOral()};
+  setInterval(()=>{if(auth && !document.hidden){schedule(0);scheduleOral(0);scheduleMyo(0);refreshPhoto();}},60000);
+  window.addEventListener('online',()=>{schedule(0);scheduleOral(0);scheduleMyo(0);});
+  window.addEventListener('focus',()=>{schedule(0);scheduleOral(0);scheduleMyo(0);refreshPhoto();});
+  if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden){schedule(0);scheduleOral(0);scheduleMyo(0);}});
+  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,changed:()=>schedule(),oralChanged:()=>scheduleOral(),myologyChanged:()=>scheduleMyo()};
   notify();
   if(auth){loadPhoto();schedule(0);}
 })();
