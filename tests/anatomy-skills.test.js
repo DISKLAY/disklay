@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..');
-function load(storage={},rng=()=>.42){const c=vm.createContext({window:{}});for(const f of ['anatomy-skills-data.js','anatomy-skills.js'])vm.runInContext(fs.readFileSync(path.join(root,'js',f),'utf8'),c);const H=c.window.AnatomySkills;const store={getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v;}};return {H,game:H.create(store,rng),store,storage};}
+function load(storage={},rng=()=>.42){const c=vm.createContext({window:{}});for(const f of ['anatomy-skills-data.js','skills-engine.js','skills-registry.js','anatomy-skills.js'])vm.runInContext(fs.readFileSync(path.join(root,'js',f),'utf8'),c);const H=c.window.AnatomySkills;const store={getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v;}};return {H,game:H.create(store,rng),store,storage};}
 test('полный список из PDF, последовательные номера и подсказки по анатомическим областям',()=>{
  const {H}=load();assert.equal(H.data.items.length,330);assert.deepEqual(Array.from(H.data.items.map(x=>x.id)),Array.from({length:330},(_,i)=>i+1));assert.equal(H.data.groups.length,12);
  for(const item of H.data.items){assert.ok(item.latin&&item.hint&&H.data.groups.some(x=>x.id===item.group));assert.ok(item.page>=1&&item.page<=9);}
@@ -23,9 +23,12 @@ test('пустой фильтр и повреждённые или недост�
  bad=H.create({getItem:()=>JSON.stringify({session:{order:[1,1],index:0}}),setItem(){}},()=>.5);assert.equal(bad.state.session,null);
 });
 test('навыки первого коллоквиума доступны через общую навигацию тренировки',()=>{
- const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'js/app.js'),'utf8');
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'js/app.js'),'utf8'),modules=fs.readFileSync(path.join(root,'js/modules.js'),'utf8');
  assert.doesNotMatch(html,/data-sidebar-route="anatomy-skills"/);
- assert.match(app,/function loadAnatomySkills/);assert.match(app,/\['anatomy-skills','Навыки · 1','#\/anatomy-skills'\]/);
+ // Раздел «Практические навыки» есть в реестре разделов каждого коллоквиума,
+ // а интерфейс загружается лениво вместе с данными предмета.
+ assert.match(app,/function loadSkills\(/);assert.match(modules,/Практические навыки/);
+ assert.match(modules,/sectionsFor/);
 });
 
 

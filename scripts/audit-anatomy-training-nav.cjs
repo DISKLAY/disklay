@@ -7,14 +7,18 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
   const p=await browser.newPage({viewport:{width,height:850}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
   await p.addInitScript(theme=>{localStorage.setItem('anatomy-colloquium-theme',theme);if(!localStorage.getItem('anatomy-oral-1-v1'))localStorage.setItem('anatomy-oral-1-v1',JSON.stringify({tickets:{1:{practical:{1:'known'}}},cards:{1:'again'}}));},theme);
   await p.emulateMedia({reducedMotion:'reduce'});await p.goto(base+'#/tests');await p.waitForSelector('.test-groups');
-  const check=async()=>{assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${width} ${theme}: overflow at ${p.url()}`);assert.equal(await p.locator('.anatomy-training-nav a').count(),8);assert.equal(await p.locator('#anatomySidebar [data-sidebar-route="tests"]').getAttribute('aria-current'),'page');};
+  const check=async()=>{assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${width} ${theme}: overflow at ${p.url()}`);assert.equal(await p.locator('.anatomy-training-nav a').count(),4);assert.equal(await p.locator('#anatomySidebar [data-sidebar-route="tests"]').getAttribute('aria-current'),'page');};
   await check();assert.equal(await p.locator('#anatomySidebar [data-sidebar-route]').count(),9);
-  for(const [label,selector] of [['Тесты','[data-topic-picker]'],['Экзамен','.exam-plan'],['Навыки · 1','.ps-builder'],['Навыки · 2','.myo-settings'],['Билеты · 1','.oral-rating'],['Карточки · 1','[data-oral="reveal"]'],['Ошибки','.page-head'],['Базы','.test-groups']]){
+  for(const [label,selector] of [['Тренировка','[data-topic-picker]'],['Экзамен','.exam-plan'],['Ошибки','.page-head'],['Базы','.test-groups']]){
    await p.getByRole('navigation',{name:'Разделы тренировки по анатомии'}).getByRole('link',{name:label,exact:true}).click();await p.waitForSelector(selector);await check();
    assert.equal(await p.getByRole('navigation',{name:'Разделы тренировки по анатомии'}).getByRole('link',{name:label,exact:true}).getAttribute('aria-current'),'page');
-   if(label==='Билеты · 1')assert.equal(await p.locator('[data-ticket-rate="practical"][data-index="1"][data-value="known"]').getAttribute('aria-pressed'),'true');
-   if(label==='Карточки · 1'){await p.locator('[data-oral="reveal"]').click();assert.equal(await p.locator('[data-card-rate="again"]').getAttribute('aria-pressed'),'true');}
+     }
+  // Навыки обоих коллоквиумов теперь один интерфейс: проверяем оба маршрута.
+  for(const [hash,title] of [['#/anatomy-skills','Практические навыки'],['#/myology?section=skills','Миология · практические навыки']]){
+   await p.goto(base+hash);await p.waitForSelector('.ps-builder');assert.match(await p.locator('.ps-head h1').innerText(),new RegExp(title));
+   assert.equal(await p.locator('.ps-filters [data-picker]').count(),4);await check();
   }
+  await p.goto(base+'#/myology?section=questions');await p.waitForSelector('[data-ps-question]');assert.equal(await p.locator('[data-ps-question]').count(),66);
   await p.goto(base+'#/anatomy-oral?section=notes');await p.waitForSelector('.oral-list');assert.equal(await p.locator('.anatomy-training-nav').count(),0);assert.equal(await p.locator('#anatomySidebar [data-sidebar-route="anatomy-oral"]').getAttribute('aria-current'),'page');
   for(const pdf of ['colloquium-1-tickets.pdf','colloquium-1-oral-theory.pdf'])assert.equal(await p.locator('.oral-materials a[href$="'+pdf+'"]').count(),1);
   // No duplicate icons in either visible subject-specific sidebar, including subject and profile.

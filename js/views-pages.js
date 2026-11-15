@@ -19,34 +19,51 @@
   });
 
   /* Портфель — обзор избранного из всех локальных баз. */
+  // Заголовок темы: у загруженной базы он в данных, у остальных — в манифесте.
+  function topicTitle(module, q) {
+    const found = (module.topics || []).find(t => t.id === q.topic);
+    if (found) return found.title;
+    const titles = ((window.MEDZO_BANK_INDEX || {})[module.id] || {}).topicTitles || {};
+    return titles[q.topic] || '';
+  }
+
   views.portfolio = function () {
+    // Показываем закладки сразу, а полные вопросы подставляем после загрузки баз.
     const groups = AT.portfolio.allFavorites();
+    const pending = groups.filter(group => group.loaded === false);
     const count = groups.reduce((n, group) => n + group.questions.length, 0);
     let html = '<div class="view view--portfolio"><div class="page-head"><h1>Портфель избранного</h1>' +
       '<p>Все отмеченные вопросы на этом устройстве, сгруппированные по базам. Варианты показаны в исходном порядке.</p></div>';
     if (!count) html += emptyState('star', 'Портфель пока пуст', 'Отметьте вопрос звёздочкой во время тренировки или в разборе.', '<a class="btn btn--primary" href="#/train">К тренировке</a>');
     else {
       html += '<p class="portfolio-total">Всего вопросов: <strong>' + count + '</strong></p>';
-      groups.forEach(({module, questions}) => {
+      for (const {module, questions} of groups) {
         const title = (module.faculty ? module.faculty + ' · ' : '') + (module.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + (module.number || module.id)) + ' · ' + module.name;
         html += '<section class="portfolio-group"><div class="section__head"><h2>' + esc(title) + '</h2><span class="badge badge--soft">' + questions.length + '</span></div>';
         if (module.id === AT.colloquium.id) html += '<p class="muted small">Текущая база · <a class="link" href="#/train?scope=favorites">Тренировать избранное по темам</a></p>';
         else html += '<button class="btn btn--sm btn--ghost" data-action="open-favorite-base" data-module="' + esc(module.id) + '">Выбрать эту базу</button>';
         html += '<div class="portfolio-list">';
         questions.forEach(({question:q, comment}) => {
-          const topic = (module.topics || []).find(t => t.id === q.topic);
-          html += '<details class="portfolio-item"><summary><span class="badge">№ ' + esc(q.num) + '</span><span class="portfolio-item__text">' + esc(q.text) + '</span>' + keyWarningBadge(q, module) + icon('chevronDown') + '</summary>' +
-            '<div class="portfolio-item__body"><p class="muted small">' + esc(topic ? topic.title : '') + '</p>' +
-            '<ol class="portfolio-options">' + q.options.map(opt => '<li>' + esc(opt) + '</li>').join('') + '</ol>' +
+          html += '<details class="portfolio-item"><summary><span class="badge">№ ' + esc(q.num) + '</span><span class="portfolio-item__text">' + esc(q.text) + '</span>' + (q.pending ? '' : keyWarningBadge(q, module)) + icon('chevronDown') + '</summary>' +
+            '<div class="portfolio-item__body"><p class="muted small">' + esc(topicTitle(module, q)) + '</p>' +
+            (q.options && q.options.length ? '<ol class="portfolio-options">' + q.options.map(opt => '<li>' + esc(opt) + '</li>').join('') + '</ol>' : '<p class="muted small">База загружается: варианты появятся через мгновение.</p>') +
             (comment ? '<div class="portfolio-comment"><strong>Личный комментарий</strong><p>' + esc(comment) + '</p></div>' : '') +
             '<button class="btn btn--sm btn--ghost" data-action="remove-favorite" data-module="' + esc(module.id) + '" data-qid="' + esc(q.id) + '">' + icon('star') + 'Убрать из избранного</button></div></details>';
         });
         html += '</div></section>';
-      });
+      }
     }
     html += '</div>';
     const mount = root => {
       const view = root.querySelector('.view--portfolio');
+      // Чужие базы подгружаем уже после отрисовки: список виден сразу,
+      // а варианты ответов и предупреждения появляются, когда файл пришёл.
+      if (pending.length && window.MedzoBanks) {
+        Promise.all(pending.map(group => window.MedzoBanks.load(group.module.id).catch(() => null)))
+          .then(loaded => {
+            if (loaded.some(Boolean) && location.hash.indexOf('#/portfolio') === 0) AT.rerender();
+          });
+      }
       view.addEventListener('click', e => {
         const el = e.target.closest('[data-action]');
         if (!el) return;
@@ -707,7 +724,7 @@
     html += '<section class="card card--pad"><h2 class="card__title">О тренажёре</h2>' +
       '<p class="muted small">' + (AT.colloquium.semester ? esc(AT.colloquium.semester) + ' семестр · ' : '') + (AT.colloquium.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id)) + ' · ' + esc(AT.colloquium.name) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + ' — ' + dataset.total + ' заданий. ' +
       (AT.colloquium.renumbered ? 'Вопросы пронумерованы по порядку; страница и исходный номер указаны в задании. ' : 'Нумерация сохранена как в PDF. ') +
-      'Приложением можно пользоваться офлайн.</p>' +
+      'Для загрузки нужен интернет: приложение не работает офлайн, но сохранённый прогресс остаётся в браузере.</p>' +
       '<p class="muted small">' + (AT.colloquium.hasBaseKey === false ? 'База «' + esc(AT.colloquium.source) + '» предоставлена без ключа ответов. До его добавления используется самооценка.' : 'Ключ ответов взят из «' + esc(AT.colloquium.source) + '» — варианты, отмеченные в PDF ' + (AT.colloquium.keyMark === 'галочками' ? 'галочками' : 'подсветкой') + '. Спорные ответы можно поправить на странице «Ключ»: приоритет всегда у вашей правки.') + '</p>' +
       '</section></div>';
 
