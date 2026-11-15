@@ -3,6 +3,9 @@
   'use strict';
   const AT = window.AT;
   const BANKS = window.COLLOQUIUM_IDS || [AT.colloquium.id];
+  // Темы каждой базы нужны для тематических достижений. Они есть в манифесте
+  // (js/data/bank-index.js), поэтому чужие базы не приходится загружать целиком.
+  const bankIndex = () => window.MEDZO_BANK_INDEX || {};
   // Возврат за оставшиеся старые усиления по последним ценам магазина.
   const LEGACY_BOOST_PRICES = { 'hint-train': 160, 'hint-exam': 480, 'double-train': 320, 'double-exam': 800 };
   const ACHIEVEMENTS = [
@@ -154,15 +157,21 @@
   }
   function snapshots() { return BANKS.map(id => ({ id, state: bankState(id) })); }
   function metrics(states) {
+    const index = bankIndex();
     const counts = { explored: 0, mastered: 0, sessions: 0, verified: 0, rating: 0, perfectExam: 0, completeBank: 0, muscles: 0, bones: 0, joints: 0, organs: 0, nervous: 0 };
     const modules = window.COLLOQUIUM_MODULES || { [AT.colloquium.id]: { questions: AT.dataset.questions } };
     states.forEach(({ id, state }) => {
-      const game = state.game || {}, questions = modules[id] && modules[id].questions || [];
-      const progress = state.progress || {};
+      const loaded = modules[id] && modules[id].questions;
+      const game = state.game || {}, progress = state.progress || {};
       const categories = DISCIPLINES[id] || {};
+      const total = loaded ? loaded.length : ((index[id] || {}).questions || 0);
+      // Для незагруженной базы берём темы из манифеста: id вопроса совпадает с номером.
+      const questions = loaded || Object.entries(progress).map(([qid, p]) => ({
+        id: qid, num: qid.replace(/^q/, ''), topic: topicFromIndex(id, qid), progress: p,
+      }));
       let bankMastered = 0;
       questions.forEach(q => {
-        const p = progress[q.id];
+        const p = q.progress || progress[q.id];
         if (!p) return;
         if (p.attempts > 0) counts.explored++;
         if (!(p.streak >= 2)) return;
@@ -171,7 +180,7 @@
           if (topics === 'all' || topics.includes(q.topic)) counts[metric]++;
         });
       });
-      if (questions.length && bankMastered === questions.length) counts.completeBank = 1;
+      if (total && bankMastered === total) counts.completeBank = 1;
       const sessions = Array.isArray(state.sessions) ? state.sessions : [];
       counts.sessions += sessions.length;
       if (sessions.some(s => s && s.mode === 'exam' && s.total === 20 && s.correct === 20 && s.assisted === false)) counts.perfectExam = 1;
@@ -180,6 +189,16 @@
     });
     counts.stylesOwned = Object.keys(APPEARANCES).filter(id => APPEARANCES[id].price > 0 && !!shared.appearances[id]).length;
     return counts;
+  }
+  // Для незагруженной базы тема берётся из манифеста по номеру вопроса.
+  function topicFromIndex(id, qid) {
+    const map = (window.MEDZO_BANK_QUESTIONS || {})[id];
+    if (!map || !map.topics) return '';
+    const num = String(qid).replace(/^q/, '');
+    for (const [topic, nums] of Object.entries(map.topics)) {
+      if (nums.some((n) => String(n) === num)) return topic;
+    }
+    return '';
   }
   function achievementGoal(a) { return a.goal === 'all-appearances' ? Object.keys(APPEARANCES).filter(id => APPEARANCES[id].price > 0).length : a.goal; }
   function syncAchievements() {

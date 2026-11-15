@@ -116,9 +116,13 @@
   const examPlan = {
     minutes: window.EXAM_MINUTES || 20,
     total: 0,
+    // Пул раздела собирается при обращении: база могла догрузиться позже.
     sections: RAW_EXAM_SECTIONS.map((sec) => {
-      const questions = examPoolFor(sec);
-      return { id: sec.id, title: sec.title, questions, count: sec.count };
+      let pool = null;
+      return {
+        id: sec.id, title: sec.title, count: sec.count,
+        get questions() { if (!pool) pool = examPoolFor(sec); return pool; },
+      };
     }),
   };
   examPlan.total = examPlan.sections.reduce((s, sec) => s + sec.count, 0);
@@ -213,8 +217,9 @@
 
   /* -------------------------------------------------------------- key logic */
 
-  const baseKey = window.ANSWER_KEY || {};
-  const baseMeta = window.ANSWER_KEY_META || {};
+  // Ключ базы читается при каждом обращении: база может догрузиться позже (см. js/bank-loader.js).
+  const baseKey = () => window.ANSWER_KEY || {};
+  const baseMeta = () => window.ANSWER_KEY_META || {};
 
   function normalizeAnswers(raw, optCount) {
     if (raw == null) return [];
@@ -241,8 +246,8 @@
       if (Object.prototype.hasOwnProperty.call(state.key, num)) {
         raw = state.key[num];
         source = 'local';
-      } else if (Object.prototype.hasOwnProperty.call(baseKey, num)) {
-        raw = baseKey[num];
+      } else if (Object.prototype.hasOwnProperty.call(baseKey(), num)) {
+        raw = baseKey()[num];
         source = 'base';
       }
       if (raw == null) return null;
@@ -647,28 +652,60 @@
   };
 
   // Портфель объединяет закладки, но сами данные остаются в своих базах.
+  function savedBank(id) {
+    try { return id === COLLOQUIUM.id ? state : JSON.parse(localStorage.getItem(id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id) || '{}'); }
+    catch (e) { return null; }
+  }
+  function bankModules() {
+    return window.COLLOQUIUM_MODULES || { [COLLOQUIUM.id]: COLLOQUIUM };
+  }
+  /** Какие базы вообще имеют избранное — по сохранениям, без загрузки данных. */
+  function banksWithFavorites() {
+    const modules = bankModules();
+    return Object.keys(modules).filter((id) => {
+      const saved = savedBank(id);
+      return saved && saved.favorites && typeof saved.favorites === 'object' && Object.keys(saved.favorites).length > 0;
+    });
+  }
+  // Номер и тема вопроса из манифеста — для базы, которая ещё не загружена.
+  function manifestQuestion(id, qid) {
+    const map = (window.MEDZO_BANK_QUESTIONS || {})[id];
+    const num = String(qid).replace(/^q/, '');
+    const topic = map && map.topics
+      ? Object.keys(map.topics).find((key) => map.topics[key].some((n) => String(n) === num)) || ''
+      : '';
+    return { id: qid, num: num, topic: topic, options: [], text: 'Вопрос из базы «' + ((bankModules()[id] || {}).name || id) + '»', pending: true };
+  }
   const portfolio = {
+    banksWithFavorites,
+    /** Избранное по базам. Чужие базы читаются из манифеста, пока не загружены. */
     allFavorites() {
-      const modules = window.COLLOQUIUM_MODULES || { [COLLOQUIUM.id]: COLLOQUIUM };
+      const modules = bankModules();
       const groups = [];
       Object.keys(modules).forEach(id => {
         const module = modules[id];
-        let saved;
-        try { saved = id === COLLOQUIUM.id ? state : JSON.parse(localStorage.getItem(id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id) || '{}'); }
-        catch (e) { return; }
+        const saved = savedBank(id);
         if (!saved || !saved.favorites || typeof saved.favorites !== 'object') return;
-        const questions = (module.questions || []).filter(q => saved.favorites[q.id]).map(q => ({
-          question: q,
-          comment: saved.comments && typeof saved.comments[q.id] === 'string' ? saved.comments[q.id] : '',
-        }));
-        if (questions.length) groups.push({ module, questions });
+        const loaded = module.questions;
+        const favoriteIds = Object.keys(saved.favorites);
+        const questions = loaded
+          ? loaded.filter(q => saved.favorites[q.id]).map(q => ({
+              question: q,
+              comment: saved.comments && typeof saved.comments[q.id] === 'string' ? saved.comments[q.id] : '',
+            }))
+          : favoriteIds.map(qid => ({
+              question: manifestQuestion(id, qid),
+              comment: saved.comments && typeof saved.comments[qid] === 'string' ? saved.comments[qid] : '',
+            }));
+        if (questions.length) groups.push({ module, questions, loaded: !!loaded });
       });
       return groups;
     },
     removeFavorite(id, qid) {
-      const modules = window.COLLOQUIUM_MODULES || { [COLLOQUIUM.id]: COLLOQUIUM };
-      const module = modules[id];
-      if (!module || !(module.questions || []).some(q => q.id === qid)) return false;
+      const module = bankModules()[id];
+      if (!module) return false;
+      const loaded = module.questions;
+      if (loaded ? !loaded.some(q => q.id === qid) : !/^q\d/.test(String(qid))) return false;
       if (id === COLLOQUIUM.id) return !annotations.isFavorite(qid) || annotations.toggleFavorite(qid);
       const key = id === '1' ? 'anatomy-colloquium-v1' : 'anatomy-colloquium-v1-' + id;
       try {

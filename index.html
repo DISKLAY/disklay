@@ -138,20 +138,15 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="js/telegram-boot.js?v=1"></script>
-  <script src="js/data/questions.js"></script>
-  <script src="js/data/answers.js?v=20261102-original1"></script>
-  <script src="js/data/exam.js"></script>
-  <script src="js/data/colloquium-2.js"></script>
-  <script src="js/data/colloquium-3.js"></script>
-  <script src="js/data/colloquium-4.js"></script>
-  <script src="js/data/colloquium-5.js?v=20261031-est1"></script>
-  <script src="js/data/colloquium-6.js?v=20261031-pns1"></script>
-  <script src="js/data/colloquium-7.js?v=20261031-sss1"></script>
-  <script src="js/data/credit-1.js?v=20261102-original1"></script>
-  <script src="js/data/credit-2.js"></script>
-  <script src="js/data/dental-2.js"></script>
-  <script src="js/data/dental-3.js"></script>
-  <script src="js/modules.js?v=20261102-keynotes1"></script>
+  <!-- Базы вопросов грузятся лениво: на старте — только манифест, номера и активная база.
+       Выбор базы восстанавливает загрузчик (js/bank-loader.js), поэтому остальные
+       банки подключаются по требованию, а не при каждом открытии страницы. -->
+  <script src="js/data/bank-index.js?v=20261115-lazy1"></script>
+  <script src="js/data/bank-questions.js?v=20261115-lazy1"></script>
+  <script src="js/data/exam.js?v=20261115-lazy1"></script>
+  <script src="js/bank-loader.js?v=20261115-lazy1"></script>
+  <script src="js/active-bank.js?v=20261115-lazy1"></script>
+  <script src="js/modules.js?v=20261115-lazy1"></script>
   <script src="js/core.js?v=20261107-autosync1"></script>
   <script src="js/game.js?v=20261107-special1500"></script>
   <script src="js/ui.js?v=20261107-training-nav1"></script>

@@ -155,13 +155,22 @@
       statCard('Тренировок', AT.getState().sessions.length, AT.getState().sessions.length ? 'в истории' : 'пока нет', 'stats') +
       '</div>';
 
+    // Режимы строятся по разделам выбранного коллоквиума: если у него появятся
+    // теория и практические навыки, они окажутся здесь без правок этого экрана.
+    const sectionLinks = (AT.colloquium.sections || [])
+      .filter((section) => !['mistakes', 'tests', 'train'].includes(section.key))
+      .map((section) => modeCard(section.label,
+        section.key === 'skills' ? 'Перевод терминов и самопроверка'
+          : section.key === 'questions' ? 'Теория и вопросы'
+          : section.key === 'minutes' ? 'Конспект и исходные материалы' : 'Вопросы и разбор ошибок',
+        section.key === 'skills' ? 'anatomy' : 'book', section.href,
+        section.key === 'train' ? 'primary' : 'violet'));
     html +=
       '<section class="section">' +
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
-      modeCard('Тренировка', 'Тесты, экзамен, навыки, билеты и ошибки', 'train', '#/tests', 'primary') +
-      modeCard('Теория · 1 коллоквиум', 'Конспект и исходные материалы', 'book', '#/anatomy-oral?section=notes', 'violet') +
-      modeCard('Миология · 2 коллоквиум', 'Практические навыки и вопросы', 'anatomy', '#/myology?section=questions', 'violet') +
+      modeCard('Тренировка', 'Тесты, экзамен и ошибки', 'train', '#/tests', 'primary') +
+      sectionLinks.join('') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       modeCard('Портфель избранного', 'Отмеченные вопросы из всех баз', 'star', '#/portfolio', 'primary') +
       '</div></section>';
@@ -320,7 +329,9 @@
       '<details class="test-group"'+(group.contains(select.selectedOptions[0])?' open':'')+'><summary><span class="test-group__number" aria-hidden="true">'+utils.pad(index+1)+'</span><span class="test-group__heading"><strong>'+esc(group.label)+'</strong><small>'+group.children.length+' '+utils.plural(group.children.length,'раздел','раздела','разделов')+'</small></span><span class="test-group__chevron" aria-hidden="true">⌄</span></summary><div class="test-group__items">'+Array.from(group.children).map(option => {
         const module=window.COLLOQUIUM_MODULES && window.COLLOQUIUM_MODULES[option.value];
         const credit=option.value.startsWith('credit-'),parts=option.textContent.replace(/^Стом\s*·\s*/,'').split(' · ');
-        const label=credit?'Зачёт':'Коллоквиум '+parts[0],title=parts.slice(1).join(' · '),total=module&&module.questions?module.questions.length:0;
+        // Размер чужой базы берём из манифеста: сама база грузится только по выбору.
+        const meta=(window.MEDZO_BANK_INDEX||{})[option.value];
+        const label=credit?'Зачёт':'Коллоквиум '+parts[0],title=parts.slice(1).join(' · '),total=module&&module.questions?module.questions.length:(meta?meta.questions:0);
         return '<button type="button" class="test-base'+(option.value===select.value?' is-current':'')+(credit?' test-base--credit':'')+'" data-test-base="'+esc(option.value)+'"><span class="test-base__badge" aria-hidden="true">'+(credit?'✓':esc(parts[0]))+'</span><span class="test-base__text"><span class="test-base__label">'+esc(label)+'</span><strong>'+esc(title)+'</strong>'+(total?'<small>'+total+' '+utils.plural(total,'вопрос','вопроса','вопросов')+'</small>':'')+'</span><span class="test-base__arrow" aria-hidden="true">→</span></button>';
       }).join('')+'</div></details>'
     ).join('')+'</div></div>';
@@ -364,6 +375,19 @@
   /* -------------------------------------------------------- настройка: экзамен */
 
   views.examSetup = function () {
+    // Пул экзамена считается по вопросам, поэтому база должна быть загружена.
+    // Экзамен есть только в первой базе — она грузится сразу; ветка нужна на случай сбоя.
+    if (AT.colloquium.examAvailable && AT.dataset.total === 0 && window.MedzoBanks) {
+      return {
+        title: 'Экзамен',
+        html: '<div class="view"><div class="card card--pad"><h1>Экзамен</h1><p>Загружаем вопросы базы…</p></div></div>',
+        mount() {
+          window.MedzoBanks.load(AT.colloquium.id)
+            .then(() => { if (location.hash.indexOf('#/exam') === 0) location.reload(); })
+            .catch(() => toast('Не удалось загрузить базу вопросов', 'warn'));
+        },
+      };
+    }
     if (!AT.colloquium.examAvailable) {
       const credit = AT.colloquium.kind === 'credit';
       const title = credit ? 'Пробный зачёт' : 'Экзамен';

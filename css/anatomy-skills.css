@@ -107,3 +107,15 @@
     .ps-section__train { margin:0 0 3px 27px; min-width:0; max-width:calc(100% - 27px); white-space:normal; }
   }
 }
+
+/* --- Коллоквиум 2: вкладки предмета, вопросы и источники (тот же каркас ps-*).
+   Отдельного оформления у миологии больше нет: интерфейс навыков общий. --- */
+.ps-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
+.ps-tabs a { min-height:44px; display:inline-flex; align-items:center; padding:9px 13px; border:1px solid var(--border); border-radius:12px; background:var(--surface); color:var(--text-2); font-weight:700; font-size:.88rem; }
+.ps-tabs a:hover { background:var(--surface-3); color:var(--text); }
+.ps-tabs a[aria-current] { color:var(--primary); border-color:var(--primary-border); background:var(--primary-soft); }
+.ps-warning { margin:14px 0; padding:10px 14px; border:1px solid var(--warn-border); border-radius:10px; background:var(--warn-soft); color:var(--text-2); font-size:.86rem; line-height:1.55; }
+.ps-view .ps-section summary.ps-section__head { min-height:44px; display:flex; align-items:center; cursor:pointer; list-style:none; }
+.ps-view .ps-section summary::-webkit-details-marker { display:none; }
+.ps-view .ps-section summary .ps-section__title { display:flex; flex-direction:column; gap:3px; font-weight:700; line-height:1.45; }
+.ps-view .ps-section img { display:block; width:min(100%,750px); height:auto; margin:12px auto; border:1px solid var(--border); border-radius:8px; }
