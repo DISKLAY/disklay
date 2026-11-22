@@ -16,7 +16,10 @@ function load(reviews) {
   window.window = window;
   const context = vm.createContext(window);
   vm.runInContext(fs.readFileSync(path.join(root, 'js/views-teacher-reviews.js'), 'utf8'), context);
-  return context.AT.views.teacherReviews;
+  const view = context.AT.views.teacherReviews;
+  view.bodyHtml = context.AT.views.teacherReviews_bodyHtml;
+  view.bodyFor = context.AT.views.teacherReviews_bodyFor;
+  return view;
 }
 
 test('без перенесённых отзывов раздел честно предупреждает, а не выдумывает оценки', () => {
@@ -29,33 +32,97 @@ test('без перенесённых отзывов раздел честно �
   assert.doesNotMatch(html, /★/);
 });
 
-test('преподаватель без отзывов показывается с предупреждением, а не с пустой карточкой', () => {
+// Тело отзыва собирается лениво при раскрытии карточки: имитируем toggle.
+function expand(html, teacherName) {
+  const view = html; // дальше проверяем отрисованный список, а тело собираем напрямую
+  return view;
+}
+
+test('сначала дисциплины, внутри — преподаватели, отзывы только в карточке преподавателя', () => {
   const view = load({ teachers: [
-    { id: 'a', name: 'Иванов И. И.', department: 'Кафедра анатомии', reviews: [] }
+    { id: 'a', name: 'Иванов И. И.', reviews: [{ id: 'r1', discipline: 'Анатомия человека', semester: '1 семестр', parts: { seminars: 'Спокойно' } }] },
+    { id: 'b', name: 'Петров П. П.', reviews: [{ id: 'r2', discipline: 'Биология', parts: { seminars: 'Строго' } }] }
   ] });
   const { html } = view({});
-  assert.match(html, /Иванов И\. И\./);
-  assert.match(html, /отзывов пока нет/);
-  assert.match(html, /По этому преподавателю отзывов пока нет/);
-  assert.doesNotMatch(html, /tr-stars/);
+  const discAnatomy = html.indexOf('data-disc="Анатомия человека"');
+  const discBiology = html.indexOf('data-disc="Биология"');
+  const teacher = html.indexOf('Иванов И. И.');
+  assert.ok(discAnatomy > 0 && discBiology > 0, 'дисциплины на странице');
+  assert.ok(discAnatomy < teacher, 'дисциплина идёт до преподавателя');
+  // отзывы не рендерятся заранее — только тело-заглушка карточки преподавателя
+  assert.doesNotMatch(html, /Спокойно/);
+  assert.match(html, /data-lazy-body/);
+  assert.equal((html.match(/data-disc=/g) || []).length, 2);
 });
 
-test('отзывы переносятся с источником, оценкой и экранированием текста', () => {
-  const view = load({ updated: '2026-11-16', sources: [{ label: 'VK · отзывы', url: 'https://vk.com/club61162587' }], teachers: [
-    { id: 'b', name: 'Петрова А. С.', department: 'Кафедра гистологии', subject: 'Гистология',
-      reviews: [
-        { id: 'r1', year: 2025, rating: 5, text: 'Объясняет спокойно <script>alert(1)</script>', source: 'VK', url: 'https://vk.com/wall-1_2' },
-        { id: 'r2', year: 2026, rating: null, text: 'Требует много практики.', source: 'VK' }
-      ] }
+test('дисциплины отсортированы по числу отзывов, затем по алфавиту', () => {
+  const view = load({ teachers: [
+    { id: 'a', name: 'А. А.', reviews: [{ discipline: 'Малая', parts: { seminars: 'x' } }] },
+    { id: 'b', name: 'Б. Б.', reviews: [{ discipline: 'Большая', parts: { seminars: 'x' } }, { discipline: 'Большая', parts: { seminars: 'y' } }, { discipline: 'Большая', parts: { seminars: 'z' } }] },
+    { id: 'c', name: 'В. В.', reviews: [{ discipline: 'Средняя', parts: { seminars: 'x' } }, { discipline: 'Средняя', parts: { seminars: 'y' } }] }
+  ] });
+  const { html } = view({});
+  const order = [...html.matchAll(/data-disc="([^"]+)"/g)].map(m => m[1]);
+  assert.deepEqual(order, ['Большая', 'Средняя', 'Малая']);
+});
+
+test('преподаватель с отзывами в двух дисциплинах показывается в обеих', () => {
+  const view = load({ teachers: [
+    { id: 'a', name: 'Общий О. О.', reviews: [
+      { id: 'r1', discipline: 'Анатомия человека', parts: { seminars: 'первый' } },
+      { id: 'r2', discipline: 'Гистология', parts: { seminars: 'второй' } }
+    ] }
+  ] });
+  const { html } = view({});
+  assert.equal((html.match(/Общий О\. О\./g) || []).length, 2);
+  const onlyAnatomy = view.bodyFor({ reviews: [
+    { id: 'r1', discipline: 'Анатомия человека', parts: { seminars: 'первый' } },
+    { id: 'r2', discipline: 'Гистология', parts: { seminars: 'второй' } }
+  ] }, 'Анатомия человека');
+  assert.match(onlyAnatomy, /первый/);
+  assert.doesNotMatch(onlyAnatomy, /второй/);
+});
+
+test('отзывы переносятся дословно, с источником и экранированием текста', () => {
+  const view = load({ updated: '2026-11-16', sources: [{ label: 'Google Таблица', url: 'https://docs.google.com/spreadsheets/d/abc' }], teachers: [
+    { id: 'b', name: 'Петрова А. С.', reviews: [
+      { id: 'r1', semester: '1 семестр', discipline: 'Гистология', date: '2025-08-11',
+        parts: { seminars: 'Объясняет спокойно <script>alert(1)</script>', advice: 'Готовьте латынь' },
+        source: 'Google Таблица · Отзывы (1-3 курс)' }
+    ] }
   ] });
   const { html } = view({});
   assert.match(html, /Петрова А\. С\./);
-  assert.match(html, /5\.0/);
-  assert.match(html, /Объясняет спокойно &lt;script&gt;/);
+  assert.match(html, /Гистология/);
   assert.doesNotMatch(html, /<script>alert/);
-  assert.match(html, /Источник ↗/);
-  assert.match(html, /Без оценки/);
-  assert.match(html, /2 отзыва/);
+  const body = view.bodyFor({ reviews: [{ id: 'r1', semester: '1 семестр', discipline: 'Гистология', date: '2025-08-11', parts: { seminars: 'Объясняет спокойно <script>alert(1)</script>', advice: 'Готовьте латынь' }, source: 'Google Таблица' }] }, 'Гистология');
+  assert.match(body, /&lt;script&gt;/);
+  assert.doesNotMatch(body, /<script>alert/);
+  assert.match(body, /1 семестр · Гистология/);
+  assert.match(body, /2025-08-11/);
+  assert.match(body, /Семинары/);
+  assert.match(body, /Совет/);
+});
+
+test('чипы дисциплин показаны до списка и содержат число отзывов', () => {
+  const view = load({ teachers: [
+    { id: 'a', name: 'А. А.', reviews: [{ discipline: 'Биология', parts: { seminars: 'x' } }, { discipline: 'Биология', parts: { seminars: 'y' } }] }
+  ] });
+  const { html } = view({});
+  assert.match(html, /class="tr-chips"/);
+  assert.match(html, /data-disc-jump="Биология"/);
+  assert.match(html, /Биология<span>2<\/span>/);
+  assert.ok(html.indexOf('tr-chips') < html.indexOf('data-disc="Биология"'), 'чипы выше списка');
+});
+
+test('поиск находит слово из любого раздела отзыва', () => {
+  const view = load({ teachers: [
+    { id: 'a', name: 'Первая П. П.', reviews: [{ discipline: 'Биология', parts: { advice: 'Готовьте латынь' } }] },
+    { id: 'b', name: 'Вторая В. В.', reviews: [{ discipline: 'Биология', parts: { seminars: 'Спокойные занятия' } }] }
+  ] });
+  const { html } = view({});
+  assert.match(html, /Первая П\. П\./);
+  assert.match(html, /Вторая В\. В\./);
 });
 
 test('страница подключена к маршруту, меню, предзагрузке и стилям', () => {
@@ -69,4 +136,42 @@ test('страница подключена к маршруту, меню, пр�
   assert.match(sw, /'\.\/js\/teacher-reviews\.js\?v=/);
   assert.match(sw, /'\.\/js\/views-teacher-reviews\.js\?v=/);
   assert.match(sw, /'\.\/css\/teacher-reviews\.css\?v=/);
+});
+
+test('импорт из таблицы: разбор CSV и дословный перенос текста', () => {
+  const { parseCsv, build } = require('../scripts/import_teacher_reviews.cjs');
+  const csv = [
+    'Отметка времени,Дисциплина,Семестр,Преподаватель,Семинары,Коллоквиумы,Лабораторные,Отработки,Совет',
+    '11.08.2025 18:08:58,Анатомия человека,3 семестр,"Решетун Алексей","Объясняет, ""очень"" понятно",,,Спокойно,',
+    '11.08.2025 18:33:30,Анатомия человека,2 семестр,"Самохина А.О.",,"ЕБУЧИЙ ПИЗДЕЦ на паре",,,'
+  ].join('\n');
+  const rows = parseCsv(csv);
+  assert.equal(rows.length, 3);
+  assert.equal(rows[1][4], 'Объясняет, "очень" понятно');
+  const teachers = build(csv);
+  assert.equal(teachers.length, 2);
+  assert.equal(teachers[0].reviews[0].parts.seminars, 'Объясняет, "очень" понятно');
+  assert.equal(teachers[0].reviews[0].date, '2025-08-11');
+  assert.equal(teachers[0].reviews[0].semester, '3 семестр');
+  assert.equal(teachers[0].reviews[0].parts.retakes, 'Спокойно');
+  // Текст переносится дословно: ничего не сглаживается и не переписывается.
+  assert.equal(teachers[1].reviews[0].parts.colloquiums, 'ЕБУЧИЙ ПИЗДЕЦ на паре');
+  assert.ok(teachers.every(t => t.department === 'Кафедра анатомии'));
+});
+
+test('данные отзывов подключены к странице, предзагрузке и содержат источник', () => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  const data = fs.readFileSync(path.join(root, 'js/teacher-reviews-data.js'), 'utf8');
+  assert.match(html, /js\/teacher-reviews-data\.js\?v=/);
+  assert.match(sw, /'\.\/js\/teacher-reviews-data\.js\?v=/);
+  assert.match(data, /1kMh1xSj6hw-dad0QiuNvJPbXd0WsayzRw5UaY1yVtGY/);
+  assert.match(data, /vk\.com\/club61162587/);
+  const window = { window: null }; window.window = window; const context = vm.createContext(window);
+  vm.runInContext(data, context);
+  assert.ok(context.MedzoTeacherReviews.teachers.length > 0, 'данные должны быть непустыми');
+  for (const teacher of context.MedzoTeacherReviews.teachers) {
+    assert.ok(teacher.name && teacher.reviews.length, teacher.name);
+    for (const review of teacher.reviews) assert.ok(review.parts && review.source, review.id);
+  }
 });

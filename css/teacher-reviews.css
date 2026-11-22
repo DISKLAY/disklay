@@ -49,3 +49,41 @@
   .tr-teacher__head { align-items: flex-start; }
   .tr-teacher__meta { font-size: .76rem; }
 }
+
+/* Разделы отзыва из анкеты: подпись сверху, текст под ней. */
+.tr-review__parts { display: grid; gap: 10px; margin: 0; }
+.tr-review__parts > div { display: grid; gap: 3px; }
+.tr-review__parts dt { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.tr-review__parts dd { margin: 0; color: var(--text-2); line-height: 1.6; }
+.tr-review__date { color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .tr-review__parts dd { font-size: .88rem; }
+  .tr-review__head { flex-wrap: wrap; gap: 6px; }
+}
+
+/* Дисциплина → преподаватель → отзывы: три уровня вложенности. */
+.tr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+.tr-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); font: inherit; font-size: .82rem; font-weight: 650; cursor: pointer; }
+.tr-chip:hover { border-color: var(--primary); color: var(--primary); }
+.tr-chip > span { padding: 1px 6px; border-radius: 999px; background: var(--surface-3); color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; }
+.tr-count { margin: 0 0 12px; color: var(--muted); font-size: .82rem; }
+.tr-list { display: grid; gap: 10px; }
+.tr-disc { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; }
+.tr-disc__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.tr-disc__head::-webkit-details-marker { display: none; }
+.tr-disc__head::after { content: '⌄'; color: var(--muted); font-size: 1.1rem; line-height: 1; }
+.tr-disc[open] > .tr-disc__head::after { transform: rotate(180deg); }
+.tr-disc__name { min-width: 0; font-size: 1rem; font-weight: 750; overflow-wrap: anywhere; }
+.tr-disc__meta { flex: none; color: var(--muted); font-size: .76rem; }
+.tr-disc__body { padding: 0 12px 12px; }
+.tr-disc__teachers { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.tr-disc__teachers > li { min-width: 0; }
+.tr-disc .tr-teacher { border-radius: 12px; box-shadow: none; background: var(--surface-2); }
+.tr-disc .tr-teacher__head { padding: 11px 13px; }
+.tr-disc .tr-teacher__body { padding: 0 13px 12px; }
+.tr-disc .tr-review { background: var(--surface); }
+@media (max-width: 640px) {
+  .tr-disc__head { flex-wrap: wrap; gap: 4px; }
+  .tr-disc__meta { width: 100%; }
+  .tr-chip { min-height: 34px; font-size: .78rem; }
+}
