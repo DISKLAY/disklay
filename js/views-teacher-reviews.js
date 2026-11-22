@@ -93,8 +93,8 @@
   function bySurname(a, b) {
     return surnameOf(a).localeCompare(surnameOf(b), 'ru') || String(a).localeCompare(String(b), 'ru');
   }
-  // Дисциплина → преподаватель → отзывы. Дисциплины отсортированы по числу
-  // отзывов (сначала самые наполненные), внутри — по фамилии в алфавитном порядке.
+  // Дисциплина → преподаватель → отзывы. Дисциплины и преподаватели внутри
+  // них идут в алфавитном порядке.
   function disciplinesOf(teachers) {
     const map = new Map();
     for (const teacher of teachers) for (const review of teacher.reviews || []) {
@@ -111,7 +111,7 @@
         .map(x => Object.assign({}, x, { semesters: [...x.semesters] }))
         .sort((a, b) => bySurname(a.teacher.name, b.teacher.name)),
       reviews: [...group.teachers.values()].reduce((n, x) => n + ((x.teacher.reviews || []).filter(r => (r.discipline || 'Без дисциплины') === group.name).length), 0)
-    })).sort((a, b) => b.reviews - a.reviews || a.name.localeCompare(b.name, 'ru'));
+    })).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   }
   // Отзывы именно по выбранной дисциплине: у преподавателя их может быть
   // несколько в разных дисциплинах, чужие в карточке не показываем.
@@ -172,12 +172,7 @@
       '<div><strong>' + teachers.length + '</strong><span>' + plural(teachers.length, 'преподаватель', 'преподавателя', 'преподавателей') + '</span></div>' +
       '<div><strong>' + totalReviews + '</strong><span>' + plural(totalReviews, 'отзыв', 'отзыва', 'отзывов') + '</span></div></div>';
 
-    // Быстрый доступ: чипы дисциплин, чтобы не разворачивать список целиком.
-    html += '<nav class="tr-chips" aria-label="Дисциплины">' +
-      groups.map(g => '<button type="button" class="tr-chip" data-disc-jump="' + esc(g.name) + '">' + esc(g.name) +
-        '<span>' + g.reviews + '</span></button>').join('') + '</nav>';
-
-    html += '<label class="tr-search"><span>Или найдите сразу преподавателя или слово в отзыве</span>' +
+    html += '<label class="tr-search"><span>Найдите преподавателя или слово в отзыве</span>' +
       '<input type="search" data-tr-search value="' + esc(state.search) + '" placeholder="Фамилия или текст отзыва"></label>';
 
     html += '<p class="tr-count" data-tr-count aria-live="polite"></p>';
@@ -243,15 +238,6 @@
         if (!event.target.matches('[data-tr-search]')) return;
         state.search = event.target.value;
         apply();
-      });
-      view.addEventListener('click', event => {
-        const chip = event.target.closest('[data-disc-jump]');
-        if (!chip) return;
-        const card = view.querySelector('[data-disc="' + CSS.escape(chip.dataset.discJump) + '"]');
-        if (!card) return;
-        event.preventDefault();
-        card.open = true;
-        card.scrollIntoView({ block: 'start', behavior: 'smooth' });
       });
     }};
   };
