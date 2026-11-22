@@ -30,11 +30,16 @@ test('в верхней строке только основные раздел�
   for (const name of ['dashboard', 'tests', 'portfolio']) {
     assert.match(nav, new RegExp(`data-route="${name}"`));
   }
-  for (const name of ['stats', 'rewards', 'key', 'settings']) {
+  for (const name of ['stats', 'rewards', 'key']) {
     assert.doesNotMatch(nav, new RegExp(`data-route="${name}"`));
     assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
   }
   assert.doesNotMatch(sidebar, /data-sidebar-route="(?:exam|mistakes|anatomy-skills)"/);
+  // Настройки и профиль живут в верхней строке, боковое меню ими не дублируется.
+  for (const name of ['settings', 'profile']) {
+    assert.doesNotMatch(html, new RegExp(`data-sidebar-route="${name}"`));
+    assert.match(html, new RegExp(`(?:href|id)="[^"]*${name}`));
+  }
   assert.match(sidebar, /data-sidebar-route="theory"/, 'теория — отдельный раздел меню');
   assert.doesNotMatch(html, /id="coursePicker"|class="course-more"|>Учёба<|>Мой прогресс</);
   assert.match(html, /class="icon-btn topbar-settings" href="#\/settings"/);

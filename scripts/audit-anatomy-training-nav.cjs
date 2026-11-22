@@ -8,7 +8,7 @@ const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:8001/';
   await p.addInitScript(theme=>{localStorage.setItem('anatomy-colloquium-theme',theme);if(!localStorage.getItem('anatomy-oral-1-v1'))localStorage.setItem('anatomy-oral-1-v1',JSON.stringify({tickets:{1:{practical:{1:'known'}}},cards:{1:'again'}}));},theme);
   await p.emulateMedia({reducedMotion:'reduce'});await p.goto(base+'#/tests');await p.waitForSelector('.test-groups');
   const check=async()=>{assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${width} ${theme}: overflow at ${p.url()}`);assert.equal(await p.locator('.anatomy-training-nav a').count(),8);assert.equal(await p.locator('#anatomySidebar [data-sidebar-route="tests"]').getAttribute('aria-current'),'page');};
-  await check();assert.equal(await p.locator('#anatomySidebar [data-sidebar-route]').count(),9);
+  await check();assert.equal(await p.locator('#anatomySidebar [data-sidebar-route]').count(),8);
   for(const [label,selector] of [['Тесты','[data-topic-picker]'],['Экзамен','.exam-plan'],['Навыки · 1','.ps-builder'],['Навыки · 2','.myo-settings'],['Билеты · 1','.oral-rating'],['Карточки · 1','[data-oral="reveal"]'],['Ошибки','.page-head'],['Базы','.test-groups']]){
    await p.getByRole('navigation',{name:'Разделы тренировки по анатомии'}).getByRole('link',{name:label,exact:true}).click();await p.waitForSelector(selector);await check();
    assert.equal(await p.getByRole('navigation',{name:'Разделы тренировки по анатомии'}).getByRole('link',{name:label,exact:true}).getAttribute('aria-current'),'page');
