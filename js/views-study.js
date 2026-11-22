@@ -160,8 +160,8 @@
       '<div class="section__head"><h2>Режимы</h2></div>' +
       '<div class="mode-grid">' +
       modeCard('Тренировка', 'Тесты, экзамен, навыки, билеты и ошибки', 'train', '#/tests', 'primary') +
-      modeCard('Теория · 1 коллоквиум', 'Конспект и исходные материалы', 'book', '#/anatomy-oral?section=notes', 'violet') +
-      modeCard('Миология · 2 коллоквиум', 'Практические навыки и вопросы', 'anatomy', '#/myology?section=questions', 'violet') +
+      modeCard('Теория', 'Конспекты обоих коллоквиумов', 'book', '#/theory', 'violet') +
+      modeCard('Практические навыки', 'Первый и второй коллоквиумы', 'anatomy', '#/theory?section=skills', 'violet') +
       modeCard('Статистика', 'Прогресс по темам', 'stats', '#/stats', 'teal') +
       modeCard('Портфель избранного', 'Отмеченные вопросы из всех баз', 'star', '#/portfolio', 'primary') +
       '</div></section>';
@@ -200,10 +200,10 @@
         const hero = root.querySelector('.hero:not(.hero--credit)');
         if (!hero) return;
         if (isRick) rickIntroPlayed = true; else breakingIntroPlayed = true;
-        const media = document.createElement('div'), clip = document.createElement('img');
+        const media = document.createElement('div'), clip = document.createElement('video');
         const playingClass = isRick ? 'hero--rick-playing' : 'hero--breaking-playing';
         media.className = isRick ? 'hero__rick-intro' : 'hero__breaking-intro'; media.setAttribute('aria-hidden', 'true');
-        clip.alt = '';
+        clip.muted = true; clip.setAttribute('muted', ''); clip.playsInline = true; clip.setAttribute('playsinline', ''); clip.autoplay = true; clip.preload = 'auto'; clip.disablePictureInPicture = true; clip.setAttribute('aria-hidden', 'true');
         const queries = [mobileMedia, reducedMedia].filter(Boolean);
         const onMediaChange = event => { if (event.matches) finishIntro(); };
         const finishIntro = () => {
@@ -214,12 +214,12 @@
         media.addEventListener('animationend', finishIntro, { once: true });
         media.addEventListener('animationcancel', finishIntro, { once: true });
         clip.addEventListener('error', finishIntro, { once: true });
-        clip.addEventListener('load', () => {
-          if (media.isConnected) { hero.classList.add(playingClass); media.classList.add('is-playing'); }
+        clip.addEventListener('loadeddata', () => {
+          if (media.isConnected) { hero.classList.add(playingClass); media.classList.add('is-playing'); const playPromise = clip.play(); if (playPromise && playPromise.catch) playPromise.catch(() => finishIntro()); }
           else finishIntro();
         }, { once: true });
         media.appendChild(clip); hero.prepend(media);
-        clip.src = isRick ? 'assets/rick-morty-intro-hd.gif' : 'assets/breaking-bad-intro.gif';
+        clip.src = isRick ? 'assets/rick-morty-intro.mp4' : 'assets/breaking-bad-intro.mp4';
         return;
       }
       if (appearance === 'patriotic') {
@@ -227,9 +227,9 @@
         const hero = root.querySelector('.hero:not(.hero--credit)');
         if (!hero) return;
         patrioticIntroPlayed = true;
-        const media = document.createElement('div'), clip = document.createElement('img');
+        const media = document.createElement('div'), clip = document.createElement('video');
         media.className = 'hero__patriotic-intro'; media.setAttribute('aria-hidden', 'true');
-        clip.alt = '';
+        clip.muted = true; clip.setAttribute('muted', ''); clip.playsInline = true; clip.setAttribute('playsinline', ''); clip.autoplay = true; clip.preload = 'auto'; clip.disablePictureInPicture = true; clip.setAttribute('aria-hidden', 'true');
         const queries = [mobileMedia, reducedMedia].filter(Boolean);
         const onMediaChange = event => { if (event.matches) finishIntro(); };
         const finishIntro = () => {
@@ -240,25 +240,26 @@
         media.addEventListener('animationend', finishIntro, { once: true });
         media.addEventListener('animationcancel', finishIntro, { once: true });
         clip.addEventListener('error', finishIntro, { once: true });
-        clip.addEventListener('load', () => {
-          if (media.isConnected) { hero.classList.add('hero--patriotic-playing'); media.classList.add('is-playing'); }
+        clip.addEventListener('loadeddata', () => {
+          if (media.isConnected) { hero.classList.add('hero--patriotic-playing'); media.classList.add('is-playing'); const playPromise = clip.play(); if (playPromise && playPromise.catch) playPromise.catch(() => finishIntro()); }
           else finishIntro();
         }, { once: true });
         media.appendChild(clip); hero.prepend(media);
-        clip.src = 'assets/patriotic-baikal.gif';
+        clip.src = 'assets/patriotic-baikal-intro.mp4';
         return;
       }
       if (titanIntroPlayed || appearance !== 'anime') return;
       const media = root.querySelector('.hero:not(.hero--credit) .hero__titan-media');
       if (!media) return;
       titanIntroPlayed = true;
-      const clip = document.createElement('img');
-      clip.className = 'hero__titan-intro'; clip.alt = ''; clip.setAttribute('aria-hidden', 'true');
+      const clip = document.createElement('video');
+      clip.className = 'hero__titan-intro'; clip.setAttribute('aria-hidden', 'true');
+      clip.muted = true; clip.setAttribute('muted', ''); clip.playsInline = true; clip.setAttribute('playsinline', ''); clip.autoplay = true; clip.preload = 'auto'; clip.disablePictureInPicture = true;
       clip.addEventListener('animationend', () => clip.remove(), { once: true });
       clip.addEventListener('error', () => clip.remove(), { once: true });
-      clip.addEventListener('load', () => { if (clip.isConnected) clip.classList.add('is-playing'); }, { once: true });
+      clip.addEventListener('loadeddata', () => { if (clip.isConnected) { clip.classList.add('is-playing'); const playPromise = clip.play(); if (playPromise && playPromise.catch) playPromise.catch(() => clip.remove()); } }, { once: true });
       media.appendChild(clip);
-      clip.src = 'assets/titan-intro.gif';
+      clip.src = 'assets/titan-intro.mp4';
     };
     return { title: 'Главная', html, mount };
   };

@@ -363,15 +363,15 @@ test('временно скрытое мемное оформление не п�
 test('аниме оформление имеет локальный полноэкранный фон, постер и анимацию', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
   assert.match(css, /data-theme="dark"\]\[data-accent="anime"/); assert.match(css, /prefers-reduced-motion/);
-  for (const name of ['attack-on-titan-key-visual.jpg', 'titan-sunset.webp', 'titan-intro.gif']) assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', name)).size > 10000);
+  for (const name of ['attack-on-titan-key-visual.jpg', 'titan-sunset.webp', 'titan-intro.mp4']) assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', name)).size > 10000);
   assert.match(css, /titan-sunset\.webp/); assert.match(css, /cover no-repeat/);
   assert.match(css, /height: 100lvh/); assert.match(css, /0%, 75% \{ opacity: 1; \}/);
   assert.match(css, /position: absolute; inset: 0; width: 100%; height: 100%/);
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(study, /matchMedia\('\(max-width: 760px\)'\)/);
   assert.match(app().views.dashboard().html, /hero__titan-media/);
-  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'titan-intro.gif'));
-  assert.match(gif.toString('ascii', 0, 6), /^GIF8/); assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
+  const video = fs.readFileSync(path.join(__dirname, '..', 'assets', 'titan-intro.mp4'));
+  assert.equal(video.toString('ascii', 4, 8), 'ftyp');
   assert.match(css, /--teal: var\(--primary\)/); assert.match(css, /\.hero:not\(\.hero--credit\)/);
   assert.match(app().views.rewards().html, /Атака титанов/);
 });
@@ -822,34 +822,32 @@ test('оформление Рика использует выбранные из
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(css, /rick-morty-hero\.webp/); assert.match(css, /rick-morty-world\.webp/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__rick-intro/);
-  assert.match(css, /\.hero__rick-intro img \{[^}]*object-fit: cover/);
+  assert.match(css, /\.hero__rick-intro video \{[^}]*object-fit: cover/);
   assert.match(css, /\.hero__rick-intro \{[^}]*inset: 0/);
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__rick-intro \{ display: none; animation: none;/);
   const mobileCheck = study.indexOf("matchMedia('(max-width: 760px)')");
   assert.ok(mobileCheck > 0 && mobileCheck < study.indexOf("appearance === 'rickmorty'"));
-  assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro-hd\.gif/);
+  assert.match(study, /rickIntroPlayed/); assert.match(study, /rick-morty-intro\.mp4/);
   assert.match(css, /\.hero--rick-playing \{\s*background: linear-gradient/);
   assert.match(study, /animationcancel/); assert.match(study, /hero\.classList\.remove\(playingClass\)/);
-  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro-hd.gif'));
-  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
-  assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
-  assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
+  const video = fs.readFileSync(path.join(__dirname, '..', 'assets', 'rick-morty-intro.mp4'));
+  assert.equal(video.toString('ascii', 4, 8), 'ftyp');
+  assert.ok(video.length > 100000);
 });
 
 
 test('у Во все тяжкие есть однократное интро, не загружаемое на телефоне', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
-  assert.match(study, /breakingIntroPlayed/); assert.match(study, /breaking-bad-intro\.gif/);
+  assert.match(study, /breakingIntroPlayed/); assert.match(study, /breaking-bad-intro\.mp4/);
   assert.match(css, /\.hero--breaking-playing \{\s*background: linear-gradient/);
-  assert.match(css, /\.hero__breaking-intro img \{[^}]*object-fit: cover/);
+  assert.match(css, /\.hero__breaking-intro video \{[^}]*object-fit: cover/);
   assert.match(css, /\.hero__breaking-intro \{[^}]*inset: 0/);
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__breaking-intro \{ display: none; animation: none;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__breaking-intro/);
-  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets', 'breaking-bad-intro.gif'));
-  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
-  assert.ok(gif.readUInt16LE(6) >= 800 && gif.readUInt16LE(8) >= 450);
-  assert.equal(gif.includes(Buffer.from('NETSCAPE2.0')), false);
+  const video = fs.readFileSync(path.join(__dirname, '..', 'assets', 'breaking-bad-intro.mp4'));
+  assert.equal(video.toString('ascii', 4, 8), 'ftyp');
+  assert.ok(video.length > 100000);
 });
 
 test('снимок переносит кошелёк, купленные оформления и достижения между устройствами без переноса подземелья',()=>{
@@ -882,13 +880,13 @@ test('патриотическое оформление покупается и 
 });
 
 test('патриотическое оформление показывает анимацию Байкала на весь центральный блок', () => {
-  const gif = fs.readFileSync(path.join(__dirname, '..', 'assets/patriotic-baikal.gif'));
-  assert.match(gif.toString('ascii', 0, 6), /^GIF8/);
+  const video = fs.readFileSync(path.join(__dirname, '..', 'assets', 'patriotic-baikal-intro.mp4'));
+  assert.equal(video.toString('ascii', 4, 8), 'ftyp');
   const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
   const study = fs.readFileSync(path.join(__dirname, '..', 'js/views-study.js'), 'utf8');
   assert.match(study, /patrioticIntroPlayed/);
-  assert.match(study, /assets\/patriotic-baikal\.gif/);
-  assert.match(css, /\.hero__patriotic-intro img \{[^}]*object-fit: cover/);
+  assert.match(study, /assets\/patriotic-baikal-intro\.mp4/);
+  assert.match(css, /\.hero__patriotic-intro video \{[^}]*object-fit: cover/);
   assert.match(css, /@media \(max-width: 760px\) \{ \.hero__patriotic-intro \{ display: none; animation: none;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.hero__patriotic-intro/);
 });

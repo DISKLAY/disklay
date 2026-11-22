@@ -25,7 +25,10 @@ test('пустой фильтр и повреждённые или недост�
 test('навыки первого коллоквиума доступны через общую навигацию тренировки',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'js/app.js'),'utf8');
  assert.doesNotMatch(html,/data-sidebar-route="anatomy-skills"/);
- assert.match(app,/function loadAnatomySkills/);assert.match(app,/\['anatomy-skills','Навыки · 1','#\/anatomy-skills'\]/);
+ assert.match(app,/function loadAnatomySkills/);
+ // В тренировке один пункт «Навыки»: страница сама переключает коллоквиум.
+ assert.match(app,/label: 'Навыки', href: '#\/anatomy-skills'/);
+ assert.doesNotMatch(app,/label: 'Навыки · [12]'/);
 });
 
 

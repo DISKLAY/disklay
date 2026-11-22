@@ -1,0 +1,25 @@
+# зависимости и кэши
+node_modules/
+coverage/
+.nyc_output/
+.cache/
+
+# логи
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# python (scripts/)
+.venv/
+__pycache__/
+*.pyc
+
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# временные файлы
+*.tmp

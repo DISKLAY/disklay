@@ -25,3 +25,13 @@ test('таблица каналов височной кости сохранен
 test('структура схемы осевого и добавочного скелета не перемешана',()=>{
  const table=full[7].blocks.find(b=>b.type==='table');assert.equal(table.caption,'Кости по расположению в теле человека');assert.deepEqual(Array.from(table.headers),['Осевой скелет','Добавочный скелет']);assert.match(table.rows[0][0],/кости черепа/);assert.match(table.rows[0][1],/верхней конечности/);
 });
+test('материал показан на странице целиком: без служебных подписей и ссылок на оригинал', () => {
+  const view = fs.readFileSync(path.join(__dirname, '../js/views-anatomy-oral.js'), 'utf8');
+  assert.ok(!/oral-page-label/.test(view), 'подписи «Страница N оригинала» убраны');
+  assert.ok(!/Страница '\s*\+\s*block\.page\s*\+\s*' оригинала/.test(view));
+  assert.ok(!/Исходная теория · стр\./.test(view), 'ссылки на страницу исходника убраны');
+  assert.ok(!/oral-materials/.test(view), 'блок «Исходные материалы» со ссылками на PDF убран');
+  assert.ok(!/Открыть расписанную теорию/.test(view));
+  assert.ok(/data-source-page=/.test(view), 'страница исходника осталась только в разметке');
+  assert.ok(!/<h2>Теория · 1 коллоквиум<\/h2>/.test(view), 'заголовок не дублирует шапку страницы');
+});

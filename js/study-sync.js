@@ -16,6 +16,10 @@
   const M=window.MedzoMyologySnapshot, MYO_META='medzo-myology-sync-meta-v1', MYO_OWNER='medzo-myology-sync-owner-v1';
   let myoEngine=null,myoPlan=null,myoBusy=false,myoAlert='',myoTimer=null,myoRetry=5000,myoPreviousOwner=null;
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false, leaderMutating=false;
+  // Офлайн-режим: синхронизируемый прогресс не читается и не пишется (см. js/offline-mode.js),
+  // автоматические и ручные операции с облаком блокируем целиком.
+  const offlineScratch=()=>!!(window.MedzoOffline&&window.MedzoOffline.active);
+  const offlineAlert='Нет подключения: офлайн-режим, прогресс не сохраняется. При появлении сети страница перезагрузится и данные загрузятся из облака.';
   function updateHeader(){
     if(typeof document.getElementById!=='function')return;
     const image=document.getElementById('topbarProfilePhoto'),fallback=document.getElementById('topbarProfilePlaceholder');
@@ -186,6 +190,7 @@
     bootstrap=false;
   }
   async function inspect(auto=false) {
+    if(offlineScratch()){syncAlert=offlineAlert;notify();return;}
     if(!engine||busy){if(auto&&auth)schedule(1500);return;}
     const active=auth,selectedEngine=engine;
     const stillCurrent=()=>auth===active&&engine===selectedEngine;
@@ -229,6 +234,7 @@
   function setOralOwner(active){try{if(auth===active){localStorage.setItem(ORAL_OWNER,String(active.userId));oralPreviousOwner=String(active.userId);}}catch(_){/* unavailable: next contact requires confirmation */}}
   function redrawOral(){if(location.hash.startsWith('#/anatomy-oral')&&window.AT&&typeof window.AT.rerender==='function')window.AT.rerender();}
   async function inspectOral(){
+    if(offlineScratch()){oralAlert=offlineAlert;notify();return;}
     if(!oralEngine||!auth)return;
     if(oralBusy){scheduleOral(1500);return;}
     const active=auth,selected=oralEngine,current=()=>auth===active&&oralEngine===selected;
@@ -250,6 +256,7 @@
     }finally{oralBusy=false;notify();}
   }
   async function chooseOral(direction){
+    if(offlineScratch()){oralAlert=offlineAlert;notify();return;}
     if(!oralPlan||!oralEngine||!auth||oralBusy)return;
     const selected=oralEngine,active=auth,selection=oralPlan;
     if(!window.AT?.ui?.confirmDialog)return;
@@ -268,6 +275,7 @@
   function setMyoOwner(active){try{if(auth===active){localStorage.setItem(MYO_OWNER,String(active.userId));myoPreviousOwner=String(active.userId);}}catch(_){/* require confirmation on next contact */}}
   function redrawMyo(){window.dispatchEvent(new Event('medzo-myology-updated'));}
   async function inspectMyo(){
+    if(offlineScratch()){myoAlert=offlineAlert;notify();return;}
     if(!myoEngine||!auth)return;
     if(myoBusy){scheduleMyo(1500);return;}
     const active=auth,selected=myoEngine,current=()=>auth===active&&myoEngine===selected;
@@ -289,6 +297,7 @@
     }finally{myoBusy=false;notify();}
   }
   async function chooseMyo(direction){
+    if(offlineScratch()){myoAlert=offlineAlert;notify();return;}
     if(!myoPlan||!myoEngine||!auth||myoBusy)return;
     const selected=myoEngine,active=auth,selection=myoPlan;
     if(!window.AT?.ui?.confirmDialog)return;
@@ -352,6 +361,7 @@
     } catch (_) { message='Не удалось открыть Telegram. Разрешите всплывающие окна и повторите.';notify();prepareLogin(); }
   }
   async function choose(direction) {
+    if(offlineScratch()){syncAlert=offlineAlert;notify();return;}
     if(!plan||!engine||busy)return;
     const selection=plan, selectedEngine=engine;
     const text=direction==='pull'
@@ -370,12 +380,14 @@
     finally { busy=false;notify(); }
   }
   function backup() {
+    if(offlineScratch()){message=offlineAlert;notify();return;}
     try {
       const blob=new Blob([JSON.stringify(S.capture(localStorage),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
       a.href=url;a.download='medzo-study-backup.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     } catch (_) { message='Не удалось скачать учебную копию.';notify(); }
   }
   async function restore(file) {
+    if(offlineScratch()){message=offlineAlert;notify();return;}
     if(!file)return;
     if(file.size>1040000){message='Файл слишком большой.';notify();return;}
     let data;try{data=JSON.parse(await file.text());if(!S.validate(data))throw Error();}catch(_){message='Это не учебная копия Medzo или файл повреждён.';notify();return;}

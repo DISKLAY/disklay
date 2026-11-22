@@ -3,11 +3,10 @@
 .oral-head { margin-bottom: 20px; }
 .oral-head h1 { margin: 7px 0; font-size: clamp(2rem,4vw,3rem); letter-spacing: -.04em; }
 .oral-head p, .oral-note { color: var(--text-2); line-height: 1.55; }
-.oral-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
-.oral-tabs a { padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-2); font-weight: 700; }
-.oral-tabs a.is-active { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
 .oral-panel { padding: clamp(16px,3vw,28px); border: 1px solid var(--border); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-sm); }
 .oral-panel h2 { margin: 0 0 8px; }
+/* Заголовок панели — короткая рабочая подпись: полное название уже есть в шапке страницы. */
+.oral-panel__title { font-size: 1.05rem; }
 .oral-search { width: min(100%, 440px); min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); }
 .oral-list { display: grid; gap: 10px; margin-top: 18px; }
 .oral-list details { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
@@ -45,7 +44,6 @@
 .oral-source-text h3 { margin: 14px 0 10px; font-size: 1rem; line-height: 1.5; }
 .oral-source-text strong { color: var(--text); font-weight: 750; }
 .oral-source-text .oral-source-list { margin: 7px 0; padding-left: 1.1em; text-indent: -1.1em; }
-.oral-page-label { display: inline-block; margin: 18px 0 2px; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
 .oral-list .oral-source-footnote { padding: 12px; border-left: 3px solid var(--primary-border); background: var(--surface-2); font-size: .88rem; }
 .oral-source-table { display: grid; gap: 8px; margin: 16px 0; }
 .oral-source-table h4 { margin: 0; font-size: .95rem; }
@@ -58,3 +56,8 @@
 .oral-pages__grid img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; }
 .oral-pages__grid figcaption { margin-top: 5px; font-size: .8rem; }
 .oral-pages__grid a { color: var(--primary); font-weight: 700; }
+.oral-order { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+.oral-order button { min-height: 44px; padding: 8px 14px; border: 0; background: var(--surface); color: var(--text-2); font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+.oral-order button + button { border-left: 1px solid var(--border); }
+.oral-order button:hover { color: var(--text); }
+.oral-order button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); }

@@ -38,7 +38,7 @@ test('в верхней строке только основные раздел�
     assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
   }
   assert.doesNotMatch(sidebar, /data-sidebar-route="(?:exam|mistakes|anatomy-skills)"/);
-  assert.match(sidebar, /data-sidebar-route="anatomy-oral"/);
+  assert.match(sidebar, /data-sidebar-route="theory"/, 'теория — отдельный раздел меню');
   assert.doesNotMatch(html, /id="coursePicker"|class="course-more"|>Учёба<|>Мой прогресс</);
   assert.match(html, /class="icon-btn topbar-settings" href="#\/settings"/);
   assert.doesNotMatch(html, /id="courseRail"/);
