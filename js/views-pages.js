@@ -356,16 +356,16 @@
     return html;
   }
 
-  views.key = function () {
+  // Ключ ответов — часть настроек; отдельной страницы больше нет.
+  function keySection() {
     const total = dataset.total;
     const keyed = keyApi.count();
     const pct = utils.pct(keyed, total);
     const filter = uiState.keyFilter;
     const list = findKeyItems();
 
-    let html = '<div class="view">';
-    html += '<div class="page-head"><h1>Ключ ответов</h1>' +
-      '<p>' + (AT.colloquium.hasBaseKey === false ? 'Ключ ответов пока не предоставлен. Найдите вопрос ниже и отметьте правильные варианты нажатием; до этого доступна самооценка.' : 'Найдите вопрос ниже и нажмите на правильные варианты. Выбранные варианты выделены; изменения сохраняются для этой базы.') + '</p></div>';
+    let html = '';
+    html += '<p class="muted small">' + (AT.colloquium.hasBaseKey === false ? 'Ключ ответов пока не предоставлен. Найдите вопрос ниже и отметьте правильные варианты нажатием; до этого доступна самооценка.' : 'Найдите вопрос ниже и нажмите на правильные варианты. Выбранные варианты выделены; изменения сохраняются для этой базы.') + '</p>';
 
     html += '<div class="key-status">' +
       ring(pct, 96, pct + '%', 'заполнено') +
@@ -423,7 +423,7 @@
         ({ all: 'Все', empty: 'Без ответа', filled: 'С ответом', suspicious: 'Все варианты', flagged: 'Проверьте ключ' })[f] + '</button>').join('') +
       '</div></div>';
 
-    html += '<div class="key-list">' + renderKeyItems(list) + '</div></section></div>';
+    html += '<div class="key-list">' + renderKeyItems(list) + '</div></section>';
 
     const mount = (root) => {
       const advancedPanel = root.querySelector('.key-advanced');
@@ -549,7 +549,18 @@
       }
     };
 
-    return { title: 'Ключ ответов', html, mount };
+    return { html, mount };
+  }
+
+  // Совместимость: прежняя страница «Ключ» отдаёт ту же разметку.
+  // Переход #/key → #/settings?section=key выполняет app.js.
+  views.key = function () {
+    const key = keySection();
+    return {
+      title: 'Ключ ответов',
+      html: '<div class="view view--narrow"><section class="card card--pad" id="keySection">' + key.html + '</section></div>',
+      mount(root) { key.mount(root); },
+    };
   };
 
   function updateKeyStatus(root) {
@@ -693,6 +704,9 @@
       '<div class="promo-form__row"><input id="promoCode" name="promoCode" type="text" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Введите промокод">' +
       '<button class="btn btn--primary" type="submit">Применить</button></div><p class="muted small" role="status" aria-live="polite" id="promoStatus"></p></form></section>';
 
+    const key = keySection();
+    html += '<section class="card card--pad" id="keySection"><h2 class="card__title">Ключ ответов</h2>' + key.html + '</section>';
+
     html += '<section class="card card--pad"><h2 class="card__title">Данные</h2>' +
       '<p class="muted small">Сброс относится к текущей базе; избранное, комментарии, общий кошелёк, достижения и оформления сохраняются.</p>' +
       '<div class="card__actions card__actions--col">' +
@@ -708,12 +722,17 @@
       '<p class="muted small">' + (AT.colloquium.semester ? esc(AT.colloquium.semester) + ' семестр · ' : '') + (AT.colloquium.kind === 'credit' ? 'Зачёт' : 'Коллоквиум ' + esc(AT.colloquium.number || AT.colloquium.id)) + ' · ' + esc(AT.colloquium.name) + (AT.colloquium.faculty ? ' · ' + esc(AT.colloquium.faculty) : '') + ' — ' + dataset.total + ' заданий. ' +
       (AT.colloquium.renumbered ? 'Вопросы пронумерованы по порядку; страница и исходный номер указаны в задании. ' : 'Нумерация сохранена как в PDF. ') +
       'Приложением можно пользоваться офлайн.</p>' +
-      '<p class="muted small">' + (AT.colloquium.hasBaseKey === false ? 'База «' + esc(AT.colloquium.source) + '» предоставлена без ключа ответов. До его добавления используется самооценка.' : 'Ключ ответов взят из «' + esc(AT.colloquium.source) + '» — варианты, отмеченные в PDF ' + (AT.colloquium.keyMark === 'галочками' ? 'галочками' : 'подсветкой') + '. Спорные ответы можно поправить на странице «Ключ»: приоритет всегда у вашей правки.') + '</p>' +
+      '<p class="muted small">' + (AT.colloquium.hasBaseKey === false ? 'База «' + esc(AT.colloquium.source) + '» предоставлена без ключа ответов. До его добавления используется самооценка.' : 'Ключ ответов взят из «' + esc(AT.colloquium.source) + '» — варианты, отмеченные в PDF ' + (AT.colloquium.keyMark === 'галочками' ? 'галочками' : 'подсветкой') + '. Спорные ответы можно поправить в разделе «Ключ ответов» ниже: приоритет всегда у вашей правки.') + '</p>' +
       '</section></div>';
 
     const mount = (root) => {
       const view = root.querySelector('.view--narrow') || root;
       if (window.MedzoStudySync) window.MedzoStudySync.mountVisibility(view);
+      key.mount(root);
+      if (/[?&]section=key/.test(location.hash)) {
+        const section = view.querySelector('#keySection');
+        if (section) requestAnimationFrame(() => section.scrollIntoView({ block: 'start' }));
+      }
       view.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;

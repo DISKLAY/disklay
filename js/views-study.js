@@ -138,7 +138,7 @@
     if (keyed < total) {
       const p = utils.pct(keyed, total);
       html +=
-        '<a class="banner banner--warn" href="#/key">' +
+        '<a class="banner banner--warn" href="#/settings?section=key">' +
         '<span class="banner__icon">' + icon('key') + '</span>' +
         '<span class="banner__body"><strong>Ключ ответов заполнен на ' + p + '%</strong>' +
         '<span>' + (keyed ? 'Пока проверяются ' + keyed + ' вопросов из ' + total + '. ' : 'Пока приложение работает в режиме самопроверки. ') +
