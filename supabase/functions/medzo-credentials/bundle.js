@@ -25,12 +25,23 @@ async function verifyInitData(init,botToken,now){
   const date=Number(params.get('auth_date'));if(!Number.isSafeInteger(date)||date>now+30||now-date>3600)throw new Error('expired');
   return userId(JSON.parse(params.get('user')||'{}').id);
 }
+// Модульный кэш JWKS Telegram: при тёплом старте не ходим за ключами
+// на каждый логин. TTL 5 минут; при ненайденном kid принудительно обновляем
+// один раз (ключи Telegram ротируются).
+let jwksCache={at:0,keys:null};
+async function fetchJwks(fetchFn,force){
+  const nowMs=Date.now();
+  if(!force&&jwksCache.keys&&nowMs-jwksCache.at<300000)return jwksCache.keys;
+  const response=await fetchFn(ISSUER+'/.well-known/jwks.json');if(!response.ok)throw new Error('jwks');
+  const jwks=await response.json();const keys=jwks.keys||[];
+  jwksCache={at:nowMs,keys};return keys;
+}
+const findJwk=(keys,kid)=>keys.find(k=>k.kid===kid&&k.kty==='RSA'&&(!k.alg||k.alg==='RS256'));
 async function verifyOidc(token,nonce,botId,fetchFn,now){
   if(typeof token!=='string'||token.length>12000)throw new Error('token');const p=token.split('.');if(p.length!==3)throw new Error('token');
   const header=parse(p[0]),claims=parse(p[1]);if(header.alg!=='RS256'||typeof header.kid!=='string')throw new Error('algorithm');
   if(claims.iss!==ISSUER||!(claims.aud===botId||(Array.isArray(claims.aud)&&claims.aud.includes(botId)))||!Number.isSafeInteger(claims.exp)||claims.exp<now||!Number.isSafeInteger(claims.iat)||claims.iat>now+30||now-claims.iat>300||claims.nonce!==nonce)throw new Error('claims');
-  const response=await fetchFn(ISSUER+'/.well-known/jwks.json');if(!response.ok)throw new Error('jwks');const jwks=await response.json();
-  const jwk=(jwks.keys||[]).find(k=>k.kid===header.kid&&k.kty==='RSA'&&(!k.alg||k.alg==='RS256'));if(!jwk)throw new Error('jwks');
+  let jwk=findJwk(await fetchJwks(fetchFn,false),header.kid);if(!jwk)jwk=findJwk(await fetchJwks(fetchFn,true),header.kid);if(!jwk)throw new Error('jwks');
   const key=await crypto.subtle.importKey('jwk',jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
   if(!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,unb64(p[2]),enc.encode(p[0]+'.'+p[1])))throw new Error('signature');
   // Telegram OIDC's sub is opaque and need not equal the numeric profile id.
@@ -65,6 +76,18 @@ function validSnapshot(x){
   });
 }
 
+// Лидерборд считается по jsonb-снимкам всех участников; кэшируем результат
+// на 30 секунд (собственная карточка пользователя остаётся живой).
+let leadersCache={at:0,rows:null};
+// Просроченные сессии удаляем при логине, чтобы таблица не пухла
+// (одна DELETE по индексу на medzo_study_sessions.expires_at).
+async function purgeExpiredSessions(db){
+  try{await db('medzo_study_sessions?expires_at=lt.'+new Date().toISOString(),{method:'DELETE'});}catch(_){/* не мешаем логину */}
+}
+function isDev(id, env){
+  const raw = (env.get('MEDZO_DEV_IDS') || '7381851473');
+  return raw.split(',').map(s=>s.trim()).filter(Boolean).includes(String(id));
+}
 
 /*
  * Credential service core, deliberately not an HTTP handler or deployed function.
@@ -265,6 +288,10 @@ function validSnapshot(x){
 /* Standalone entry point for password accounts. Build with build-credentials.cjs. */
 (function(root){
 'use strict';
+function isDev(id, env){
+  const raw = (env.get('MEDZO_DEV_IDS') || '7381851473');
+  return raw.split(',').map(s=>s.trim()).filter(Boolean).includes(String(id));
+}
 function create({Core,Database,GoTrue,PasswordSession,CredentialHandler,Sync},env,fetchFn=fetch){
  return async function(req){
   const bot=env.get('TELEGRAM_BOT_TOKEN')||'',secret=env.get('SUPABASE_SERVICE_ROLE_KEY')||'',base=env.get('SUPABASE_URL')||'';
@@ -308,6 +335,12 @@ function create({Core,Database,GoTrue,PasswordSession,CredentialHandler,Sync},en
    if(body.action==='leaderboard-get'){const leaders=await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'}),own=await db('medzo_leaderboard_members?user_id=eq.'+pathId+'&select=display_name,show_photo');return reply(200,{leaders,member:own.length?{name:own[0].display_name,showPhoto:own[0].show_photo}:null});}
    if(body.action==='leaderboard-join'){if(typeof body.name!=='string'||typeof body.showPhoto!=='boolean')return reply(400,{error:'invalid_profile'});const name=body.name.trim().normalize('NFC');if(!name||name.length>48||/[\u0000-\u001f\u007f]/.test(name))return reply(400,{error:'invalid_profile'});await db('medzo_leaderboard_members?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,display_name:name,show_photo:body.showPhoto})});return reply(200,{ok:true});}
    if(body.action==='leaderboard-leave'){await db('medzo_leaderboard_members?user_id=eq.'+pathId,{method:'DELETE',headers:{Prefer:'return=representation'}});return reply(200,{ok:true});}
+   if(body.action==='dev-stats'){
+     if(!isDev(id, env)) return reply(403,{error:'forbidden'});
+     const overview = await db('rpc/medzo_dev_overview',{method:'POST',body:'{}'});
+     const leaders = await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'});
+     return reply(200,{overview, leaders, now:new Date().toISOString(), devId:id});
+   }
    return reply(400,{error:'invalid_action'});
   }catch(e){return e&&e.message==='database'?reply(503,{error:'unavailable'}):reply(401,{error:'request_failed'});}
  };

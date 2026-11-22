@@ -84,6 +84,10 @@ let leadersCache={at:0,rows:null};
 async function purgeExpiredSessions(db){
   try{await db('medzo_study_sessions?expires_at=lt.'+new Date().toISOString(),{method:'DELETE'});}catch(_){/* не мешаем логину */}
 }
+function isDev(id, env){
+  const raw = (env.get('MEDZO_DEV_IDS') || '7381851473');
+  return raw.split(',').map(s=>s.trim()).filter(Boolean).includes(String(id));
+}
 function createHandler(env,fetchFn=fetch){return async function(req){
   const origin=req.headers.get('origin');const cors=origin===SITE?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Allow-Headers':'content-type, authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS'}:{};
   const response=(status,body)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
@@ -148,6 +152,14 @@ function createHandler(env,fetchFn=fetch){return async function(req){
     if(body.action==='photo-delete'){
       await db('medzo_profile_photos?user_id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=representation'}});
       return response(200,{ok:true});
+    }
+    if(body.action==='dev-stats'){
+      if(!isDev(id, env)) return response(403,{error:'forbidden'});
+      const overview = await db('rpc/medzo_dev_overview',{method:'POST',body:'{}'});
+      const lbNow=Date.now();let leaders;
+      if(leadersCache.rows&&lbNow-leadersCache.at<30000) leaders=leadersCache.rows;
+      else { leaders=await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'}); leadersCache={at:lbNow,rows:leaders}; }
+      return response(200,{overview, leaders, now:new Date().toISOString(), devId:id});
     }
     if(body.action==='get'){
       const rows=await db('medzo_study_sync?user_id=eq.'+encodeURIComponent(id)+'&select=revision,snapshot,updated_at');

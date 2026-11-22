@@ -227,6 +227,11 @@
       '</div>';
 
     html += AT.leaderboardMarkup();
+    // Платформенный актив — только для разработчика, обычные видят только свой рейтинг
+    html += '<section class="card card--pad" data-dev-panel hidden><h2 class="card__title">Актив платформы (только для разработчика)</h2>' +
+      '<p class="muted small">Всего/актив по облаку, рейтинг — топ. Фото — только с согласия.</p>' +
+      '<p class="muted" data-dev-stats>Загрузка…</p><p class="muted small" data-dev-meta></p><ol data-dev-leaders class="leaderboard__list"></ol><p class="muted small" data-dev-status></p>' +
+      '<div class="card__actions"><button class="btn btn--primary" data-dev-refresh>Обновить</button><a class="btn btn--ghost" href="#/dev">Панель разработчика</a></div></section>';
     html += '<div class="split">';
     html += '<section class="card card--pad"><h2 class="card__title">Прогресс по темам</h2><div class="topic-progress">';
     topics.forEach((t) => {
@@ -273,6 +278,7 @@
 
     const mount = (root) => {
       if (window.MedzoStudySync) window.MedzoStudySync.mountLeaderboard(root.querySelector('[data-leaderboard]'));
+      const dev=root.querySelector('[data-dev-panel]'); if(dev && window.MedzoStudySync && window.MedzoStudySync.mountDev) window.MedzoStudySync.mountDev(dev);
       if (params && params.rating === '1') AT.focusLeaderboard(root);
       root.addEventListener('click', (e) => {
         const el = e.target.closest('[data-action="reset-progress"]');
@@ -667,10 +673,18 @@
       '<p class="profile-account" data-sync-account hidden></p><p class="muted small" data-sync-status role="status" aria-live="polite"></p><div class="card__actions card__actions--col" data-sync-actions></div>' +
       '<div class="card__actions card__actions--col" data-if-signed-out><button type="button" class="btn btn--ghost" data-sync="backup">Скачать учебную копию</button>' +
       '<label class="btn btn--ghost btn--file">Восстановить учебную копию<input type="file" accept=".json,application/json" data-sync-file></label></div></section>';
+    // Режим разработчика — только для указанных Telegram ID (фото по прежнему по согласию)
+    html += '<section class="card card--pad" data-dev-panel hidden><h2 class="card__title">Режим разработчика</h2>' +
+      '<p class="muted small">Виден только вам. Актив платформы + рейтинг; фото участников — только если они разрешили.</p>' +
+      '<p class="muted" data-dev-stats>Загрузка…</p><p class="muted small" data-dev-meta></p>' +
+      '<ol data-dev-leaders class="leaderboard__list"></ol><p class="muted small" data-dev-status></p>' +
+      '<div class="card__actions"><button class="btn btn--primary" data-dev-refresh>Обновить</button><a class="btn btn--ghost" href="#/dev">Открыть панель</a></div></section>';
     html += '</div>';
     return {title:'Профиль',html,mount(root){
       const node=root.querySelector('#studySync');
       if(node && window.MedzoStudySync)window.MedzoStudySync.mount(node);
+      const dev=root.querySelector('[data-dev-panel]');
+      if(dev && window.MedzoStudySync && window.MedzoStudySync.mountDev) window.MedzoStudySync.mountDev(dev);
     }};
   };
 
