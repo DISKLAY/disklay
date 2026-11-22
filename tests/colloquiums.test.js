@@ -395,23 +395,25 @@ test('ССС изолирует прогресс, ключ, сессию и из
 });
 
 test('исходные отметки глазницы различаются в коллоквиуме и зачёте', () => {
-  for (const [bank, number, expected] of [['1', '121', [1]], ['credit-1', '102', [1,5]]]) {
+  for (const [bank, number, expected] of [['1', '121', [1,5]], ['credit-1', '102', [1,5]]]) {
     const AT=app({},bank), q=AT.dataset.byNum.get(number);
     assert.equal(q.text,'Верхнюю стенку глазницы образуют:');
     assert.deepEqual(Array.from(AT.keyApi.forQuestion(q).answers),expected);
     assert.equal(AT.gradeQuestion(q,expected).correct,true);
   }
-  assert.match(app({},'1').views.key().html,/лобная кости/);
+  const first=app({},'1');
+  assert.deepEqual(Array.from(first.keyApi.forQuestion(first.dataset.byNum.get('121')).answers),[1,5]);
+  assert.equal(first.ui.keyWarning(first.dataset.byNum.get('121')), '');
 });
 
 test('локальная правка ключа имеет приоритет над восстановленным исходным', () => {
   const storage={}, AT=app(storage,'1'), q=AT.dataset.byNum.get('121');
-  AT.keyApi.set(q,[1,5]); AT.save(true);
+  AT.keyApi.set(q,[1,2]); AT.save(true);
   const loaded=app(storage,'1'), current=loaded.dataset.byNum.get('121');
-  assert.deepEqual(Array.from(loaded.keyApi.forQuestion(current).answers),[1,5]);
+  assert.deepEqual(Array.from(loaded.keyApi.forQuestion(current).answers),[1,2]);
   assert.equal(loaded.keyApi.forQuestion(current).source,'local');
   loaded.keyApi.clear(current);
-  assert.deepEqual(Array.from(loaded.keyApi.forQuestion(current).answers),[1]);
+  assert.deepEqual(Array.from(loaded.keyApi.forQuestion(current).answers),[1,5]);
 });
 
 test('оба разных вопроса № 58 сохранены раздельно, а номер 92 не выдуман', () => {
@@ -459,7 +461,7 @@ test('структура всех банков не содержит повто�
 
 test('одинаковые вопросы сохраняют исходные ключи своих баз', () => {
   const first = app({}, '1'), credit = app({}, 'credit-1');
-  for (const [a, b, firstKey, creditKey] of [['119','100',[1,2,4],[1,3,4]], ['41','36',[1,3,5],[3,5]]]) {
+  for (const [a, b, firstKey, creditKey] of [['119','100',[1,3,4],[1,3,4]], ['121','102',[1,5],[1,5]], ['41','36',[1,3,5],[3,5]]]) {
     const q1 = first.dataset.byNum.get(a), q2 = credit.dataset.byNum.get(b);
     assert.equal(q1.text, q2.text);
     assert.deepEqual(Array.from(q1.options), Array.from(q2.options));
@@ -480,7 +482,8 @@ test('локальные ключи остаются приоритетными 
 
 test('замечания привязаны к конкретной базе и не меняют ключи', () => {
   const first = app({},'1'), credit = app({},'credit-1'), fifth = app({},'5');
-  for (const n of ['41','119','121','204']) assert.ok(first.ui.keyWarning(first.dataset.byNum.get(n)), n);
+  for (const n of ['41','204']) assert.ok(first.ui.keyWarning(first.dataset.byNum.get(n)), n);
+  for (const n of ['119','121']) assert.equal(first.ui.keyWarning(first.dataset.byNum.get(n)), '', 'снято: № ' + n);
   for (const n of ['15','18']) assert.ok(fifth.ui.keyWarning(fifth.dataset.byNum.get(n)), n);
   assert.ok(credit.ui.keyWarning(credit.dataset.byNum.get('36')));
   assert.equal(credit.ui.keyWarning(credit.dataset.byNum.get('41')), '');
@@ -489,22 +492,28 @@ test('замечания привязаны к конкретной базе и 
   assert.match(first.ui.keyWarning(first.dataset.byNum.get('204')), /фиброзное соединение/);
   first.uiState.keyFilter = 'flagged';
   const html = first.views.key().html;
-  assert.equal((html.match(/<article class="key-item"/g) || []).length, 4);
-  for (const n of ['41','119','121','204']) assert.ok(html.includes('№ ' + n + '</span>'));
+  assert.equal((html.match(/<article class="key-item"/g) || []).length, 2);
+  for (const n of ['41','204']) assert.ok(html.includes('№ ' + n + '</span>'));
   assert.match(html, /data-filter="flagged"/);
   const q = first.dataset.byNum.get('119');
-  first.keyApi.set(q,[1,3,4]);
+  first.keyApi.set(q,[1,2,4]);
+  first.uiState.keyFilter = 'all';
   assert.match(first.views.key().html, /мой ответ/);
-  assert.deepEqual(Array.from(first.keyApi.forQuestion(q).answers),[1,3,4]);
+  assert.deepEqual(Array.from(first.keyApi.forQuestion(q).answers),[1,2,4]);
 });
 
 test('нейтральная пометка в тренировке и экзамене не раскрывает ответ', () => {
-  const AT = app({}, '1'), q = AT.dataset.byNum.get('119');
+  const AT = app({}, '1'), q = AT.dataset.byNum.get('41');
   for (const mode of ['train','exam']) {
     const session={mode, index:0};
     const html=AT.views.questionCard(session, q, {selected:[], revealed:false});
     assert.match(html, /Проверьте ключ/);
-    assert.doesNotMatch(html, /В исходном ключе отмечены|анатомическим источникам/);
+    assert.doesNotMatch(html, /локтевую ямку|Официальный ключ не сверялся/);
+  }
+  // С вопросов 119 и 121 пометка снята: ключ исправлен на 1, 3, 4 и 1, 5.
+  for (const num of ['119','121']) {
+    const clean = AT.views.questionCard({mode:'train', index:0}, AT.dataset.byNum.get(num), {selected:[], revealed:false});
+    assert.doesNotMatch(clean, /Проверьте ключ/, num);
   }
 });
 

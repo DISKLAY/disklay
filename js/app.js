@@ -80,10 +80,10 @@
   }
   function loadDungeon() {
     if (dungeonLoad) return dungeonLoad;
-    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=20261116-pwa6').catch(err => { dungeonCss = null; throw err; });
+    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=20261116-pwa7').catch(err => { dungeonCss = null; throw err; });
     const css = dungeonCss;
-    const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=20261116-pwa6'))
-      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=20261116-pwa6'));
+    const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=20261116-pwa7'))
+      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=20261116-pwa7'));
     dungeonLoad = Promise.all([css, script]).then(() => { dungeonReady = true; }).catch(err => { dungeonLoad = null; throw err; });
     return dungeonLoad;
   }
@@ -91,32 +91,32 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=20261116-pwa6').catch(err => { histologyCss = null; throw err; });
-    const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyElectronIndividual ? undefined : resource('script', 'js/histology-electron-individual-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyAdditionalPhotos ? undefined : resource('script', 'js/histology-additional-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=20261116-pwa6'))
-      .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=20261116-pwa6'))
-      .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=20261116-pwa6'))
-      .then(() => window.HistologyStructureExtra ? undefined : resource('script', 'js/histology-structure-extra.js?v=20261116-pwa6'))
-      .then(() => window.HistologyTheoryHard ? undefined : resource('script', 'js/histology-theory-hard.js?v=20261116-pwa6'))
-      .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=20261116-pwa6'))
-      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=20261116-pwa6'))
-      .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=20261116-pwa6'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=20261116-pwa6'));
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=20261116-pwa7').catch(err => { histologyCss = null; throw err; });
+    const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyElectronIndividual ? undefined : resource('script', 'js/histology-electron-individual-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyAdditionalPhotos ? undefined : resource('script', 'js/histology-additional-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=20261116-pwa7'))
+      .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=20261116-pwa7'))
+      .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=20261116-pwa7'))
+      .then(() => window.HistologyStructureExtra ? undefined : resource('script', 'js/histology-structure-extra.js?v=20261116-pwa7'))
+      .then(() => window.HistologyTheoryHard ? undefined : resource('script', 'js/histology-theory-hard.js?v=20261116-pwa7'))
+      .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=20261116-pwa7'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=20261116-pwa7'))
+      .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=20261116-pwa7'))
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=20261116-pwa7'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
   let anatomySkillsLoad = null, anatomySkillsCss = null, anatomySkillsReady = false;
   function loadAnatomySkills() {
     if (anatomySkillsLoad) return anatomySkillsLoad;
-    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=20261116-pwa6').catch(err => { anatomySkillsCss = null; throw err; });
-    const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=20261116-pwa6'))
-      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=20261116-pwa6'))
-      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=20261116-pwa6'));
+    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=20261116-pwa7').catch(err => { anatomySkillsCss = null; throw err; });
+    const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=20261116-pwa7'))
+      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=20261116-pwa7'))
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=20261116-pwa7'));
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }
@@ -124,13 +124,13 @@
   let anatomyOralLoad = null, anatomyOralCss = null, anatomyOralReady = false;
   function loadAnatomyOral() {
     if (anatomyOralLoad) return anatomyOralLoad;
-    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=20261116-pwa6').catch(err=>{anatomyOralCss=null;throw err;});
-    const script=(window.AnatomyOralData?Promise.resolve():resource('script','js/anatomy-oral-data.js?v=20261116-pwa6'))
-      .then(()=>window.AnatomyOralSource?undefined:resource('script','js/anatomy-oral-source.js?v=20261116-pwa6'))
-      .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=20261116-pwa6'))
-      .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=20261116-pwa6'))
-      .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=20261116-pwa6'))
-      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=20261116-pwa6'));
+    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=20261116-pwa7').catch(err=>{anatomyOralCss=null;throw err;});
+    const script=(window.AnatomyOralData?Promise.resolve():resource('script','js/anatomy-oral-data.js?v=20261116-pwa7'))
+      .then(()=>window.AnatomyOralSource?undefined:resource('script','js/anatomy-oral-source.js?v=20261116-pwa7'))
+      .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=20261116-pwa7'))
+      .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=20261116-pwa7'))
+      .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=20261116-pwa7'))
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=20261116-pwa7'));
     anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
     return anatomyOralLoad;
   }
@@ -138,12 +138,12 @@
   let myologyLoad = null, myologyCss = null, myologyReady = false;
   function loadMyology() {
     if (myologyLoad) return myologyLoad;
-    if (!myologyCss) myologyCss = resource('link', 'css/myology.css?v=20261116-pwa6').then(() => resource('link', 'css/anatomy-skills.css?v=20261116-pwa6')).catch(err => { myologyCss = null; throw err; });
+    if (!myologyCss) myologyCss = resource('link', 'css/myology.css?v=20261116-pwa7').then(() => resource('link', 'css/anatomy-skills.css?v=20261116-pwa7')).catch(err => { myologyCss = null; throw err; });
     const css = myologyCss;
-    const script = (window.MedzoMyologyData ? Promise.resolve() : resource('script', 'js/myology-data.js?v=20261116-pwa6'))
-      .then(() => window.MedzoMyologySource ? undefined : resource('script', 'js/myology-source.js?v=20261116-pwa6'))
-      .then(() => window.MedzoMyologySkills ? undefined : resource('script', 'js/myology-skills.js?v=20261116-pwa6'))
-      .then(() => AT.views.myology ? undefined : resource('script', 'js/views-myology.js?v=20261116-pwa6'));
+    const script = (window.MedzoMyologyData ? Promise.resolve() : resource('script', 'js/myology-data.js?v=20261116-pwa7'))
+      .then(() => window.MedzoMyologySource ? undefined : resource('script', 'js/myology-source.js?v=20261116-pwa7'))
+      .then(() => window.MedzoMyologySkills ? undefined : resource('script', 'js/myology-skills.js?v=20261116-pwa7'))
+      .then(() => AT.views.myology ? undefined : resource('script', 'js/views-myology.js?v=20261116-pwa7'));
     myologyLoad = Promise.all([css, script]).then(() => { myologyReady = true; }).catch(err => { myologyLoad = null; throw err; });
     return myologyLoad;
   }
@@ -153,14 +153,14 @@
   let theoryLoad = null;
   function loadTheory() {
     if (theoryLoad) return theoryLoad;
-    theoryLoad = (AT.views.theory ? Promise.resolve() : resource('script', 'js/views-theory.js?v=20261116-pwa6'))
+    theoryLoad = (AT.views.theory ? Promise.resolve() : resource('script', 'js/views-theory.js?v=20261116-pwa7'))
       .catch(err => { theoryLoad = null; throw err; });
     return theoryLoad;
   }
   let skillsHubLoad = null;
   function loadSkillsHub() {
     if (skillsHubLoad) return skillsHubLoad;
-    skillsHubLoad = (AT.views.anatomySkillsAll ? Promise.resolve() : resource('script', 'js/views-skills-hub.js?v=20261116-pwa6'))
+    skillsHubLoad = (AT.views.anatomySkillsAll ? Promise.resolve() : resource('script', 'js/views-skills-hub.js?v=20261116-pwa7'))
       .catch(err => { skillsHubLoad = null; throw err; });
     return skillsHubLoad;
   }
