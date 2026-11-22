@@ -851,13 +851,13 @@ test('у Во все тяжкие есть однократное интро, н
 });
 
 test('снимок переносит кошелёк, купленные оформления и достижения между устройствами без переноса подземелья',()=>{
- const S=require('../js/study-snapshot.js'),origin={'anatomy-dungeon-v1':'origin-dungeon'};
+ const S=require('../js/study-snapshot.js'),origin={'anatomy-settings-v1':'origin-settings'};
  let AT=app(origin,'1');AT.game.ensure().coins=1200;AT.game.ensure().rating=123;AT.game.ensure().verified=21;AT.save(true);
  assert.equal(AT.game.buyAppearance('ocean').ok,true);const expectedBalance=AT.game.walletBalance();const expectedRating=AT.game.totalRating();
  AT.game.syncAchievements();AT.save(true);
  const storageFor=o=>({getItem:key=>Object.hasOwn(o,key)?o[key]:null,setItem:(key,val)=>{o[key]=String(val);},removeItem:key=>{delete o[key];}});
- const dest={'anatomy-dungeon-v1':'destination-dungeon'},snapshot=S.capture(storageFor(origin));S.apply(storageFor(dest),snapshot);
- AT=app(dest,'1');assert.equal(AT.game.walletBalance(),expectedBalance);assert.equal(AT.game.totalRating(),expectedRating);assert.equal(AT.game.profile().appearances.ocean,true);assert.equal(AT.game.profile().appearance,'ocean');assert.equal(dest['anatomy-dungeon-v1'],'destination-dungeon');
+ const dest={'anatomy-settings-v1':'destination-settings'},snapshot=S.capture(storageFor(origin));S.apply(storageFor(dest),snapshot);
+ AT=app(dest,'1');assert.equal(AT.game.walletBalance(),expectedBalance);assert.equal(AT.game.totalRating(),expectedRating);assert.equal(AT.game.profile().appearances.ocean,true);assert.equal(AT.game.profile().appearance,'ocean');assert.equal(dest['anatomy-settings-v1'],'destination-settings');
 });
 
 

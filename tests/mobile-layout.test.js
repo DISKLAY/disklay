@@ -17,13 +17,10 @@ test('адаптивная шапка сохраняет доступ к мен�
 });
 
 test('мобильные сетки и длинный текст могут сжиматься без горизонтального переполнения', () => {
-  const css = read('css/styles.css'), dungeon = read('css/dungeon.css');
+  const css = read('css/styles.css');
   assert.match(css, /\.choice-grid \{ grid-template-columns: repeat\(auto-fit, minmax\(min\(160px, 100%\), 1fr\)\)/);
   assert.match(css, /\.btn, \.badge, \.answer-pill \{ max-width: 100%; white-space: normal; overflow-wrap: anywhere/);
   assert.match(css, /\.hero, \.rewards-hero, \.feedback__grid, \.review__cols \{ grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(dungeon, /\.dg-tabs \{ flex-wrap:wrap; overflow:visible/);
-  assert.match(dungeon, /\.dg-item \{ flex-wrap:wrap/);
-  assert.match(dungeon, /\.dg-entry \{ grid-template-columns:minmax\(0,1fr\)/);
 });
 
 test('в верхней строке только основные разделы, остальные доступны в меню', () => {
@@ -33,7 +30,7 @@ test('в верхней строке только основные раздел�
   for (const name of ['dashboard', 'tests', 'portfolio']) {
     assert.match(nav, new RegExp(`data-route="${name}"`));
   }
-  for (const name of ['stats', 'rewards', 'dungeon', 'key', 'settings']) {
+  for (const name of ['stats', 'rewards', 'key', 'settings']) {
     assert.doesNotMatch(nav, new RegExp(`data-route="${name}"`));
     assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
   }

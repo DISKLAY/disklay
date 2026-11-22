@@ -1,19 +1,19 @@
 const test=require('node:test'),assert=require('node:assert/strict'),S=require('../js/study-snapshot.js'),server=require('../supabase/functions/medzo-study-sync/index.js');
 function storage(seed={}){const data={...seed};return {data,getItem:k=>Object.hasOwn(data,k)?data[k]:null,setItem:(k,v)=>{data[k]=String(v);},removeItem:k=>{delete data[k];}};}
 const k='anatomy-colloquium-v1',shared='anatomy-colloquium-rewards-shared-v1';
-test('snapshot includes study, account rewards and wallet, but not dungeon, settings or in-progress game',()=>{
+test('snapshot includes study, account rewards and wallet, but not local settings or in-progress game',()=>{
  const data={};for(const id of S.modules){const key=id==='1'?k:k+'-'+id;data[key]=JSON.stringify({game:{coins:100,rating:20,verified:3,achievements:{award:42},cosmeticSpentApplied:1,appearanceReceipts:{ocean:true},inventory:{'hint-train':1,other:'private'},dungeon:'private'},settings:{theme:'dark'},session:{id:'local'},progress:{x:{attempts:1}}});}
  data['histology-prototype-v1']=JSON.stringify({stats:{h01:{attempts:1}},favorites:{h01:true},session:{private:'draft'}});data['histology-structures-v1']=JSON.stringify({stats:{x:{attempts:2}}});data['histology-theory-v1']=JSON.stringify({stats:{x:{attempts:2}}});data['anatomy-practical-skills-1-v1']=JSON.stringify({stats:{1:{known:1}},notes:{1:'note'},session:{id:'local'}});
- data['anatomy-dungeon-v1']='secret game';data[shared]=JSON.stringify({achievements:{award:42},appearances:{ocean:true},cosmeticSpent:{'1':1},walletSpent:30,appearance:'ocean',extra:'private'});
+ data['anatomy-settings-v1']='secret settings';data[shared]=JSON.stringify({achievements:{award:42},appearances:{ocean:true},cosmeticSpent:{'1':1},walletSpent:30,appearance:'ocean',extra:'private'});
  const snap=S.capture(storage(data));assert.equal(snap.schema,2);assert.equal(Object.keys(snap.records).length,16);assert.equal(snap.records[k].game.coins,100);assert.deepEqual(snap.records[k].game.inventory,{'hint-train':1});assert.equal(snap.records[shared].appearances.ocean,true);
  const text=JSON.stringify(snap);assert.ok(!text.includes('draft'));assert.ok(!text.includes('secret game'));assert.ok(!text.includes('private'));assert.ok(!text.includes('local'));assert.ok(S.validate(snap));assert.ok(server.validSnapshot(snap));
 });
-test('schema 2 restores wallet and rewards without touching dungeon, local fields or ongoing session',()=>{
- const s=storage({[k]:JSON.stringify({game:{coins:123,rating:99,inventory:{'hint-train':4,other:2},unrelated:'kept'},settings:{theme:'dark'},session:{id:'old'},progress:{a:1},comments:{a:'local'}}),[shared]:JSON.stringify({appearances:{ruby:true},walletSpent:33,unknown:'kept'}),'anatomy-dungeon-v1':'unmodified'});
+test('schema 2 restores wallet and rewards without touching local settings, local fields or ongoing session',()=>{
+ const s=storage({[k]:JSON.stringify({game:{coins:123,rating:99,inventory:{'hint-train':4,other:2},unrelated:'kept'},settings:{theme:'dark'},session:{id:'old'},progress:{a:1},comments:{a:'local'}}),[shared]:JSON.stringify({appearances:{ruby:true},walletSpent:33,unknown:'kept'}),'anatomy-settings-v1':'unmodified'});
  const incoming={schema:2,records:{[k]:{progress:{b:2},game:{coins:44,rating:8,inventory:{'double-exam':1}}},[shared]:{appearances:{ocean:true},walletSpent:20,appearance:'ocean'}}};
  const result=S.apply(s,incoming),v=JSON.parse(s.data[k]),rewards=JSON.parse(s.data[shared]),backup=JSON.parse(s.data[result.backupKey]);
  assert.deepEqual(v.game,{coins:44,rating:8,inventory:{other:2,'double-exam':1},unrelated:'kept'});assert.deepEqual(v.settings,{theme:'dark'});assert.deepEqual(v.session,{id:'old'});assert.deepEqual(v.progress,{b:2});assert.equal(v.comments,undefined);
- assert.deepEqual(rewards,{unknown:'kept',appearances:{ocean:true},walletSpent:20,appearance:'ocean'});assert.equal(s.data['anatomy-dungeon-v1'],'unmodified');assert.equal(JSON.parse(backup.records[shared]).walletSpent,33);
+ assert.deepEqual(rewards,{unknown:'kept',appearances:{ocean:true},walletSpent:20,appearance:'ocean'});assert.equal(s.data['anatomy-settings-v1'],'unmodified');assert.equal(JSON.parse(backup.records[shared]).walletSpent,33);
 });
 test('old schema 1 cloud and backups restore study but never erase local wallet or rewards',()=>{
  const s=storage({[k]:JSON.stringify({game:{coins:123,rating:5},session:{id:'old'},progress:{old:true}}),[shared]:JSON.stringify({appearances:{ruby:true},walletSpent:33})});
@@ -24,7 +24,7 @@ test('schema 2 missing wallet fields replaces them while keeping unrelated local
  const s=storage({[k]:JSON.stringify({game:{coins:50,verified:2,foo:'keep'}}),[shared]:JSON.stringify({appearances:{ruby:true},foo:'keep'})});
  S.apply(s,{schema:2,records:{}});assert.deepEqual(JSON.parse(s.data[k]).game,{foo:'keep'});assert.deepEqual(JSON.parse(s.data[shared]),{foo:'keep'});
 });
-test('client and server reject invalid formats, foreign reward fields, dungeon data and schema 1 game',()=>{
+test('client and server reject invalid formats, foreign reward fields, local settings data and schema 1 game',()=>{
  for(const bad of [{schema:2,records:{[k]:{game:{dungeon:{level:2}}}}},{schema:2,records:{[k]:{game:{inventory:{dungeon:'x'}}}}},{schema:2,records:{[shared]:{dungeon:{}}}},{schema:1,records:{[k]:{game:{coins:1}}}},{schema:2,records:{'anatomy-dungeon-v1':{level:1}}}]){assert.equal(S.validate(bad),false);assert.equal(server.validSnapshot(bad),false);}
 });
 test('invalid storage and quota errors do not change existing data',()=>{
