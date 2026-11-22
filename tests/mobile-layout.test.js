@@ -24,13 +24,13 @@ test('мобильные сетки и длинный текст могут сж
 });
 
 test('в верхней строке только основные разделы, остальные доступны в меню', () => {
-  const html = read('index.html'), css = read('css/styles.css');
+  const html = read('index.html'), css = read('css/styles.css'), settings = read('js/views-pages.js');
   const nav = html.match(/<nav class="nav" id="mainNav"[\s\S]*?<\/nav>/)[0];
   const sidebar = html.match(/<nav class="course-sidebar__pages"[\s\S]*?<\/nav>/)[0];
   for (const name of ['dashboard', 'tests', 'portfolio']) {
     assert.match(nav, new RegExp(`data-route="${name}"`));
   }
-  for (const name of ['stats', 'rewards', 'key']) {
+  for (const name of ['stats', 'rewards']) {
     assert.doesNotMatch(nav, new RegExp(`data-route="${name}"`));
     assert.match(sidebar, new RegExp(`data-sidebar-route="${name}"`));
   }
@@ -40,6 +40,10 @@ test('в верхней строке только основные раздел�
     assert.doesNotMatch(html, new RegExp(`data-sidebar-route="${name}"`));
     assert.match(html, new RegExp(`(?:href|id)="[^"]*${name}`));
   }
+  // Ключ ответов переехал в настройки: отдельного пункта меню и страницы нет.
+  assert.doesNotMatch(html, /data-sidebar-route="key"/);
+  assert.doesNotMatch(html, /href="#\/key"/);
+  assert.match(settings, /id="keySection"/, 'ключ встроен в настройки');
   assert.match(sidebar, /data-sidebar-route="theory"/, 'теория — отдельный раздел меню');
   assert.doesNotMatch(html, /id="coursePicker"|class="course-more"|>Учёба<|>Мой прогресс</);
   assert.match(html, /class="icon-btn topbar-settings" href="#\/settings"/);
