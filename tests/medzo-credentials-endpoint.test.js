@@ -34,7 +34,7 @@ test('full password endpoint: register, authenticate, identify, sync, conflicts 
  r=await h.call({action:'get'},token);assert.equal((await r.json()).revision,0);
  r=await h.call({action:'put',revision:0,snapshot:{schema:2,records:{}}},token);assert.equal((await r.json()).revision,1);
  assert.equal((await h.call({action:'put',revision:0,snapshot:{schema:2,records:{}}},token)).status,409);
- assert.equal((await h.call({action:'put',revision:1,snapshot:{schema:2,records:{'dungeon':{}}}},token)).status,400);
+ assert.equal((await h.call({action:'put',revision:1,snapshot:{schema:2,records:{'anatomy-settings-v1':{}}}},token)).status,400);
  assert.equal((await h.call({action:'logout'},token)).status,200);assert.equal((await h.call({action:'get'},token)).status,401);
 });
 test('does not trust client user IDs, unsigned requests or unrelated origins',async()=>{

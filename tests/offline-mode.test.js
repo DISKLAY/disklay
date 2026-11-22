@@ -58,8 +58,8 @@ test('офлайн: синхронизируемые ключи не читаю�
   ctx.localStorage.removeItem('medzo-myology-practice-v1');
   assert.equal(ctx.localStorage.map.has('medzo-myology-practice-v1'), false);
   // несинхронизируемые ключи работают как обычно
-  ctx.localStorage.setItem('anatomy-dungeon-v1', '{"gold":42}');
-  assert.equal(ctx.localStorage.getItem('anatomy-dungeon-v1'), '{"gold":42}');
+  ctx.localStorage.setItem('anatomy-theme-v1', '{"mode":"dark"}');
+  assert.equal(ctx.localStorage.getItem('anatomy-theme-v1'), '{"mode":"dark"}');
   ctx.localStorage.setItem('anatomy-colloquium-selected', '3');
   assert.equal(ctx.localStorage.getItem('anatomy-colloquium-selected'), '3');
   assert.equal(ctx.banner.hidden, false, 'баннер офлайн-режима показан');

@@ -37,11 +37,11 @@ test('account switch while a cloud request is in flight cannot alter metadata or
  const inflight=engine.inspect();active=false;release();await assert.rejects(inflight,/changed/);
  assert.equal(s.getItem(E.META),null);assert.deepEqual(JSON.parse(s.data[key]).progress,{x:1});
 });
-test('automatic cloud loads retain the local backup and do not touch local session or dungeon',async()=>{
- const c=cloud(),a=storage(),b=storage({'anatomy-dungeon-v1':'keep'});save(a,{cloud:true});save(b,{local:true});
+test('automatic cloud loads retain the local backup and do not touch local session or settings',async()=>{
+ const c=cloud(),a=storage(),b=storage({'anatomy-settings-v1':'keep'});save(a,{cloud:true});save(b,{local:true});
  const x=E.makeEngine({store:a,snapshot:S,request:c.request,userId:'1'}),y=E.makeEngine({store:b,snapshot:S,request:c.request,userId:'1'});
  await x.push(await x.inspect());const p=await y.inspect();assert.equal(p.hasBaseline,false);
- const result=await y.pull(p,async()=>true);assert.ok(b.data[result.backup.backupKey]);assert.equal(b.data['anatomy-dungeon-v1'],'keep');assert.equal(JSON.parse(b.data[key]).session.id,'local');
+ const result=await y.pull(p,async()=>true);assert.ok(b.data[result.backup.backupKey]);assert.equal(b.data['anatomy-settings-v1'],'keep');assert.equal(JSON.parse(b.data[key]).session.id,'local');
 });
 test('background restore removes temporary backup only after metadata is saved',async()=>{
  const c=cloud(),a=storage(),b=storage();save(a,{cloud:true});save(b,{local:true});
