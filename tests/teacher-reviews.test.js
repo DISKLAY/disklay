@@ -19,6 +19,8 @@ function load(reviews) {
   const view = context.AT.views.teacherReviews;
   view.bodyHtml = context.AT.views.teacherReviews_bodyHtml;
   view.bodyFor = context.AT.views.teacherReviews_bodyFor;
+  view.surnameOf = context.AT.views.teacherReviews_surnameOf;
+  view.bySurname = context.AT.views.teacherReviews_bySurname;
   return view;
 }
 
@@ -174,4 +176,26 @@ test('данные отзывов подключены к странице, пр
     assert.ok(teacher.name && teacher.reviews.length, teacher.name);
     for (const review of teacher.reviews) assert.ok(review.parts && review.source, review.id);
   }
+});
+
+test('внутри дисциплины преподаватели идут по фамилии, даже если записаны «Имя Отчество Фамилия»', () => {
+  const view = load({ teachers: [
+    { id: 'a', name: 'Яна Борисовна Владимирова', reviews: [{ discipline: 'Анатомия', parts: { seminars: 'x' } }] },
+    { id: 'b', name: 'Алексеева Мария Феликсовна', reviews: [{ discipline: 'Анатомия', parts: { seminars: 'x' } }] },
+    { id: 'c', name: 'Арутюнян Анаит Артуровна', reviews: [{ discipline: 'Анатомия', parts: { seminars: 'x' } }] }
+  ] });
+  const { html } = view({});
+  const order = [...html.matchAll(/<strong>([^<]+)<\/strong>/g)]
+    .map(m => m[1])
+    .filter(name => name.includes(' ') && !/^\d+$/.test(name));
+  assert.deepEqual(order, ['Алексеева Мария Феликсовна', 'Арутюнян Анаит Артуровна', 'Яна Борисовна Владимирова']);
+});
+
+test('фамилия определяется и для «Фамилия Имя Отчество», и для обратной записи', () => {
+  const view = load({ teachers: [] });
+  assert.equal(view.surnameOf('Владимирова Яна Борисовна'), 'Владимирова');
+  assert.equal(view.surnameOf('Яна Борисовна Владимирова'), 'Владимирова');
+  assert.equal(view.surnameOf('Башмаков О.'), 'Башмаков');
+  assert.equal(view.surnameOf('Сымон А.М.'), 'Сымон');
+  assert.equal(view.surnameOf('Иванова'), 'Иванова');
 });

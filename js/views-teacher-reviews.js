@@ -67,8 +67,34 @@
   }
   const PAGE = 30;
 
+  // В анкете встречаются обе записи: «Фамилия Имя Отчество» и «Имя Отчество
+  // Фамилия», а бывает и без отчества вовсе. Сортируем по фамилии, иначе такие
+  // преподаватели встают не на своё место в алфавите.
+  const PATRONYMIC = /(вич|вна|чна|инична|овна|евна|кызы|оглы)$/i;
+  const INITIALS = /^(?:[А-ЯЁ]\.?)+$/;            // «О.», «А.М.»
+  const SURNAME_END = /(ов|ев|ёв|ин|ын|ова|ева|ёва|ина|ына|ский|ская|цкий|цкая|ко|ук|юк|ич|ян|дзе|швили|их|ых)$/i;
+  const looksSurname = word => !!word && SURNAME_END.test(word);
+  function surnameOf(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    if (parts.length === 1) return parts[0];
+    const first = parts[0], last = parts[parts.length - 1];
+    // Отчество в конце — обычная запись «Фамилия Имя Отчество».
+    if (PATRONYMIC.test(last)) return first;
+    // Инициалы в конце — «Фамилия И.О.» или «Фамилия О.».
+    if (INITIALS.test(last)) return first;
+    // Отчество в середине — обратная запись «Имя Отчество Фамилия».
+    if (parts.length >= 3 && PATRONYMIC.test(parts[parts.length - 2])) return last;
+    // Отчества нет вовсе: фамилию узнаём по типичному окончанию.
+    if (looksSurname(first) && !looksSurname(last)) return first;
+    if (looksSurname(last) && !looksSurname(first)) return last;
+    return first;
+  }
+  function bySurname(a, b) {
+    return surnameOf(a).localeCompare(surnameOf(b), 'ru') || String(a).localeCompare(String(b), 'ru');
+  }
   // Дисциплина → преподаватель → отзывы. Дисциплины отсортированы по числу
-  // отзывов (сначала самые наполненные), внутри — по алфавиту.
+  // отзывов (сначала самые наполненные), внутри — по фамилии в алфавитном порядке.
   function disciplinesOf(teachers) {
     const map = new Map();
     for (const teacher of teachers) for (const review of teacher.reviews || []) {
@@ -83,7 +109,7 @@
       name: group.name,
       teachers: [...group.teachers.values()]
         .map(x => Object.assign({}, x, { semesters: [...x.semesters] }))
-        .sort((a, b) => a.teacher.name.localeCompare(b.teacher.name, 'ru')),
+        .sort((a, b) => bySurname(a.teacher.name, b.teacher.name)),
       reviews: [...group.teachers.values()].reduce((n, x) => n + ((x.teacher.reviews || []).filter(r => (r.discipline || 'Без дисциплины') === group.name).length), 0)
     })).sort((a, b) => b.reviews - a.reviews || a.name.localeCompare(b.name, 'ru'));
   }
@@ -118,6 +144,8 @@
 
   // Тело карточки отдельным методом: его же дёргает ленивая отрисовка при раскрытии,
   // поэтому тесты могут проверить разметку отзыва без имитации DOM.
+  views.teacherReviews_surnameOf = surnameOf;
+  views.teacherReviews_bySurname = bySurname;
   views.teacherReviews_bodyHtml = bodyHtml;
   views.teacherReviews_bodyFor = bodyFor;
 
