@@ -1,20 +1,42 @@
 /* Telegram webhook and explicit, temporary-secret installation. */
-const WELCOME = `Привет! Это Medzo — бесплатный помощник для подготовки по анатомии и гистологии. 🩺
+const WELCOME = `🩺 <b>Medzo</b> — бесплатный помощник для подготовки по анатомии и гистологии.
 
-Мы создали Medzo, чтобы повторять учебный материал было удобнее: в своём темпе, на сайте или прямо в Telegram. Сервис абсолютно бесплатный.
+Всё в одном месте: тренировка по ключу, теория, атлас, отзывы о преподавателях и статистика. Сервис полностью бесплатный, без подписок и рекламы.
 
-Здесь можно:
-• решать тесты и повторять ошибки;
-• изучать препараты и структуры в атласе гистологии;
-• тренировать практические навыки по анатомии;
-• сохранять избранное и заметки, следить за учебным прогрессом.
+<b>Анатомия · 11 баз вопросов</b>
+• <b>Тренировка</b> по темам: мгновенная проверка по ключу, работа над ошибками, статистика.
+• <b>Пробный экзамен</b> первого коллоквиума — 20 вопросов за 20 минут.
+• <b>Теория</b> первого коллоквиума: 72 темы, поиск по тексту, страницы оригинала.
+• <b>Практические навыки</b> — 330 пунктов с подсказками и самооценкой.
+• <b>Отзывы о преподавателях</b> — 783 отзыва по 33 дисциплинам, дословно из таблицы студентов.
 
-Чтобы начать, нажмите «Открыть Medzo» под этим сообщением или кнопку меню бота. Выберите предмет и раздел.
+<b>Гистология</b>
+• <b>Препараты</b>: тренажёр на 73 позиции и 201 изображение, выбор или ввод названия.
+• <b>Атлас</b>: 12 тематических разделов, теория и снимки с разбором.
+• <b>Структуры</b>: 545 заданий на снимках — найти метку или назвать структуру.
+• <b>Тесты по теории</b>: 226 вопросов с объяснениями.
 
-Для синхронизации учебных данных откройте «Меню → Профиль» и войдите в один и тот же Telegram-аккаунт на устройствах. При разных версиях данных приложение попросит выбрать нужную. Игра, кошелёк и оформления не синхронизируются.
+<b>Везде</b>
+• Избранное и личные заметки к вопросам.
+• Ошибки и статистика отдельно по каждой базе.
+• Свой ключ ответов: правки, импорт и экспорт.
+• Награды, оформления и игра «Подземелье» на вопросах выбранной базы.
+• Офлайн: сайт устанавливается на телефон как приложение.
 
-Материалы помогают учиться, но не заменяют проверку по учебникам и указания преподавателей. По вопросам: @D1sklay.`;
+<b>Синхронизация</b>
+Меню → Профиль → вход через Telegram. Прогресс, заметки, кошелёк, награды и оформления переходят между устройствами. Подземелье, настройки и незавершённые тренировки остаются на устройстве. Если данные расходятся, приложение предложит выбрать версию.
+
+<b>С чего начать</b>
+Нажмите «Открыть Medzo» и выберите предмет в меню. Быстрый переход — кнопками ниже.
+
+Материалы помогают учиться, но не заменяют учебники и требования преподавателей. Вопросы и идеи: @D1sklay.`;
 const SITE='https://disklay.github.io/disklay/';
+// Кнопки ведут прямо в разделы: hash-роутер приложения понимает #/route.
+const KEYBOARD=[
+  [{text:'Открыть Medzo',web_app:{url:SITE}}],
+  [{text:'Тренировка',web_app:{url:SITE+'#/tests'}},{text:'Гистология',web_app:{url:SITE+'#/histology'}}],
+  [{text:'Отзывы о преподавателях',web_app:{url:SITE+'#/teachers'}}]
+];
 const enc=new TextEncoder();
 async function webhookSecret(bot) {
   const key=await crypto.subtle.importKey('raw',enc.encode(bot),{name:'HMAC',hash:'SHA-256'},false,['sign']);
@@ -46,10 +68,10 @@ function createHandler(env,fetchFn=fetch) { return async request=>{
     if(!equal(request.headers.get('x-telegram-bot-api-secret-token')||'',await webhookSecret(bot)))return respond(401,{error:'unauthorized'});
     const message=data.message;
     if(message && message.chat && message.chat.type==='private' && Number.isSafeInteger(message.chat.id) && typeof message.text==='string' && /^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(message.text)) {
-      await telegram('sendMessage',{chat_id:message.chat.id,text:WELCOME,reply_markup:{inline_keyboard:[[{text:'Открыть Medzo',web_app:{url:SITE}}]]}});
+      await telegram('sendMessage',{chat_id:message.chat.id,text:WELCOME,parse_mode:'HTML',link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:KEYBOARD}});
     }
     return respond(200,{ok:true});
   } catch (_) {return respond(502,{error:'request_failed'});}
 };}
 if(typeof Deno!=='undefined')Deno.serve(createHandler(Deno.env));
-if(typeof module!=='undefined'&&module.exports)module.exports={createHandler,webhookSecret,WELCOME};
+if(typeof module!=='undefined'&&module.exports)module.exports={createHandler,webhookSecret,WELCOME,KEYBOARD};
