@@ -1,0 +1,14 @@
+{
+  "name": "medzo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Статическое веб-приложение Medzo для подготовки к коллоквиумам и зачётам по анатомии",
+  "homepage": "https://disklay.github.io/disklay/",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8000"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

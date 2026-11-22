@@ -37,6 +37,12 @@
   --warn-soft: #fff4e0;
   --warn-border: #f7dca8;
 
+  --on-primary: #ffffff;
+  --absolute-gold-border: #b89442;
+  --absolute-gold-icon: #a47216;
+  --absolute-gold-icon-bg: #fff3d3;
+  --absolute-gold-status: #93620e;
+
   --shadow-xs: 0 1px 2px rgba(14, 21, 39, .05);
   --shadow-sm: 0 2px 6px -2px rgba(14, 21, 39, .08), 0 1px 2px rgba(14, 21, 39, .04);
   --shadow-md: 0 14px 32px -18px rgba(14, 21, 39, .28), 0 2px 6px -2px rgba(14, 21, 39, .06);
@@ -86,6 +92,12 @@
   --warn-soft: #2b2210;
   --warn-border: #59461c;
 
+  --on-primary: #0b1020;
+  --absolute-gold-border: #7a6539;
+  --absolute-gold-icon: #ffd47a;
+  --absolute-gold-icon-bg: #3e321b;
+  --absolute-gold-status: #ffd47a;
+
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, .4);
   --shadow-sm: 0 2px 6px -2px rgba(0, 0, 0, .5);
   --shadow-md: 0 18px 40px -24px rgba(0, 0, 0, .8), 0 2px 6px -2px rgba(0, 0, 0, .4);
@@ -109,7 +121,6 @@ body {
   background-image:
     radial-gradient(900px 520px at 8% -12%, rgba(99, 102, 241, .10), transparent 60%),
     radial-gradient(760px 460px at 96% 4%, rgba(14, 165, 164, .09), transparent 62%);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -225,10 +236,9 @@ img, svg { display: block; }
 .nav a:hover { background: var(--surface-3); color: var(--text); }
 .nav a.is-active {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   box-shadow: 0 6px 16px -8px rgba(79, 70, 229, .9);
 }
-[data-theme="dark"] .nav a.is-active { color: #0b1020; }
 
 .icon-btn {
   flex: none;
@@ -881,8 +891,7 @@ img, svg { display: block; }
 .dot:hover { border-color: var(--primary-border); color: var(--primary); }
 .dot.is-filled { background: var(--primary-soft); border-color: var(--primary-border); color: var(--primary-strong); }
 [data-theme="dark"] .dot.is-filled { color: var(--primary); }
-.dot.is-current { background: var(--primary); border-color: var(--primary); color: #fff; }
-[data-theme="dark"] .dot.is-current { color: #0b1020; }
+.dot.is-current { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 
 .question {
   background: var(--surface);
@@ -945,8 +954,7 @@ img, svg { display: block; }
 .option__check .icon { width: 13px; height: 13px; stroke-width: 2.6; }
 
 .option.is-selected { border-color: var(--primary); background: var(--primary-soft); }
-.option.is-selected .option__key { background: var(--primary); border-color: var(--primary); color: #fff; }
-[data-theme="dark"] .option.is-selected .option__key { color: #0b1020; }
+.option.is-selected .option__key { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .option.is-selected .option__check { background: var(--primary); border-color: var(--primary); color: #fff; }
 
 .option.is-correct { border-color: var(--ok); background: var(--ok-soft); }
@@ -1647,12 +1655,9 @@ kbd {
 .exam-game-note p { margin-top: 4px; color: var(--text-2); font-size: .82rem; }
 .exam-game-note a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
 
-.achievement.achievement--absolute { border-color: #b89442; background: linear-gradient(135deg, var(--surface), var(--surface-2)); }
-.achievement.achievement--absolute .achievement__icon { color: #a47216; background: #fff3d3; }
-.achievement.achievement--absolute .achievement__status { color: #93620e; }
-[data-theme="dark"] .achievement.achievement--absolute { border-color: #7a6539; }
-[data-theme="dark"] .achievement.achievement--absolute .achievement__icon { color: #ffd47a; background: #3e321b; }
-[data-theme="dark"] .achievement.achievement--absolute .achievement__status { color: #ffd47a; }
+.achievement.achievement--absolute { border-color: var(--absolute-gold-border); background: linear-gradient(135deg, var(--surface), var(--surface-2)); }
+.achievement.achievement--absolute .achievement__icon { color: var(--absolute-gold-icon); background: var(--absolute-gold-icon-bg); }
+.achievement.achievement--absolute .achievement__status { color: var(--absolute-gold-status); }
 @media (max-width: 760px) {
   .nav { display: none; }
   .course-toggle { margin-left: auto; min-width: 0; max-width: 180px; }
@@ -1886,7 +1891,7 @@ kbd {
   }
 }
 .hero__rick-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
-.hero__rick-intro img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.hero__rick-intro video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .hero__rick-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(11,41,27,.94), rgba(11,41,27,.75) 50%, rgba(11,41,27,.38)); }
 .hero__rick-intro.is-playing { animation: rick-intro 2.15s ease-out forwards; }
 @keyframes rick-intro { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
@@ -1903,7 +1908,7 @@ kbd {
   }
 }
 .hero__breaking-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
-.hero__breaking-intro img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: brightness(1.18); }
+.hero__breaking-intro video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: brightness(1.18); }
 .hero__breaking-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(30,25,10,.94), rgba(30,25,10,.75) 50%, rgba(30,25,10,.38)); }
 .hero__breaking-intro.is-playing { animation: rick-intro 2s ease-out forwards; }
 @media (max-width: 760px) { .hero__breaking-intro { display: none; animation: none; } }
@@ -2154,6 +2159,10 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 
 .sync-alert:not([hidden]) { display: block; padding: 10px 16px; text-align: center; font-size: .86rem; font-weight: 600; color: var(--text); background: var(--primary-soft); border-bottom: 1px solid var(--primary-border); text-decoration: underline; text-underline-offset: 3px; }
 
+/* Офлайн-режим: предупреждение, что прогресс не сохраняется. */
+.offline-banner:not([hidden]) { display: block; padding: 10px 16px; text-align: center; font-size: .86rem; line-height: 1.45; color: var(--warn); background: var(--warn-soft); border-bottom: 1px solid var(--warn-border); }
+.offline-banner strong { color: inherit; }
+
 /* Навигация: полноразмерное меню и компактная панель с теми же разделами. */
 .course-sidebar__pages a { gap: 12px; }
 .course-sidebar__pages a > .icon { width: 20px; height: 20px; flex: none; color: var(--primary); }
@@ -2186,6 +2195,8 @@ body:not([data-subject="histology"]) #histologySidebar { display: none; }
 @container (max-width: 250px) {
   .topbar__inner { flex-wrap: wrap; gap: 5px; padding: 6px; }
   .brand { flex: 1 0 100%; }
+  .course-switch { flex: 1 1 100%; }
+  .course-switch__badge { width: 26px; height: 26px; font-size: .74rem; }
   .topbar .icon-btn, .topbar .course-toggle { width: 40px; height: 40px; min-height: 40px; padding: 7px; }
   .topbar-profile { width: 40px; height: 40px; }
   .brand__text strong { font-size: .8rem; }
@@ -2318,7 +2329,7 @@ body { container: viewport-shell / inline-size; }
   [data-accent="patriotic"] .hero:not(.hero--credit).hero--patriotic-playing { background: linear-gradient(110deg, #0d1c36, #284c6b 65%, #111c33); }
 }
 .hero__patriotic-intro { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0; }
-.hero__patriotic-intro img { display: block; position: absolute; top: 0; left: 57%; transform: translateX(-50%); width: min(35%, 420px); height: 100%; object-fit: cover; object-position: center 55%; mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
+.hero__patriotic-intro video { display: block; position: absolute; top: 0; left: 57%; transform: translateX(-50%); width: min(35%, 420px); height: 100%; object-fit: cover; object-position: center 55%; mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
 .hero__patriotic-intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,28,54,.94), rgba(13,28,54,.65) 45%, rgba(13,28,54,.22) 65%, rgba(13,28,54,.80)); }
 .hero__patriotic-intro.is-playing { animation: patriotic-intro 9.8s linear forwards; }
 @keyframes patriotic-intro { 0%, 94% { opacity: 1; } 100% { opacity: 0; } }
@@ -2327,10 +2338,6 @@ body { container: viewport-shell / inline-size; }
 
 /* Compact native course selector; the existing selection and progress remain the source of truth. */
 .context-nav select { min-width: 0; max-width: min(240px, 100%); padding: 5px 24px 5px 8px; border: 1px solid var(--border); border-radius: 9px; color: var(--text-2); background: var(--surface); font: inherit; font-weight: 650; }
-.oral-materials { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 22px; margin-top: 20px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
-.oral-materials h2 { margin: 5px 0 7px; font-size: 1.15rem; }
-.oral-materials p { max-width: 68ch; color: var(--text-2); font-size: .8rem; line-height: 1.5; }
-.oral-materials__links { display: flex; flex-wrap: wrap; gap: 8px; }
 .mobile-nav { display: none; }
 @media (max-width: 700px) {
   .app-layout { display: block; }
@@ -2351,8 +2358,10 @@ body { container: viewport-shell / inline-size; }
   .mobile-nav a span { max-width: 100%; overflow-wrap: anywhere; }
 }
 @media (max-width: 700px) {
-  .course-sidebar:not(.is-expanded):not([hidden]) { top: calc(var(--sidebar-top, 64px) + 6px); }
-  .context-nav { padding-left: 48px; }
+  /* Кнопка меню на телефоне висит поверх контента: отводим ей полосу в строке
+     пути, иначе она наезжает на заголовок страницы. */
+  .course-sidebar:not(.is-expanded):not([hidden]) { top: calc(var(--sidebar-top, 64px) + 2px); height: 44px; }
+  .context-nav { min-height: 48px; align-items: center; padding-left: 48px; }
 }
 
 /* Общая навигация между тренировочными режимами анатомии. */
@@ -2407,3 +2416,97 @@ body { container: viewport-shell / inline-size; }
 .tour__scroll-note { flex-basis: 100%; color: var(--muted); font-size: .7rem; text-align: left; }
 .tour__content { scrollbar-width: thin; }
 @media (max-width: 320px) { .tour { width: calc(100% - 16px); border-radius: 16px; } .tour__content h2 { font-size: 1.15rem; hyphens: auto; } .tour__text { font-size: .86rem; line-height: 1.45; } .tour__icon { width: 42px; height: 42px; margin-bottom: 12px; } .tour__header { padding: 14px; } .tour__progress { padding: 14px 14px 0; } .tour__content { padding: 15px 14px 4px; } .tour__actions { padding: 12px 14px 16px; } .tour__actions .btn { min-width: 0; } }
+
+/* ------------------------------------------------------------------ выбор коллоквиума
+   Раньше номер коллоквиума менялся через два разных выпадающих списка (в шапке и в
+   «хлебных крошках») — это было самым неудобным местом. Теперь одна кнопка в шапке
+   открывает панель со всеми базами по семестрам, а хлебные крошки показывают только путь. */
+.course-switch { position: relative; flex: 0 1 auto; min-width: 0; }
+.course-switch__trigger { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: min(360px, 42vw); min-height: 44px; padding: 6px 12px 6px 8px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .18s, background .18s, box-shadow .18s; }
+.course-switch__trigger:hover { border-color: var(--primary-border); background: var(--surface-2); }
+.course-switch__trigger:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.course-switch__trigger[aria-expanded="true"] { border-color: var(--primary); background: var(--primary-soft); box-shadow: var(--shadow-xs); }
+.course-switch__badge { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--primary-soft); color: var(--primary); font-size: .82rem; font-weight: 800; }
+.course-switch__text { display: grid; gap: 1px; min-width: 0; }
+.course-switch__eyebrow { color: var(--muted); font-size: .64rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.course-switch__text strong { min-width: 0; overflow: hidden; color: var(--text); font-size: .84rem; font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.course-switch__chevron { flex: none; width: 8px; height: 8px; margin-left: 2px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-2px) rotate(45deg); transition: transform .18s; }
+.course-switch__trigger[aria-expanded="true"] .course-switch__chevron { transform: translateY(1px) rotate(-135deg); }
+.course-switch__panel { position: absolute; top: calc(100% + 14px); right: 0; z-index: 60; width: min(420px, calc(100vw - 28px)); max-height: min(70vh, 560px); overflow-y: auto; padding: 12px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 24px 60px -24px rgba(15, 23, 42, .45); }
+.course-switch__panel[hidden] { display: none; }
+.course-switch__group + .course-switch__group { margin-top: 12px; }
+.course-switch__group-title { margin: 0 0 6px; padding: 0 6px; color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.course-switch__items { display: grid; gap: 3px; }
+.course-switch__item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 8px 10px; border: 1px solid transparent; border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.course-switch__item:hover { background: var(--surface-2); }
+.course-switch__item:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.course-switch__item.is-current { border-color: var(--primary-border); background: var(--primary-soft); }
+.course-switch__item-badge { flex: none; display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 8px; background: var(--surface-3); color: var(--text-2); font-size: .76rem; font-weight: 800; }
+.course-switch__item.is-current .course-switch__item-badge { background: var(--primary); color: var(--on-primary); }
+.course-switch__item-text { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.course-switch__item-text strong { font-size: .86rem; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.course-switch__item-text small { color: var(--muted); font-size: .7rem; }
+.course-switch__item-check { flex: none; color: var(--primary); font-size: .9rem; font-weight: 800; }
+@media (max-width: 560px) {
+  .course-switch__trigger { min-height: 40px; padding: 4px 8px; }
+  .course-switch__badge { width: 26px; height: 26px; }
+  .course-switch__text strong { font-size: .78rem; }
+}
+/* На телефоне тот же список показывается панелью на всю ширину под шапкой. */
+@media (max-width: 900px) {
+  .course-switch__panel { position: fixed; inset-inline: 8px; width: auto; top: calc(var(--sidebar-top, 64px) + 8px); max-height: min(72vh, 620px); }
+}
+/* Пока название базы ещё помещается в одну строку, кнопка живёт в общем ряду
+   шапки; на планшете и телефоне она получает собственную строку во всю ширину,
+   иначе от «Остеология и артросиндесмология» остаётся обрезок в две буквы. */
+@media (max-width: 900px) {
+  .topbar__inner { flex-wrap: wrap; }
+  .course-switch { order: 4; flex: 1 1 100%; }
+  .course-switch__trigger { max-width: none; width: 100%; }
+}
+/* На узком телефоне подпись семестра отнимает место у названия базы. */
+@media (max-width: 480px) {
+  .course-switch__eyebrow { display: none; }
+}
+/* На самых узких экранах длинное название переносится на вторую строку,
+   а не превращается в обрезок с многоточием. */
+@media (max-width: 360px) {
+  .course-switch__text strong {
+    white-space: normal; overflow: visible; display: -webkit-box;
+    -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.2;
+  }
+}
+
+/* --------------------------------------------------------------- теория */
+/* Раздел «Теория»: каталог материалов по коллоквиумам. Лента тренировки сюда
+   не попадает — теория живёт отдельно, а не как пункт тренировки. */
+.theory-view { display: grid; gap: 18px; min-width: 0; }
+.theory-head { display: grid; gap: 6px; min-width: 0; }
+.theory-eyebrow { color: var(--primary); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.theory-head h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.15; }
+.theory-head p { max-width: 70ch; margin: 0; color: var(--text-2); font-size: .92rem; line-height: 1.55; }
+.theory-tabs { display: flex; flex-wrap: wrap; gap: 7px; }
+.theory-tabs a { display: flex; align-items: center; min-height: 42px; padding: 9px 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-2); font-size: .86rem; font-weight: 700; }
+.theory-tabs a:hover { background: var(--surface-3); }
+.theory-tabs a.is-active { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
+.theory-tabs--inner { margin-bottom: 14px; }
+.theory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 12px; }
+.theory-card { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: inherit; text-decoration: none; transition: border-color .18s, transform .18s, box-shadow .18s; }
+.theory-card:hover { border-color: var(--primary-border); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.theory-card:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.theory-card__badge { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--primary-soft); color: var(--primary); font-size: .82rem; font-weight: 800; }
+.theory-card__body { display: grid; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.theory-card__kicker { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.theory-card__body strong { font-size: .98rem; line-height: 1.3; overflow-wrap: anywhere; }
+.theory-card__text { color: var(--text-2); font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
+.theory-card__arrow { flex: none; align-self: center; color: var(--primary); font-weight: 800; }
+/* Вложенная страница навыков внутри общей: свой заголовок ей не нужен. */
+.skills-hub-view { display: grid; gap: 14px; min-width: 0; }
+.skills-hub-head { display: grid; gap: 5px; }
+.skills-hub-head h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.15; }
+.skills-hub-head p { margin: 0; max-width: 70ch; color: var(--text-2); font-size: .9rem; line-height: 1.5; }
+.skills-hub-view .view.ps-view--embedded, .skills-hub-view .view.myo-view--embedded { padding: 0; }
+@media (max-width: 560px) {
+  .theory-grid { grid-template-columns: minmax(0, 1fr); }
+  .theory-tabs a { flex: 1 1 auto; justify-content: center; }
+}

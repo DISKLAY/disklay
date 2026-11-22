@@ -97,7 +97,7 @@ test('увеличение изображений не зависит от но�
   assert.match(view,/dialog\.showModal\(\)/);
   assert.match(view,/data-zoom-close/);
   assert.match(view,/data-histo="retry-image"/);
-  assert.match(app,/js\/views-histology\.js\?v=29/);
+  assert.match(app,/js\/views-histology\.js\?v=[A-Za-z0-9.-]+/);
 });
 
 
@@ -232,7 +232,7 @@ test('галерея охватывает все препараты, стран�
 
 test('просмотрщик поддерживает галерею и не открывает картинки разбора до ответа',()=>{
   const view=fs.readFileSync(path.join(ROOT,'js/views-histology.js'),'utf8'),app=fs.readFileSync(path.join(ROOT,'js/app.js'),'utf8');
-  assert.match(view,/function openImageViewer/);assert.match(view,/data-viewer-prev/);assert.match(view,/data-viewer-next/);assert.match(view,/data-zoom-fit/);assert.match(view,/pointermove/);assert.match(view,/data-viewer-retry/);assert.match(view,/game\.entry\(\)\.status!==['"]unanswered['"]&&val===q\.review/);assert.match(app,/histology-atlas-data\.js\?v=1/);
+  assert.match(view,/function openImageViewer/);assert.match(view,/data-viewer-prev/);assert.match(view,/data-viewer-next/);assert.match(view,/data-zoom-fit/);assert.match(view,/pointermove/);assert.match(view,/data-viewer-retry/);assert.match(view,/game\.entry\(\)\.status!==['"]unanswered['"]&&val===q\.review/);assert.match(app,/histology-atlas-data\.js\?v=[A-Za-z0-9.-]+/);
 });
 
 test('все отобранные снимки доступны по отдельности и ошибки привязаны к конкретному снимку',()=>{

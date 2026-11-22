@@ -7,8 +7,30 @@
   <meta name="description" content="Medzo — тренажёры по анатомии и гистологии: подготовка к коллоквиумам, практика и работа над ошибками.">
   <meta name="theme-color" content="#f4f6fb">
   <meta name="color-scheme" content="light dark">
-  <link rel="icon" href="assets/medzo-mark-transparent.png?v=2" type="image/png">
-  <link rel="stylesheet" href="css/styles.css?v=20261107-tour1">
+  <link rel="icon" href="assets/medzo-mark-transparent.png?v=20261116-pwa6" type="image/png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Medzo">
+  <link rel="canonical" href="https://disklay.github.io/disklay/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Medzo">
+  <meta property="og:title" content="Medzo — тренажёры для учёбы">
+  <meta property="og:description" content="Medzo — тренажёры по анатомии и гистологии: подготовка к коллоквиумам, практика и работа над ошибками.">
+  <meta property="og:url" content="https://disklay.github.io/disklay/">
+  <meta property="og:image" content="https://disklay.github.io/disklay/assets/og-cover.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="MEDZO — тренажёры по анатомии и гистологии, АРМ РНИМУ">
+  <meta property="og:locale" content="ru_RU">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Medzo — тренажёры для учёбы">
+  <meta name="twitter:description" content="Medzo — тренажёры по анатомии и гистологии: подготовка к коллоквиумам, практика и работа над ошибками.">
+  <meta name="twitter:image" content="https://disklay.github.io/disklay/assets/og-cover.jpg">
+  <link rel="stylesheet" href="css/styles.css?v=20261116-pwa6">
+  <link rel="stylesheet" href="css/teacher-reviews.css?v=20261116-pwa6">
 </head>
 <body>
   <a class="skip-link" href="#app">Перейти к содержимому</a>
@@ -17,7 +39,7 @@
     <div class="topbar__inner">
       <a class="brand" id="subjectBrand" href="#/" aria-label="Medzo — на главную">
         <span class="brand__mark" aria-hidden="true">
-          <img src="assets/medzo-mark-transparent.png?v=2" width="256" height="256" alt="" decoding="async">
+          <img src="assets/medzo-mark-transparent.png?v=20261116-pwa6" width="256" height="256" alt="" decoding="async">
         </span>
         <span class="brand__text">
           <strong><span class="brand__wordmark">MEDZO</span><svg class="brand__flag" viewBox="0 0 30 18" aria-hidden="true" focusable="false"><path fill="#d90012" d="M0 0h30v6H0z"/><path fill="#0033a0" d="M0 6h30v6H0z"/><path fill="#f2a800" d="M0 12h30v6H0z"/></svg></strong>
@@ -62,6 +84,15 @@
           <path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.6 8.6 0 1 0 10.8 10.8Z"/>
         </svg>
       </button>
+      <div class="course-switch" id="courseSwitch">
+        <button type="button" class="course-switch__trigger" id="courseSwitchTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="courseSwitchPanel" aria-label="Выбрать коллоквиум">
+          <span class="course-switch__badge" aria-hidden="true" data-switch-badge>1</span>
+          <span class="course-switch__text"><span class="course-switch__eyebrow" data-switch-semester>1 семестр</span><strong data-switch-name>Остеология и артросиндесмология</strong></span>
+          <span class="course-switch__chevron" aria-hidden="true"></span>
+        </button>
+        <div class="course-switch__panel" id="courseSwitchPanel" role="dialog" aria-label="Коллоквиумы и зачёты" hidden></div>
+      </div>
+
       <a class="topbar-profile" id="topbarProfile" href="#/profile" aria-label="Открыть профиль" title="Профиль">
         <svg class="topbar-profile__placeholder" id="topbarProfilePlaceholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c.6-4 3.1-6 7.5-6s6.9 2 7.5 6"/></svg>
         <img id="topbarProfilePhoto" alt="" hidden>
@@ -69,6 +100,7 @@
     </div>
   </header>
   <a href="#/profile" id="syncAlert" class="sync-alert" aria-live="polite" hidden></a>
+  <div id="offlineBanner" class="offline-banner" role="status" hidden><strong>Офлайн-режим.</strong> Прогресс, награды и оценки не сохраняются: всё начинается с нуля и живёт до перезагрузки страницы. Как только сеть появится, прогресс загрузится заново; офлайн-заметки будут стёрты.</div>
 
   <div class="app-layout">
     <button type="button" class="course-backdrop" id="courseBackdrop" aria-label="Закрыть навигацию" tabindex="-1" hidden></button>
@@ -84,8 +116,9 @@
         <nav class="course-sidebar__pages" aria-label="Разделы приложения">
           <a href="#/" data-sidebar-route="dashboard" data-nav-icon="home">Главная</a>
           <a href="#/tests" data-sidebar-route="tests" data-nav-icon="train">Тренировка</a>
-          <a href="#/anatomy-oral?section=notes" data-sidebar-route="anatomy-oral" data-nav-icon="book">Теория · 1 и 2 коллоквиумы</a>
+          <a href="#/theory" data-sidebar-route="theory" data-nav-icon="book">Теория</a>
           <a href="#/portfolio" data-sidebar-route="portfolio" data-nav-icon="star">Портфель избранного</a>
+          <a href="#/teachers" data-sidebar-route="teachers" data-nav-icon="profile">Отзывы о преподавателях</a>
           <a href="#/stats" data-sidebar-route="stats" data-nav-icon="stats">Статистика</a>
           <a href="#/rewards" data-sidebar-route="rewards" data-nav-icon="sparkles">Награды и оформление</a>
           <a href="#/dungeon" data-sidebar-route="dungeon" data-nav-icon="dungeon">Подземелье</a>
@@ -115,10 +148,8 @@
     <div class="content-shell">
       <nav class="context-nav" aria-label="Путь по разделам">
         <a id="contextSubject" href="#/">Анатомия</a><span aria-hidden="true">/</span>
-        <select id="contextBase" aria-label="Выбрать коллоквиум или зачёт" title="Сменить коллоквиум или зачёт"></select><span id="contextBaseSeparator" aria-hidden="true">/</span>
         <span class="context-nav__current" id="contextPage" aria-current="page"></span>
-      </nav>
-      <main id="app" class="main" tabindex="-1"></main>
+      </nav>      <main id="app" class="main" tabindex="-1"></main>
     </div>
   </div>
 
@@ -137,37 +168,36 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/telegram-boot.js?v=1"></script>
-  <script src="js/data/questions.js"></script>
-  <script src="js/data/answers.js?v=20261102-original1"></script>
-  <script src="js/data/exam.js"></script>
-  <script src="js/data/colloquium-2.js"></script>
-  <script src="js/data/colloquium-3.js"></script>
-  <script src="js/data/colloquium-4.js"></script>
-  <script src="js/data/colloquium-5.js?v=20261031-est1"></script>
-  <script src="js/data/colloquium-6.js?v=20261031-pns1"></script>
-  <script src="js/data/colloquium-7.js?v=20261031-sss1"></script>
-  <script src="js/data/credit-1.js?v=20261102-original1"></script>
-  <script src="js/data/credit-2.js"></script>
-  <script src="js/data/dental-2.js"></script>
-  <script src="js/data/dental-3.js"></script>
-  <script src="js/modules.js?v=20261102-keynotes1"></script>
-  <script src="js/core.js?v=20261107-autosync1"></script>
-  <script src="js/game.js?v=20261107-special1500"></script>
-  <script src="js/ui.js?v=20261107-training-nav1"></script>
-  <script src="js/germ-squad.js?v=20261031-easter1"></script>
-  <script src="js/views-study.js?v=20261114-myology1"></script>
-  <script src="js/study-snapshot.js?v=3"></script>
-  <script src="js/study-sync-engine.js?v=3"></script>
-  <script src="js/oral-snapshot.js?v=1"></script>
-  <script src="js/myology-snapshot.js?v=1"></script>
-  <script src="js/profile-photo.js?v=1"></script>
-  <script src="js/study-sync.js?v=20261114-myology1"></script>
-  <script src="js/promo-codes.js?v=20261107-futurepromo1"></script>
-  <script src="js/views-pages.js?v=20261114-myology1"></script>
-  <script src="js/views-rewards.js?v=20261107-sidebar1"></script>
-  <script src="js/course-drawer.js?v=20261107-sidebar1"></script>
-  <script src="js/app.js?v=20261114-myology1"></script>
-  <script src="js/onboarding.js?v=1"></script>
+  <script src="js/telegram-boot.js?v=20261116-pwa6"></script>
+  <script src="js/bank-loader.js?v=20261116-pwa6"></script>
+  <script src="js/offline-mode.js?v=20261116-pwa6"></script>
+  <script src="js/modules.js?v=20261116-pwa6"></script>
+  <script src="js/core.js?v=20261116-pwa6"></script>
+  <script src="js/game.js?v=20261116-pwa6"></script>
+  <script src="js/ui.js?v=20261116-pwa6"></script>
+  <script src="js/germ-squad.js?v=20261116-pwa6"></script>
+  <script src="js/views-study.js?v=20261116-pwa6"></script>
+  <script src="js/study-snapshot.js?v=20261116-pwa6"></script>
+  <script src="js/study-sync-engine.js?v=20261116-pwa6"></script>
+  <script src="js/oral-snapshot.js?v=20261116-pwa6"></script>
+  <script src="js/myology-snapshot.js?v=20261116-pwa6"></script>
+  <script src="js/profile-photo.js?v=20261116-pwa6"></script>
+  <script src="js/study-sync.js?v=20261116-pwa6"></script>
+  <script src="js/promo-codes.js?v=20261116-pwa6"></script>
+  <script src="js/views-pages.js?v=20261116-pwa6"></script>
+  <script src="js/views-rewards.js?v=20261116-pwa6"></script>
+  <script src="js/course-drawer.js?v=20261116-pwa6"></script>
+  <script src="js/colloquium-switch.js?v=20261116-pwa6"></script>
+  <script src="js/teacher-reviews.js?v=20261116-pwa6"></script>
+  <script src="js/views-teacher-reviews.js?v=20261116-pwa6"></script>
+  <script src="js/app.js?v=20261116-pwa6"></script>
+  <script src="js/onboarding.js?v=20261116-pwa6"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
 </body>
 </html>

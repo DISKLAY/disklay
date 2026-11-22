@@ -1,91 +1,230 @@
-/* Myology: supplied lists and the supplied original illustrations. */
+/* Миология: второй коллоквиум. Навыки — тот же каркас, что у первого коллоквиума
+   (ps-*); вопросы и теория — весь текст и все рисунки исходного расписанного
+   конспекта прямо на странице, без ссылок на оригинальный PDF. */
 (function () {
   'use strict';
-  const AT=window.AT, data=window.MedzoMyologyData, esc=AT.utils.esc;
-  const KEY='medzo-myology-practice-v1', folder='assets/anatomy/myology/';
-  const matches=(text,query)=>query.split(/\s+/).filter(Boolean).every(word=>text.toLowerCase().includes(word));
-  let saved={skills:{},questions:{},session:null},groupSelection=[],scope='all',order='ordered',limit=10,search='';
-  function loadSaved(){
-    saved={skills:{},questions:{},session:null};groupSelection=[];scope='all';order='ordered';limit=10;
-    try {
-    const x=JSON.parse(localStorage.getItem(KEY)||'{}');
-    for(const type of ['skills','questions'])for(const [id,value] of Object.entries(x[type]||{})){
-      const n=Number(id),max=type==='skills'?222:66;
-      if(Number.isInteger(n)&&n>=1&&n<=max&&['known','again'].includes(value))saved[type][n]=value;
-    }
-    const prefs=x.preferences||{};
-    if(Array.isArray(prefs.groups))groupSelection=[...new Set(prefs.groups.filter(id=>data.groups.some(g=>g.id===id)))];
-    if(['all','unseen','again'].includes(prefs.scope))scope=prefs.scope;
-    if(['ordered','random'].includes(prefs.order))order=prefs.order;
-    if([0,10,20,50].includes(prefs.limit))limit=prefs.limit;
-    const s=x.session;
-    if(s&&Array.isArray(s.order)&&s.order.length>0&&s.order.length<=222&&s.order.every(n=>Number.isInteger(n)&&n>=1&&n<=222)&&new Set(s.order).size===s.order.length&&Number.isInteger(s.index)&&s.index>=0&&s.index<s.order.length)saved.session={order:s.order,index:s.index};
-    }catch(_){/* ignore damaged or unavailable storage */}
+  const AT = window.AT, esc = AT.utils.esc;
+  const data = window.MedzoMyologyData;
+  const source = window.MedzoMyologySource || [];
+  const skills = window.MedzoMyologySkills;
+  const folder = 'assets/anatomy/myology/';
+  const pad = n => String(n).padStart(2, '0');
+  const matches = (text, query) => query.split(/\s+/).filter(Boolean).every(word => text.toLowerCase().includes(word));
+  const skillCount = n => n + ' ' + (n % 10 === 1 && n % 100 !== 11 ? 'навык' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'навыка' : 'навыков');
+  const statusLabel = status => status === 'known' ? 'Знаю и могу показать' : status === 'again' ? 'Повторить' : 'Не оценено';
+
+  let store;
+  try { const local = window.localStorage; store = { getItem: key => local.getItem(key), setItem: (key, value) => { local.setItem(key, value); if (window.MedzoStudySync) window.MedzoStudySync.myologyChanged(); } }; } catch (e) { store = { getItem() { return null; }, setItem() { throw e; } }; }
+  const game = skills.create(store);
+
+  let screen = 'setup', search = '', groupMenuOpen = false;
+  const openSections = new Set();
+  const choices = {
+    group: [['all', 'Все темы'], ...data.groups.map(g => [g.id, g.name])],
+    scope: [['all', 'Все навыки'], ['unseen', 'Ещё не оценённые'], ['again', 'Требуют повторения'], ['favorites', 'Избранные']],
+    limit: [['10', '10 навыков'], ['20', '20 навыков'], ['50', '50 навыков'], ['0', 'Все доступные']],
+    sequence: [['random', 'Вперемешку'], ['ordered', 'По порядку']]
+  };
+  function picker(name, label, value, instance = 'setup') {
+    const entries = choices[name], selectedGroups = Array.isArray(value) ? value : [String(value)];
+    const selected = entries.find(x => x[0] === String(value)) || entries[0], key = name + '-' + instance;
+    const labelText = name === 'group' && selectedGroups.length > 1 ? 'Выбрано тем: ' + selectedGroups.length : selected[1];
+    const opened = name === 'group' && groupMenuOpen;
+    return '<div class="ps-picker" data-picker="' + name + '" data-picker-instance="' + instance + '"><span class="ps-picker__label" id="ps-label-' + key + '">' + label + '</span><button type="button" class="ps-picker__trigger" data-picker-trigger aria-labelledby="ps-label-' + key + ' ps-value-' + key + '" aria-controls="ps-menu-' + key + '" aria-expanded="' + opened + '"><span id="ps-value-' + key + '">' + esc(labelText) + '</span><span class="ps-chevron" aria-hidden="true"></span></button><div class="ps-picker__menu" id="ps-menu-' + key + '" role="group" aria-labelledby="ps-label-' + key + '"' + (opened ? '' : ' hidden') + '>' + entries.map(([id, text]) => { const active = name === 'group' ? selectedGroups.includes(id) : id === selected[0]; return '<button type="button" class="ps-picker__option' + (active ? ' is-selected' : '') + '" data-ps-option="' + name + '" data-value="' + esc(id) + '" aria-pressed="' + active + '"><span>' + esc(text) + '</span><span class="ps-picker__check" aria-hidden="true">' + (active ? '✓' : '') + '</span></button>'; }).join('') + '</div></div>';
   }
-  loadSaved();
-  let running=false,revealed=false;
-  function reloadFromStorage(){loadSaved();if(AT.route && AT.route()==='myology')AT.rerender();}
-  window.addEventListener('medzo-myology-updated',reloadFromStorage);
-  window.addEventListener('storage',event=>{if(event.key===KEY)reloadFromStorage();});
-  function save(){try{saved.preferences={groups:groupSelection,scope,order,limit};localStorage.setItem(KEY,JSON.stringify(saved));if(window.MedzoStudySync?.myologyChanged)window.MedzoStudySync.myologyChanged();return true;}catch(_){AT.ui.toast('Не удалось сохранить самооценку на устройстве','warn');return false;}}
-  function image(kind,page){return folder+(kind==='theory'?'question-pages':kind==='v1'?'variant-1-pages':'variant-2-pages')+'/'+String(page).padStart(2,'0')+'.webp';}
-  function pdf(kind,page){return folder+(kind==='theory'?'questions-source.pdf':kind==='v1'?'skills-variant-1.pdf':'skills-variant-2.pdf')+'#page='+page;}
-  function preview(kind,page){return '<details class="myo-preview" data-preview-kind="'+kind+'" data-preview-page="'+page+'"><summary>Страница '+page+' · открыть изображение</summary><div data-preview-body></div></details>';}
-  function markButtons(kind,id){const v=saved[kind][id];return '<div class="myo-rate" aria-label="Самооценка"><button type="button" data-myo-rate="'+kind+'" data-id="'+id+'" data-value="known" aria-pressed="'+(v==='known')+'">Знаю</button><button type="button" data-myo-rate="'+kind+'" data-id="'+id+'" data-value="again" aria-pressed="'+(v==='again')+'">Повторить</button></div>';}
-  function pool(){return data.skills.filter(x=>(!groupSelection.length||groupSelection.includes(x.group))&&(scope==='all'||scope==='unseen'&&!saved.skills[x.id]||scope==='again'&&saved.skills[x.id]==='again'));}
-  function tabs(section){return '<nav class="myo-tabs" aria-label="Миология · второй коллоквиум">'+[['skills','Практические навыки'],['questions','Вопросы и теория'],['sources','Рисунки и источники']].map(([s,label])=>'<a href="#/myology?section='+s+'"'+(section===s?' aria-current="page"':'')+'>'+label+'</a>').join('')+'</nav>';}
-  function header(section){return '<header class="myo-head"><span>АНАТОМИЯ / 2 КОЛЛОКВИУМ</span><h1>Миология</h1><p>Практические навыки, вопросы и материалы для сверки по предоставленным источникам.</p><a class="myo-back" href="#/anatomy-oral?section=notes">← Теория 1 коллоквиума</a></header>'+tabs(section);}
-  function links(){return '<div class="myo-links"><a href="'+folder+'skills-list.pdf" target="_blank" rel="noopener">Список навыков PDF ↗</a><a href="'+folder+'skills-variant-1.pdf" target="_blank" rel="noopener">Рисунки · вариант 1 ↗</a><a href="'+folder+'skills-variant-2.pdf" target="_blank" rel="noopener">Рисунки · вариант 2 ↗</a><a href="'+folder+'questions-list.pdf" target="_blank" rel="noopener">Список вопросов PDF ↗</a><a href="'+folder+'questions-source.pdf" target="_blank" rel="noopener">Расписанные вопросы PDF ↗</a></div>';}
-  function candidates(item){
-    if(!item.references.length)return '<p class="muted small">Точная подпись не найдена автоматически. Откройте варианты целиком и сверьте вручную: похожие названия не подставляются.</p>';
-    return '<p class="muted small">Совпадение текста в подписи; проверьте рисунок и перевод по атласу. В студенческих материалах возможны ошибки.</p>'+item.references.map(r=>'<div class="myo-source-row"><strong>Вариант '+r.variant+'</strong>'+preview('v'+r.variant,r.page)+'</div>').join('');
+  function catalog() {
+    const s = game.state;
+    return '<section class="ps-catalog"><div class="ps-catalog__head"><div><span class="ps-eyebrow">СПРАВОЧНИК</span><h2>Список навыков</h2></div><span class="ps-count">' + data.skills.length + '</span></div><div class="ps-catalog__controls"><label class="ps-search"><span class="ps-search__icon" aria-hidden="true">⌕</span><input type="search" aria-label="Поиск по названию, номеру или разделу" data-ps-search value="' + esc(search) + '" placeholder="Найти навык или тему"></label>' + picker('sequence', 'Порядок раздела', s.sequence, 'catalog') + '</div><div class="ps-sections">' + data.groups.map(section => {
+      const items = data.skills.filter(item => item.id >= section.from && item.id <= section.to);
+      return '<section class="ps-section" data-section="' + esc(section.id) + '" data-section-name="' + esc(section.name.toLowerCase()) + '" data-total="' + items.length + '"><div class="ps-section__head"><button type="button" class="ps-section__toggle" data-section-toggle aria-expanded="' + openSections.has(section.id) + '" aria-controls="ps-section-' + esc(section.id) + '"><span class="ps-section__arrow" aria-hidden="true"></span><span class="ps-section__title">' + esc(section.name) + '<small data-section-count>' + skillCount(items.length) + '</small></span></button><button type="button" class="ps-section__train" data-ps="section-start" data-id="' + esc(section.id) + '" aria-label="Тренировать весь раздел ' + esc(section.name) + '" title="Все навыки раздела">Тренировать <span aria-hidden="true">↗</span></button></div><div class="ps-section__items" id="ps-section-' + esc(section.id) + '"' + (openSections.has(section.id) ? '' : ' hidden') + '>' + items.map(item => '<div class="ps-list-item" data-search="' + esc((item.id + ' ' + item.latin).toLowerCase()) + '"><span class="ps-item-number">' + item.id + '</span><strong lang="la">' + esc(item.latin) + '</strong></div>').join('') + '</div></section>';
+    }).join('') + '</div><p class="ps-no-results" data-no-results hidden>Ничего не найдено.</p></section>';
   }
-  function skillRun(){
-    const s=saved.session,item=data.skills[s.order[s.index]-1];
-    return '<section class="myo-panel"><div class="myo-run-meta"><span>Навык '+(s.index+1)+' / '+s.order.length+' · № '+item.id+'</span><button type="button" class="btn btn--ghost" data-myo="setup">К настройкам</button></div><h2 class="myo-term" tabindex="-1" lang="la">'+esc(item.latin)+'</h2><p class="muted small">Переведите и покажите структуру, затем сверьте себя. 1 — знаю, 2 — повторить, H — ориентир, стрелки — навигация.</p>'+
-      '<div class="myo-hint">'+(revealed?'<strong>Ориентир:</strong> '+esc(item.hint):'<button type="button" data-myo="hint">Показать ориентир</button>')+'</div><details class="myo-reference"><summary>Свериться с расписанными вариантами</summary>'+candidates(item)+'<p><a href="#/myology?section=sources">Посмотреть все страницы вариантов →</a></p></details>'+markButtons('skills',item.id)+
-      '<div class="myo-actions"><button class="btn btn--ghost" type="button" data-myo="prev"'+(s.index===0?' disabled':'')+'>← Назад</button><button class="btn btn--primary" type="button" data-myo="next">'+(s.index===s.order.length-1?'К настройкам':'Далее →')+'</button></div></section>';
+  function setupView() {
+    const s = game.state, session = s.session, stats = Object.values(s.stats);
+    const learned = stats.filter(x => x.last === 'known').length, again = stats.filter(x => x.last === 'again').length;
+    let html = '<div class="ps-stats" aria-label="Ваш прогресс"><div><strong>' + learned + '</strong><span>знаю</span></div><div><strong>' + again + '</strong><span>повторить</span></div><div><strong>' + stats.length + '<em> / ' + data.skills.length + '</em></strong><span>оценено</span></div></div>';
+    if (session) html += '<div class="ps-resume"><div><strong>' + (session.finished ? 'Последняя подборка' : 'Продолжить тренировку') + '</strong><p>Оценено ' + Object.keys(session.answers).length + ' из ' + session.order.length + '</p></div><button class="btn btn--primary" type="button" data-ps="resume">' + (session.finished ? 'Посмотреть итог' : 'Продолжить →') + '</button></div>';
+    html += '<section class="ps-panel ps-builder"><div class="ps-builder__head"><div><span class="ps-eyebrow">НАСТРОЙКА</span><h2>Новая тренировка</h2></div><span class="ps-builder__icon" aria-hidden="true">✦</span></div><div class="ps-filters">' + picker('group', 'Темы', s.group) + picker('scope', 'Подборка', s.scope) + picker('limit', 'Количество', s.limit) + picker('sequence', 'Порядок', s.sequence) + '</div>' +
+      '<div class="ps-start"><p data-ps-available>Доступно: <strong>' + game.pool().length + '</strong>' + (s.sequence === 'ordered' && s.limit && game.pool().length > s.limit ? ' · первые ' + s.limit : '') + '</p><button type="button" class="btn btn--primary" data-ps="start"' + (!game.pool().length ? ' disabled' : '') + '>Начать тренировку <span aria-hidden="true">→</span></button></div></section>' + catalog() +
+      '<details class="ps-data"><summary>О данных</summary><p>Навыки, оценки и заметки сохраняются в этом браузере. Оценки синхронизируются при входе в аккаунт; при конфликте выберите версию в профиле. Самооценка не начисляет очков. Подсказки — ориентир, сверяйтесь с атласом.</p><button type="button" data-ps="reset">Сбросить оценки</button></details>';
+    return html;
   }
-  function skillsSetup(){
-    const known=Object.values(saved.skills).filter(x=>x==='known').length,again=Object.values(saved.skills).filter(x=>x==='again').length;
-    return '<section class="myo-panel"><div class="myo-title-row"><div><h2>Практические навыки</h2><p>222 пункта из списка. Самооценка не начисляет очки.</p></div><div class="myo-counter">'+known+' знаю · '+again+' повторить</div></div><p class="myo-warning">Оценки сохраняются на устройстве и синхронизируются отдельно при входе в аккаунт. При конфликте выберите версию в профиле.</p>'+
-      (saved.session?'<div class="myo-actions"><button class="btn btn--ghost" type="button" data-myo="resume">Продолжить подборку ('+(saved.session.index+1)+' / '+saved.session.order.length+')</button></div>':'')+
-      '<div class="myo-settings"><details><summary>Темы · можно выбрать несколько</summary><div class="myo-group-list">'+data.groups.map(g=>'<label><input type="checkbox" data-myo-group="'+esc(g.id)+'"'+(groupSelection.includes(g.id)?' checked':'')+'> '+esc(g.name)+'</label>').join('')+'</div><small>Если ничего не выбрано — все темы.</small></details><label>Навыки<select data-myo-scope><option value="all"'+(scope==='all'?' selected':'')+'>Все</option><option value="unseen"'+(scope==='unseen'?' selected':'')+'>Ещё не оценены</option><option value="again"'+(scope==='again'?' selected':'')+'>Повторить</option></select></label><label>Порядок<select data-myo-order><option value="ordered"'+(order==='ordered'?' selected':'')+'>По порядку</option><option value="random"'+(order==='random'?' selected':'')+'>Вперемешку</option></select></label><label>Количество<select data-myo-limit>'+[10,20,50,0].map(n=>'<option value="'+n+'"'+(n===limit?' selected':'')+'>'+(n||'Все')+'</option>').join('')+'</select></label></div><div class="myo-actions"><button class="btn btn--primary" type="button" data-myo="start"'+(!pool().length?' disabled':'')+'>Начать тренировку</button><span data-myo-available>Доступно: '+pool().length+'</span></div></section>'+
-      '<section class="myo-panel"><h2>Исходный список навыков</h2><p>Нумерация и формулировки сохранены как в списке, включая возможные опечатки.</p><label class="myo-search"><span>Поиск по номеру или названию</span><input type="search" data-myo-search value="'+esc(search)+'" placeholder="Например, trapezius"></label><div class="myo-list">'+data.groups.map(g=>'<details class="myo-group" data-catalog-group="'+esc(g.id)+'"><summary>'+esc(g.name)+' <small>№ '+g.from+'–'+g.to+'</small></summary><div>'+data.skills.filter(x=>x.group===g.id).map(x=>'<div class="myo-list-row" data-catalog-item="'+x.id+'"><span>'+x.id+'</span><strong lang="la">'+esc(x.latin)+'</strong><small>'+(saved.skills[x.id]==='known'?'Знаю':saved.skills[x.id]==='again'?'Повторить':'')+'</small></div>').join('')+'</div></details>').join('')+'</div><p data-myo-empty hidden>Ничего не найдено.</p></section>';
+  function referencesView(item) {
+    if (!item.references.length) return '';
+    return '<details class="ps-reference"><summary>Свериться с рисунком (' + item.references.length + ' ' + (item.references.length === 1 ? 'вариант' : 'варианта') + ')</summary>' +
+      item.references.map(r => '<div class="ps-reference-row"><strong>Вариант ' + r.variant + ' · стр. ' + r.page + '</strong><img src="' + folder + 'variant-' + r.variant + '-pages/' + pad(r.page) + '.webp" alt="Навык № ' + item.id + ' · вариант ' + r.variant + ', страница ' + r.page + ': рисунок с подписью" loading="lazy"></div>').join('') +
+      '</details>';
   }
-  function questionStatus(q){return ({'heading-only':'В расписанном источнике только заголовок.',diagram:'В источнике приведена схема; текстовый ответ неполный.',external:'В источнике дана ссылка на внешний материал, а не полный ответ.',partial:'Материал в источнике частичный или входит в другую тему.',text:'Материал есть в исходном документе; проверьте полноту ответа.'})[q.sourceStatus];}
-  function questions(){return '<section class="myo-panel"><div class="myo-title-row"><div><h2>Вопросы по миологии</h2><p>66 вопросов из предоставленного списка. В источнике ответы расписаны не на все вопросы; некоторые страницы содержат только формулировки.</p></div></div><p class="myo-warning">На обложке расписанного файла указан другой номер коллоквиума, но по уточнению материал относится ко второму. Содержимое и рисунки приведены без изменения; возможны ошибки, сверяйте с учебником.</p><p class="muted small">Оценки вопросов сохраняются на устройстве и синхронизируются отдельно при входе в аккаунт. Самооценка не даёт очков.</p><label class="myo-search"><span>Найти вопрос</span><input type="search" data-myo-question-search placeholder="Название или номер"></label><div class="myo-list">'+data.questions.map(q=>'<details class="myo-question" data-question="'+q.id+'"><summary><span>№ '+q.id+'</span> '+esc(q.text)+'</summary><p class="myo-question-status">'+esc(questionStatus(q))+'</p><p class="muted small">Страницы источника: '+q.pages.join(', ')+'. Нумерация в расписанном файле отличается от списка вопросов. Проверьте, есть ли на страницах ответ: некоторые пункты в источнике не раскрыты.</p>'+q.pages.map(p=>preview('theory',p)).join('')+markButtons('questions',q.id)+'</details>').join('')+'</div><p data-myo-question-empty hidden>Ничего не найдено.</p></section>';}
-  function sources(){return '<section class="myo-panel"><h2>Расписанные материалы</h2><p>Оригинальные страницы и все пять PDF. Подписи могут отличаться от официального списка или содержать ошибки; проверяйте по атласу и учебнику.</p>'+links()+'<label class="myo-search"><span>Поиск по тексту подписей в обоих вариантах</span><input type="search" data-myo-source-search placeholder="Например, m. trapezius"></label>'+data.variantPages.map((pages,i)=>'<section class="myo-source-group"><h3>Практические навыки · вариант '+(i+1)+'</h3><div>'+pages.map(p=>'<div data-source-variant="'+(i+1)+'" data-source-page="'+p.page+'">'+preview('v'+(i+1),p.page)+'</div>').join('')+'</div></section>').join('')+'<p data-myo-source-empty hidden>Совпадений в текстовых подписях не найдено. Подписи внутри изображений поиском не распознаются.</p></section>';}
-  function filterCatalog(view){const q=search.trim().toLowerCase();let found=0;view.querySelectorAll('[data-catalog-group]').forEach(g=>{let count=0;g.querySelectorAll('[data-catalog-item]').forEach(el=>{const item=data.skills[Number(el.dataset.catalogItem)-1];const yes=!q||matches(item.id+' '+item.latin+' '+item.hint,q);el.hidden=!yes;if(yes)count++;});g.hidden=!count;if(count){found+=count;if(q)g.open=true;}});view.querySelector('[data-myo-empty]').hidden=found>0;}
-  function refreshAvailable(view){const count=pool().length;const el=view.querySelector('[data-myo-available]');if(el)el.textContent='Доступно: '+count;const b=view.querySelector('[data-myo="start"]');if(b)b.disabled=!count;}
-  AT.views.myology=function(params){
-    const section=['skills','questions','sources'].includes(params.section)?params.section:'skills';
-    const html='<div class="view myo-view">'+header(section)+(section==='skills'?(running&&saved.session?skillRun():skillsSetup()):section==='questions'?questions():sources())+'</div>';
-    return {title:'Миология · 2 коллоквиум',html,mount(root){const view=root.querySelector('.myo-view');
-      if(section==='skills'&&!running)filterCatalog(view);
-      view.addEventListener('toggle',event=>{const el=event.target;if(!el.matches('[data-preview-kind]')||!el.open)return;const body=el.querySelector('[data-preview-body]');if(body.dataset.loaded)return;const kind=el.dataset.previewKind,page=Number(el.dataset.previewPage);body.innerHTML='<a href="'+pdf(kind,page)+'" target="_blank" rel="noopener">Открыть оригинал · страница '+page+' ↗</a><img src="'+image(kind,page)+'" alt="Страница '+page+' исходного документа" loading="lazy">'+(kind==='theory'?'<details><summary>Текст страницы для чтения и поиска</summary><pre>'+esc(data.theoryPages[page-1].text)+'</pre></details>':'');body.dataset.loaded='1';},true);
-      view.addEventListener('input',event=>{const el=event.target;
-        if(el.matches('[data-myo-search]')){search=el.value;filterCatalog(view);}
-        if(el.matches('[data-myo-question-search]')){const q=el.value.trim().toLowerCase();let count=0;view.querySelectorAll('[data-question]').forEach(row=>{const x=data.questions[Number(row.dataset.question)-1];row.hidden=!!q&&!matches(x.id+' '+x.text,q);if(!row.hidden)count++;});view.querySelector('[data-myo-question-empty]').hidden=!!count;}
-        if(el.matches('[data-myo-source-search]')){const q=el.value.trim().toLowerCase();let count=0;view.querySelectorAll('[data-source-variant]').forEach(row=>{const x=data.variantPages[Number(row.dataset.sourceVariant)-1][Number(row.dataset.sourcePage)-1];row.hidden=!!q&&!matches(x.page+' '+x.text,q);if(!row.hidden)count++;});view.querySelector('[data-myo-source-empty]').hidden=!!count;}
+  function runView() {
+    const s = game.state.session, item = game.current();
+    if (!s || !item) { screen = 'setup'; return setupView(); }
+    const status = s.answers[item.id], fav = !!game.state.favorites[item.id], showHint = !!s.hints[item.id];
+    return '<div class="ps-run-top"><button type="button" class="ps-back" data-ps="setup">← К настройкам</button><span>НАВЫК ' + (s.index + 1) + ' / ' + s.order.length + '</span></div>' +
+      '<div class="ps-progress" role="progressbar" aria-label="Позиция в подборке" aria-valuemin="1" aria-valuemax="' + s.order.length + '" aria-valuenow="' + (s.index + 1) + '"><span style="width:' + ((s.index + 1) / s.order.length * 100) + '%"></span></div>' +
+      '<article class="ps-card"><div class="ps-card-head"><span class="ps-eyebrow">НАВЫК № ' + item.id + '</span><button class="ps-favorite' + (fav ? ' is-active' : '') + '" data-ps="favorite" data-id="' + item.id + '" aria-label="' + (fav ? 'Убрать из избранного' : 'Добавить в избранное') + '" aria-pressed="' + fav + '" type="button">' + (fav ? '★' : '☆') + '</button></div>' +
+      '<h1 tabindex="-1" class="ps-term" lang="la">' + esc(item.latin) + '</h1>' + (s.index === 0 ? '<p class="ps-prompt">Переведите и покажите структуру, затем сверьте себя с атласом.</p>' : '') +
+      '<p class="ps-prompt">Клавиатура: 1 — знаю, 2 — повторить, H — подсказка, ← / → — назад / далее, Enter — далее.</p>' +
+      '<div class="ps-hint">' + (showHint ? '<strong tabindex="-1" data-ps-hint-result>Ориентир:</strong> ' + esc(item.hint) : '<button type="button" class="ps-hint__button" data-ps="hint"><span aria-hidden="true">✧</span> Подсказка</button>') + '</div>' +
+      referencesView(item) +
+      '<div class="ps-review"><h2>Как получилось?</h2><div class="ps-review-actions"><button type="button" class="btn ' + (status === 'known' ? 'btn--success' : 'btn--ghost') + '" data-ps="mark" data-value="known" aria-pressed="' + (status === 'known') + '">Знаю и покажу</button><button type="button" class="btn ' + (status === 'again' ? 'btn--danger' : 'btn--ghost') + '" data-ps="mark" data-value="again" aria-pressed="' + (status === 'again') + '">Повторить</button></div>' + (status ? '<p class="ps-status" role="status">' + statusLabel(status) + '</p>' : '') + '</div>' +
+      '<details class="ps-notes"><summary>Моя заметка</summary><label for="ps-note">Запись после сверки</label><textarea id="ps-note" data-ps-note maxlength="2000" placeholder="Личная заметка…">' + esc(game.state.notes[item.id] || '') + '</textarea><small>Заметка сохраняется на устройстве.</small></details>' +
+      '<div class="ps-pagination"><button type="button" class="btn btn--ghost" data-ps="prev"' + (s.index === 0 ? ' disabled' : '') + '>← Назад</button><button type="button" class="btn btn--primary" data-ps="' + (s.index === s.order.length - 1 ? 'finish' : 'next') + '">' + (s.index === s.order.length - 1 ? 'К итогам' : 'Далее →') + '</button></div></article>';
+  }
+  function summaryView() {
+    const s = game.state.session;
+    if (!s) { screen = 'setup'; return setupView(); }
+    const known = s.order.filter(id => s.answers[id] === 'known').length, again = s.order.filter(id => s.answers[id] === 'again').length, unanswered = s.order.length - known - again;
+    return '<header class="ps-head"><span class="ps-eyebrow">ТРЕНИРОВКА ЗАВЕРШЕНА</span><h1>Итоги подборки</h1><p>Результат вашей самооценки</p></header><div class="ps-stats"><div><strong>' + known + '</strong><span>знаю и покажу</span></div><div><strong>' + again + '</strong><span>повторить</span></div><div><strong>' + unanswered + '</strong><span>без оценки</span></div></div><section class="ps-panel"><h2>Навыки в подборке</h2><div class="ps-summary-list">' + s.order.map((id, index) => '<div class="ps-summary-item"><span><small>№ ' + id + ' · ' + statusLabel(s.answers[id]) + '</small><strong lang="la">' + esc(skills.byId[id].latin) + '</strong></span><button type="button" class="btn btn--ghost btn--sm" data-ps="open-index" data-index="' + index + '">Открыть</button></div>').join('') + '</div><div class="ps-summary-actions"><button type="button" class="btn btn--primary" data-ps="setup">К настройкам</button><button type="button" class="btn btn--ghost" data-ps="resume-run">Вернуться к подборке</button></div></section>';
+  }
+  function jumpTop() { requestAnimationFrame(() => { const term = document.querySelector('.ps-term'); if (term) { term.focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'auto' }); } }); }
+  function syncSearch(view) {
+    const q = search.trim().toLowerCase(); let visible = 0;
+    view.querySelectorAll('[data-section]').forEach(section => {
+      const nameMatch = q && section.dataset.sectionName.includes(q); let count = 0;
+      section.querySelectorAll('[data-search]').forEach(item => { const ok = !q || nameMatch || item.dataset.search.includes(q); item.hidden = !ok; if (ok) count++; });
+      section.hidden = count === 0; if (!count) return; visible++;
+      const expanded = q ? true : openSections.has(section.dataset.section);
+      section.querySelector('[data-section-toggle]').setAttribute('aria-expanded', String(expanded));
+      section.querySelector('.ps-section__items').hidden = !expanded;
+      section.querySelector('[data-section-count]').textContent = q && count < Number(section.dataset.total) ? count + ' из ' + section.dataset.total : skillCount(count);
+    });
+    const empty = view.querySelector('[data-no-results]'); if (empty) empty.hidden = visible > 0;
+  }
+
+  /* ---------- Вопросы и теория: весь текст и все рисунки на странице ---------- */
+  const anchored = new Set();
+  source.forEach(page => page.blocks.forEach(block => { if (block.type === 'heading' && block.anchor) anchored.add(block.anchor); }));
+  const countAnchored = id => anchored.has(id);
+  function markButtons(id) {
+    const v = game.state.questions[id];
+    return '<div class="myo-rate" aria-label="Самооценка"><button type="button" data-myo-rate="' + id + '" data-value="known" aria-pressed="' + (v === 'known') + '">Знаю</button><button type="button" data-myo-rate="' + id + '" data-value="again" aria-pressed="' + (v === 'again') + '">Повторить</button></div>';
+  }
+  function statusHint(q) {
+    return ({ 'heading-only': 'В источнике только заголовок', diagram: 'В источнике — схема', external: 'В источнике — отсылка к meduniver', partial: 'В источнике материал частичный' })[q.sourceStatus] || '';
+  }
+  function questionsView() {
+    return '<section class="myo-panel"><div class="myo-title-row"><div><h2>Вопросы по миологии</h2></div></div><label class="myo-search"><span>Найти вопрос</span><input type="search" data-myo-question-search placeholder="Название или номер"></label><div class="myo-list">' + data.questions.map(q => '<details class="myo-question" data-question="' + q.id + '"><summary><span>№ ' + q.id + '</span> ' + esc(q.text) + '</summary><div class="myo-question-body">' + (countAnchored(q.id) ? '<button type="button" class="btn btn--ghost btn--sm" data-scroll-to="myology-q-' + q.id + '">К материалу ↓</button>' : '') + markButtons(q.id) + '</div>' + (statusHint(q) ? '<p class="myo-question-note">' + statusHint(q) + '</p>' : '') + '</details>').join('') + '</div><p data-myo-question-empty hidden>Ничего не найдено.</p></section>' +
+      '<section class="myo-panel myo-theory"><div class="myo-source">' + sourceHtml() + '</div></section>';
+  }
+  function blockHtml(block) {
+    if (block.type === 'heading') return '<h3 class="myo-q-heading" id="myology-q-' + block.anchor + '" tabindex="-1">' + esc(block.text) + '</h3>';
+    if (block.type === 'banner') return '<h4 class="myo-banner">' + esc(block.text) + '</h4>';
+    if (block.type === 'table') return '<div class="myo-table"><h4>' + esc(block.caption) + '</h4>' + block.rows.map(row => '<dl class="myo-table__row">' + row.map((cell, i) => cell ? '<div><dt>' + esc(block.headers[i] || '') + '</dt><dd>' + esc(cell) + '</dd></div>' : '').join('') + '</dl>').join('') + '</div>';
+    if (block.type === 'figure') return '<figure class="myo-figure"><img src="' + esc(block.file) + '" alt="' + esc(block.alt) + '" loading="lazy" width="' + block.width + '" height="' + block.height + '"></figure>';
+    return '<p>' + esc(block.text) + '</p>';
+  }
+  // Без служебных подписей «Стр. N»: страница исходника остаётся в разметке
+  // только как технический ориентир, а не как лишняя надпись на экране.
+  function sourceHtml() {
+    return source.map(section => '<div data-source-page="' + section.page + '">' + section.blocks.map(blockHtml).join('') + '</div>').join('');
+  }
+  AT.views.myology = function (params) {
+    const section = ['skills', 'questions'].includes(params.section) ? params.section : 'skills';
+    const body = section === 'skills' ? (screen === 'run' ? runView() : screen === 'summary' ? summaryView() : setupView()) : questionsView();
+    // Внутри объединённой страницы навыков шапку и отступы даёт общий каркас,
+    // поэтому собственный заголовок показываем только на странице теории.
+    // «Встроенный» режим включается только когда страницу рисует хаб навыков.
+    const standalone = !(params.colloquium === '2' && params.embedded === '1');
+    const html = '<div class="view myo-view' + (standalone ? '' : ' myo-view--embedded') + '">' +
+      (section === 'questions' ? '<header class="myo-head"><span>АНАТОМИЯ / 2 КОЛЛОКВИУМ</span><h1>Теория</h1></header>' : (standalone ? '<header class="myo-head"><span>АНАТОМИЯ / 2 КОЛЛОКВИУМ</span><h1>Практические навыки</h1></header>' : '')) +
+      body + '</div>';
+    return { title: 'Миология · 2 коллоквиум', html, mount(root) {
+      const view = root.querySelector('.myo-view');
+      const warn = () => { if (game.storageFailed()) AT.ui.toast('Не удалось сохранить миологию на устройстве', 'warn'); };
+      // Синхронизация пришла из облака или из другой вкладки — обновляем экран.
+      const refresh = () => { if (!view.isConnected) return; if (game.adopt()) AT.rerender(); };
+      const storageEvent = event => { if (!event.key || event.key === skills.SYNC_KEY) refresh(); };
+      window.addEventListener('medzo-myology-updated', refresh);
+      window.addEventListener('storage', storageEvent);
+      if (AT.onCleanup) AT.onCleanup(() => { window.removeEventListener('medzo-myology-updated', refresh); window.removeEventListener('storage', storageEvent); });
+      const closePicker = pickerEl => { if (pickerEl.dataset.picker === 'group') groupMenuOpen = false; pickerEl.querySelector('[data-picker-trigger]').setAttribute('aria-expanded', 'false'); pickerEl.querySelector('.ps-picker__menu').hidden = true; };
+      const closeMenus = () => view.querySelectorAll('[data-picker]').forEach(closePicker);
+      function syncOptions() {
+        const state = game.state;
+        view.querySelectorAll('[data-picker]').forEach(pickerEl => {
+          const name = pickerEl.dataset.picker, value = state[name];
+          const selected = Array.isArray(value) ? value : [String(value)];
+          const entry = choices[name].find(([id]) => id === String(value)) || choices[name][0];
+          const label = name === 'group' && selected.length > 1 ? 'Выбрано тем: ' + selected.length : entry[1];
+          pickerEl.querySelector('[data-picker-trigger] span').textContent = label;
+          pickerEl.querySelectorAll('[data-ps-option]').forEach(option => {
+            const active = name === 'group' ? selected.includes(option.dataset.value) : option.dataset.value === entry[0];
+            option.classList.toggle('is-selected', active); option.setAttribute('aria-pressed', String(active));
+            option.querySelector('.ps-picker__check').textContent = active ? '✓' : '';
+          });
+        });
+        const count = game.pool().length, available = view.querySelector('[data-ps-available]');
+        if (available) { available.replaceChildren('Доступно: '); const strong = document.createElement('strong'); strong.textContent = count; available.append(strong); if (state.sequence === 'ordered' && state.limit && count > state.limit) available.append(' · первые ' + state.limit); }
+        const startButton = view.querySelector('[data-ps="start"]'); if (startButton) startButton.disabled = !count;
+      }
+      if (section === 'skills' && screen === 'setup') syncSearch(view);
+      async function start(sectionId) {
+        const s = game.state.session;
+        if (s && !s.finished) { const ok = await AT.ui.confirmDialog({ title: 'Начать новую подборку?', text: 'Текущая подборка будет заменена. Уже выставленные оценки и избранное сохранятся.', confirm: 'Начать' }); if (!ok) return; }
+        if (sectionId ? game.startSection(sectionId) : game.start()) { screen = 'run'; AT.rerender(); jumpTop(); warn(); }
+      }
+      view.addEventListener('click', async event => {
+        const scroll = event.target.closest('[data-scroll-to]');
+        if (scroll) { event.preventDefault(); const target = view.querySelector('#' + scroll.dataset.scrollTo); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); target.focus({ preventScroll: true }); } return; }
+        const trigger = event.target.closest('[data-picker-trigger]');
+        if (trigger) { const pickerEl = trigger.closest('[data-picker]'), wasOpen = trigger.getAttribute('aria-expanded') === 'true'; closeMenus(); if (!wasOpen) { if (pickerEl.dataset.picker === 'group') groupMenuOpen = true; trigger.setAttribute('aria-expanded', 'true'); pickerEl.querySelector('.ps-picker__menu').hidden = false; } return; }
+        const opt = event.target.closest('[data-ps-option]');
+        if (opt) { event.stopPropagation(); const name = opt.dataset.psOption, values = { group: game.state.group, scope: game.state.scope, limit: game.state.limit, sequence: game.state.sequence }; if (name === 'group') { const id = opt.dataset.value, previous = Array.isArray(values.group) ? values.group : values.group === 'all' ? [] : [values.group]; values.group = id === 'all' ? 'all' : previous.includes(id) ? previous.filter(x => x !== id) : previous.concat(id); groupMenuOpen = true; } else values[name] = opt.dataset.value; game.setOptions(values.group, values.scope, values.limit, values.sequence); syncOptions(); const pickerEl = opt.closest('[data-picker]'); if (name !== 'group') { closePicker(pickerEl); pickerEl.querySelector('[data-picker-trigger]').focus({ preventScroll: true }); } warn(); return; }
+        const toggle = event.target.closest('[data-section-toggle]');
+        if (toggle) { const sectionEl = toggle.closest('[data-section]'), expanded = toggle.getAttribute('aria-expanded') === 'true'; toggle.setAttribute('aria-expanded', String(!expanded)); sectionEl.querySelector('.ps-section__items').hidden = expanded; if (expanded) openSections.delete(sectionEl.dataset.section); else openSections.add(sectionEl.dataset.section); return; }
+        const rate = event.target.closest('[data-myo-rate]');
+        if (rate) { const id = Number(rate.dataset.myoRate), value = rate.dataset.value, current = game.state.questions[id]; if (!game.markQuestion(id, current === value ? '' : value)) { AT.ui.toast('Не удалось сохранить оценку', 'warn'); return; } rate.closest('.myo-rate').querySelectorAll('[data-myo-rate]').forEach(button => button.setAttribute('aria-pressed', String(game.state.questions[id] === button.dataset.value))); return; }
+        const btn = event.target.closest('[data-ps]'); if (!btn) return; const action = btn.dataset.ps, s = game.state.session;
+        if (action === 'start' || action === 'section-start') { await start(action === 'section-start' ? btn.dataset.id : null); return; }
+        if (action === 'reset') {
+          const ok = await AT.ui.confirmDialog({ title: 'Сбросить оценки навыков?', text: 'Оценки и текущая подборка будут удалены. Избранное и заметки сохранятся; оценки вопросов и другие тренировки не изменятся.', confirm: 'Сбросить', danger: true }); if (!ok) return; game.reset();
+        } else if (action === 'setup') screen = 'setup';
+        else if (action === 'resume') screen = s && s.finished ? 'summary' : 'run';
+        else if (action === 'resume-run') { game.resume(); screen = 'run'; }
+        else if (action === 'open-index' && s) { game.resume(); game.navigate(Number(btn.dataset.index) - s.index); screen = 'run'; }
+        else if (action === 'favorite') game.favorite(Number(btn.dataset.id));
+        else if (action === 'hint') game.hint();
+        else if (action === 'mark') game.mark(btn.dataset.value);
+        else if (action === 'prev' || action === 'next') game.navigate(action === 'prev' ? -1 : 1);
+        else if (action === 'finish') { game.finish(); screen = 'summary'; }
+        else return;
+        AT.rerender(); warn();
+        if (['prev', 'next', 'resume-run', 'open-index', 'resume'].includes(action) && screen === 'run') jumpTop();
+        else if (action === 'hint') root.querySelector('[data-ps-hint-result]')?.focus({ preventScroll: true });
+        else if (action === 'mark' || action === 'favorite') root.querySelector(action === 'mark' ? '[data-ps="mark"][data-value="' + btn.dataset.value + '"]' : '[data-ps="favorite"]')?.focus({ preventScroll: true });
       });
-      view.addEventListener('change',event=>{const el=event.target;
-        if(el.matches('[data-myo-group]')){const id=el.dataset.myoGroup;groupSelection=el.checked?[...groupSelection,id]:groupSelection.filter(x=>x!==id);refreshAvailable(view);save();}
-        else if(el.matches('[data-myo-scope]')){scope=el.value;refreshAvailable(view);save();}
-        else if(el.matches('[data-myo-order]')){order=el.value;save();}
-        else if(el.matches('[data-myo-limit]')){limit=Number(el.value);save();}
+      view.addEventListener('keydown', event => {
+        const pickerEl = event.target.closest('[data-picker]'); if (!pickerEl) return; const trigger = pickerEl.querySelector('[data-picker-trigger]'), menu = pickerEl.querySelector('.ps-picker__menu');
+        if (event.key === 'Escape' && !menu.hidden) { event.preventDefault(); closeMenus(); trigger.focus(); return; }
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault(); if (menu.hidden) { closeMenus(); menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); }
+        const opts = Array.from(menu.querySelectorAll('[data-ps-option]')); let i = opts.indexOf(document.activeElement);
+        if (event.key === 'Home') i = 0; else if (event.key === 'End') i = opts.length - 1; else if (i < 0) i = opts.findIndex(o => o.getAttribute('aria-pressed') === 'true'); else i = (i + (event.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length;
+        opts[Math.max(0, i)].focus();
       });
-      function mark(type,id,value,container){const previous=saved[type][id];if(previous===value)delete saved[type][id];else saved[type][id]=value;save();container.querySelectorAll('[data-myo-rate]').forEach(b=>b.setAttribute('aria-pressed',String(saved[type][id]===b.dataset.value)));}
-      function navigate(delta){const s=saved.session;if(!s)return;if(delta>0&&s.index===s.order.length-1){running=false;save();AT.rerender();return;}const next=s.index+delta;if(next<0||next>=s.order.length)return;s.index=next;revealed=false;save();AT.rerender();requestAnimationFrame(()=>view.isConnected||document.querySelector('.myo-term')?.focus({preventScroll:true}));}
-      view.addEventListener('click',event=>{const rate=event.target.closest('[data-myo-rate]');if(rate){mark(rate.dataset.myoRate,Number(rate.dataset.id),rate.dataset.value,rate.closest('.myo-rate'));return;}const el=event.target.closest('[data-myo]');if(!el)return;
-        switch(el.dataset.myo){case'start':{let ids=pool().map(x=>x.id);if(order==='random')for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}if(limit)ids=ids.slice(0,limit);if(!ids.length)return;saved.session={order:ids,index:0};running=true;revealed=false;save();AT.rerender();break;}
-        case'resume':running=true;revealed=false;AT.rerender();break;case'setup':running=false;AT.rerender();break;case'hint':revealed=true;AT.rerender();break;case'prev':navigate(-1);break;case'next':navigate(1);break;}
+      view.addEventListener('focusout', event => { const pickerEl = event.target.closest('[data-picker]'); if (pickerEl) setTimeout(() => { if (view.isConnected && !pickerEl.contains(document.activeElement)) closePicker(pickerEl); }, 0); });
+      const outside = event => { if (!view.contains(event.target) || !event.target.closest('[data-picker]')) closeMenus(); }; document.addEventListener('click', outside); if (AT.onCleanup) AT.onCleanup(() => document.removeEventListener('click', outside));
+      const hotkeys = event => {
+        if (!view.isConnected || section !== 'skills' || screen !== 'run' || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey || Array.from(document.querySelectorAll('dialog[open], [role="dialog"][aria-modal="true"]')).some(el => el.getClientRects().length)) return;
+        const target = event.target; if (target instanceof Element && (target.isContentEditable || target.closest('input,textarea,select,[contenteditable],[data-picker]'))) return;
+        let button;
+        if (event.code === 'Digit1' || event.code === 'Numpad1' || event.key === '1') button = view.querySelector('[data-ps="mark"][data-value="known"]');
+        else if (event.code === 'Digit2' || event.code === 'Numpad2' || event.key === '2') button = view.querySelector('[data-ps="mark"][data-value="again"]');
+        else if (event.key.toLowerCase() === 'h' || event.code === 'KeyH') button = view.querySelector('[data-ps="hint"]');
+        else if (event.key === 'ArrowLeft') button = view.querySelector('[data-ps="prev"]');
+        else if (event.key === 'ArrowRight' || event.key === 'Enter') {
+          if (event.key === 'Enter' && target instanceof Element && target.closest('button,a,summary,[role="button"]')) return;
+          button = view.querySelector('[data-ps="next"], [data-ps="finish"]');
+        }
+        if (button && !button.disabled) { event.preventDefault(); button.click(); if (['mark', 'hint'].includes(button.dataset.ps)) root.querySelector('.ps-term')?.focus({ preventScroll: true }); }
+      };
+      document.addEventListener('keydown', hotkeys); if (AT.onCleanup) AT.onCleanup(() => document.removeEventListener('keydown', hotkeys));
+      view.addEventListener('input', event => {
+        const el = event.target;
+        if (el.matches('[data-ps-note]')) { game.note(game.current()?.id, el.value); warn(); }
+        if (el.matches('[data-ps-search]')) { search = el.value; syncSearch(view); }
+        if (el.matches('[data-myo-question-search]')) { const q = el.value.trim().toLowerCase(); let count = 0; view.querySelectorAll('[data-question]').forEach(row => { const x = data.questions[Number(row.dataset.question) - 1]; row.hidden = !!q && !matches(x.id + ' ' + x.text, q); if (!row.hidden) count++; }); view.querySelector('[data-myo-question-empty]').hidden = !!count; }
       });
-      const key=event=>{if(section!=='skills'||!running||!saved.session||event.ctrlKey||event.metaKey||event.altKey||/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)||event.target.isContentEditable)return;
-        if(event.key==='1'||event.key==='2'){event.preventDefault();const item=data.skills[saved.session.order[saved.session.index]-1];mark('skills',item.id,event.key==='1'?'known':'again',view.querySelector('.myo-rate'));}
-        else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();navigate(event.key==='ArrowLeft'?-1:1);}
-        else if(event.key.toLowerCase()==='h'){event.preventDefault();revealed=true;AT.rerender();}
-      };document.addEventListener('keydown',key);AT.onCleanup(()=>document.removeEventListener('keydown',key));
     }};
   };
 })();

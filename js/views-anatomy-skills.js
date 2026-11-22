@@ -28,10 +28,10 @@
       return '<section class="ps-section" data-section="'+esc(section.id)+'" data-section-name="'+esc(section.name.toLowerCase())+'" data-total="'+items.length+'"><div class="ps-section__head"><button type="button" class="ps-section__toggle" data-section-toggle aria-expanded="'+openSections.has(section.id)+'" aria-controls="ps-section-'+esc(section.id)+'"><span class="ps-section__arrow" aria-hidden="true"></span><span class="ps-section__title">'+esc(section.name)+'<small data-section-count>'+skillCount(items.length)+'</small></span></button><button type="button" class="ps-section__train" data-ps="section-start" data-id="'+esc(section.id)+'" aria-label="Тренировать весь раздел '+esc(section.name)+'" title="Все навыки раздела">Тренировать <span aria-hidden="true">↗</span></button></div><div class="ps-section__items" id="ps-section-'+esc(section.id)+'"'+(openSections.has(section.id)?'':' hidden')+'>'+items.map(item=>'<div class="ps-list-item" data-search="'+esc((item.id+' '+item.latin).toLowerCase())+'"><span class="ps-item-number">'+item.id+'</span><strong lang="la">'+esc(item.latin)+'</strong></div>').join('')+'</div></section>';
     }).join('')+'</div><p class="ps-no-results" data-no-results hidden>Ничего не найдено.</p></section>';
   }
-  function setupView(){
+  function setupView(embedded){
     const s=game.state,session=s.session,stats=Object.values(s.stats);
     const learned=stats.filter(x=>x.last==='known').length,again=stats.filter(x=>x.last==='again').length;
-    let html='<header class="ps-head"><span class="ps-eyebrow">АНАТОМИЯ <span aria-hidden="true">/</span> 1 КОЛЛОКВИУМ</span><h1>Практические навыки</h1><p>Переведите термин и найдите структуру в атласе или на препарате.</p></header>'+
+    let html=(embedded?'':'<header class="ps-head"><span class="ps-eyebrow">АНАТОМИЯ <span aria-hidden="true">/</span> 1 КОЛЛОКВИУМ</span><h1>Практические навыки</h1><p>Переведите термин и найдите структуру в атласе или на препарате.</p></header>')+
       '<div class="ps-stats" aria-label="Ваш прогресс"><div><strong>'+learned+'</strong><span>знаю</span></div><div><strong>'+again+'</strong><span>повторить</span></div><div><strong>'+stats.length+'<em> / '+H.data.items.length+'</em></strong><span>оценено</span></div></div>';
     if(session)html+='<div class="ps-resume"><div><strong>'+(session.finished?'Последняя подборка':'Продолжить тренировку')+'</strong><p>Оценено '+Object.keys(session.answers).length+' из '+session.order.length+'</p></div><button class="btn btn--primary" type="button" data-ps="resume">'+(session.finished?'Посмотреть итог':'Продолжить →')+'</button></div>';
     html+='<section class="ps-panel ps-builder"><div class="ps-builder__head"><div><span class="ps-eyebrow">НАСТРОЙКА</span><h2>Новая тренировка</h2></div><span class="ps-builder__icon" aria-hidden="true">✦</span></div><div class="ps-filters">'+picker('group','Темы',s.group)+picker('scope','Подборка',s.scope)+picker('limit','Количество',s.limit)+picker('sequence','Порядок',s.sequence)+'</div>'+
@@ -71,8 +71,10 @@
     });
     const empty=view.querySelector('[data-no-results]');if(empty)empty.hidden=visible>0;
   }
-  AT.views.anatomySkills=function(){
-    const html='<div class="view ps-view">'+(screen==='run'?runView():screen==='summary'?summaryView():setupView())+'</div>';
+  AT.views.anatomySkills=function(params){
+    // Внутри объединённой страницы навыков шапку даёт общий каркас.
+    const embedded=params && params.colloquium==='1' && params.embedded==='1';
+    const html='<div class="view ps-view'+(embedded?' ps-view--embedded':'')+'">'+(screen==='run'?runView():screen==='summary'?summaryView():setupView(embedded))+'</div>';
     return {title:'Практические навыки',html,mount(root){
       const view=root.querySelector('.ps-view');
       const warn=()=>{if(game.storageFailed())AT.ui.toast('Не удалось сохранить навыки на устройстве','warn');};

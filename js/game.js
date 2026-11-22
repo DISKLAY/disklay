@@ -2,7 +2,9 @@
 (function () {
   'use strict';
   const AT = window.AT;
-  const BANKS = window.COLLOQUIUM_IDS || [AT.colloquium.id];
+  // Список баз дочитывается после фоновой подгрузки остальных коллоквиумов (bank-loader.js),
+  // поэтому читаем его динамически, а не захватываем один раз при разборе файла.
+  const banks = () => (Array.isArray(window.COLLOQUIUM_IDS) && window.COLLOQUIUM_IDS.length ? window.COLLOQUIUM_IDS : [AT.colloquium.id]);
   // Возврат за оставшиеся старые усиления по последним ценам магазина.
   const LEGACY_BOOST_PRICES = { 'hint-train': 160, 'hint-exam': 480, 'double-train': 320, 'double-exam': 800 };
   const ACHIEVEMENTS = [
@@ -137,7 +139,7 @@
         }
       }
       if (latest.cosmeticSpent && typeof latest.cosmeticSpent === 'object') {
-        BANKS.forEach(id => { shared.cosmeticSpent[id] = Math.max(number(shared.cosmeticSpent[id]), number(latest.cosmeticSpent[id])); });
+        banks().forEach(id => { shared.cosmeticSpent[id] = Math.max(number(shared.cosmeticSpent[id]), number(latest.cosmeticSpent[id])); });
       }
       shared.walletSpent = Math.max(number(shared.walletSpent), number(latest.walletSpent));
       localStorage.setItem(SHARED_KEY, JSON.stringify(shared));
@@ -152,7 +154,7 @@
       return JSON.parse(localStorage.getItem(key) || '{}') || {};
     } catch (e) { return {}; }
   }
-  function snapshots() { return BANKS.map(id => ({ id, state: bankState(id) })); }
+  function snapshots() { return banks().map(id => ({ id, state: bankState(id) })); }
   function metrics(states) {
     const counts = { explored: 0, mastered: 0, sessions: 0, verified: 0, rating: 0, perfectExam: 0, completeBank: 0, muscles: 0, bones: 0, joints: 0, organs: 0, nervous: 0 };
     const modules = window.COLLOQUIUM_MODULES || { [AT.colloquium.id]: { questions: AT.dataset.questions } };
@@ -216,7 +218,7 @@
       return { ...a, goal, current: shared.achievements[a.id] ? goal : Math.min(counts[a.metric], goal), unlocked: !!shared.achievements[a.id] };
     });
   }
-  function totalRating() { return BANKS.reduce((total, id) => total + number((bankState(id).game || {}).rating), 0); }
+  function totalRating() { return banks().reduce((total, id) => total + number((bankState(id).game || {}).rating), 0); }
   function profile() { readShared(); return JSON.parse(JSON.stringify(shared)); }
   function applyAppearance() {
     readShared();
@@ -264,7 +266,7 @@
   }
   function walletBalance() {
     readShared();
-    return Math.max(0, BANKS.reduce((sum, id) => sum + normalizeBank(bankState(id), id).coins, 0) - number(shared.walletSpent));
+    return Math.max(0, banks().reduce((sum, id) => sum + normalizeBank(bankState(id), id).coins, 0) - number(shared.walletSpent));
   }
   function buyAppearance(id) {
     readShared();

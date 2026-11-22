@@ -34,7 +34,11 @@
       const [k, v] = pair.split('=');
       params[decodeURIComponent(k)] = decodeURIComponent(v || '');
     });
-    const name = segments[0] || 'dashboard';
+    let name = segments[0] || 'dashboard';
+    // «Навыки» — один пункт для всех коллоквиумов: старые ссылки на отдельные
+    // страницы навыков ведут на общую страницу с выбранным коллоквиумом.
+    if (name === 'myology' && params.section === 'skills') { name = 'anatomy-skills'; params.colloquium = '2'; }
+    if (name === 'anatomy-skills') params.colloquium = params.colloquium || '1';
     return { name, params };
   }
 
@@ -54,9 +58,12 @@
     settings: 'settings',
     profile: 'profile',
     histology: 'histology',
-    'anatomy-skills': 'anatomySkills',
+    // «Навыки» — одна страница на все коллоквиумы (см. parseHash).
+    'anatomy-skills': 'anatomySkillsAll',
     'anatomy-oral': 'anatomyOral',
     myology: 'myology',
+    teachers: 'teacherReviews',
+    theory: 'theory',
   };
 
   // Тяжёлые ресурсы подземелья не загружаются при обычном использовании тренажёра.
@@ -73,10 +80,10 @@
   }
   function loadDungeon() {
     if (dungeonLoad) return dungeonLoad;
-    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=12').catch(err => { dungeonCss = null; throw err; });
+    if (!dungeonCss) dungeonCss = resource('link', 'css/dungeon.css?v=20261116-pwa6').catch(err => { dungeonCss = null; throw err; });
     const css = dungeonCss;
-    const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=11'))
-      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=12'));
+    const script = (window.DungeonEngine ? Promise.resolve() : resource('script', 'js/dungeon.js?v=20261116-pwa6'))
+      .then(() => AT.views.dungeon ? undefined : resource('script', 'js/views-dungeon.js?v=20261116-pwa6'));
     dungeonLoad = Promise.all([css, script]).then(() => { dungeonReady = true; }).catch(err => { dungeonLoad = null; throw err; });
     return dungeonLoad;
   }
@@ -84,45 +91,46 @@
   let histologyLoad = null, histologyCss = null, histologyReady = false;
   function loadHistology() {
     if (histologyLoad) return histologyLoad;
-    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=17').catch(err => { histologyCss = null; throw err; });
-    const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=1'))
-      .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=1'))
-      .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=1'))
-      .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=1'))
-      .then(() => window.HistologyElectronIndividual ? undefined : resource('script', 'js/histology-electron-individual-data.js?v=4'))
-      .then(() => window.HistologyAdditionalPhotos ? undefined : resource('script', 'js/histology-additional-data.js?v=1'))
-      .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=1'))
-      .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=2'))
-      .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=1'))
-      .then(() => window.HistologyStructureExtra ? undefined : resource('script', 'js/histology-structure-extra.js?v=1'))
-      .then(() => window.HistologyTheoryHard ? undefined : resource('script', 'js/histology-theory-hard.js?v=1'))
-      .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=1'))
-      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=22'))
-      .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=1'))
-      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=29'));
+    if (!histologyCss) histologyCss = resource('link', 'css/histology.css?v=20261116-pwa6').catch(err => { histologyCss = null; throw err; });
+    const script = (window.HistologyPracticePhotos ? Promise.resolve() : resource('script', 'js/histology-practice-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyFirstData ? undefined : resource('script', 'js/histology-first-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyTissueData ? undefined : resource('script', 'js/histology-tissues-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyElectronPages ? undefined : resource('script', 'js/histology-electron-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyElectronIndividual ? undefined : resource('script', 'js/histology-electron-individual-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyAdditionalPhotos ? undefined : resource('script', 'js/histology-additional-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyBloodFields ? undefined : resource('script', 'js/histology-blood-data.js?v=20261116-pwa6'))
+      .then(() => window.HistologyRecoveryTheory ? undefined : resource('script', 'js/histology-theory-recovery.js?v=20261116-pwa6'))
+      .then(() => window.HistologyExpandedTheory ? undefined : resource('script', 'js/histology-theory-expanded.js?v=20261116-pwa6'))
+      .then(() => window.HistologyStructureExtra ? undefined : resource('script', 'js/histology-structure-extra.js?v=20261116-pwa6'))
+      .then(() => window.HistologyTheoryHard ? undefined : resource('script', 'js/histology-theory-hard.js?v=20261116-pwa6'))
+      .then(() => window.HistologyFifthAnswer ? undefined : resource('script', 'js/histology-fifth-answer.js?v=20261116-pwa6'))
+      .then(() => window.HistologyPrototype ? undefined : resource('script', 'js/histology.js?v=20261116-pwa6'))
+      .then(() => window.HistologyAtlasPhotos ? undefined : resource('script', 'js/histology-atlas-data.js?v=20261116-pwa6'))
+      .then(() => AT.views.histology ? undefined : resource('script', 'js/views-histology.js?v=20261116-pwa6'));
     histologyLoad = Promise.all([histologyCss, script]).then(() => { histologyReady = true; }).catch(err => { histologyLoad = null; throw err; });
     return histologyLoad;
   }
   let anatomySkillsLoad = null, anatomySkillsCss = null, anatomySkillsReady = false;
   function loadAnatomySkills() {
     if (anatomySkillsLoad) return anatomySkillsLoad;
-    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=4').catch(err => { anatomySkillsCss = null; throw err; });
-    const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=2'))
-      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=4'))
-      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=7'));
+    if (!anatomySkillsCss) anatomySkillsCss = resource('link', 'css/anatomy-skills.css?v=20261116-pwa6').catch(err => { anatomySkillsCss = null; throw err; });
+    const script = (window.AnatomySkillsData ? Promise.resolve() : resource('script', 'js/anatomy-skills-data.js?v=20261116-pwa6'))
+      .then(() => window.AnatomySkills ? undefined : resource('script', 'js/anatomy-skills.js?v=20261116-pwa6'))
+      .then(() => AT.views.anatomySkills ? undefined : resource('script', 'js/views-anatomy-skills.js?v=20261116-pwa6'));
     anatomySkillsLoad = Promise.all([anatomySkillsCss, script]).then(() => { anatomySkillsReady = true; }).catch(err => { anatomySkillsLoad = null; throw err; });
     return anatomySkillsLoad;
   }
+  AT.loadAnatomySkills = loadAnatomySkills;
   let anatomyOralLoad = null, anatomyOralCss = null, anatomyOralReady = false;
   function loadAnatomyOral() {
     if (anatomyOralLoad) return anatomyOralLoad;
-    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=4').catch(err=>{anatomyOralCss=null;throw err;});
-    const script=(window.AnatomyOralData?Promise.resolve():resource('script','js/anatomy-oral-data.js?v=2'))
-      .then(()=>window.AnatomyOralSource?undefined:resource('script','js/anatomy-oral-source.js?v=1'))
-      .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=2'))
-      .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=1'))
-      .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=1'))
-      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=7'));
+    if (!anatomyOralCss) anatomyOralCss=resource('link','css/anatomy-oral.css?v=20261116-pwa6').catch(err=>{anatomyOralCss=null;throw err;});
+    const script=(window.AnatomyOralData?Promise.resolve():resource('script','js/anatomy-oral-data.js?v=20261116-pwa6'))
+      .then(()=>window.AnatomyOralSource?undefined:resource('script','js/anatomy-oral-source.js?v=20261116-pwa6'))
+      .then(()=>window.AnatomySkillsData?undefined:resource('script','js/anatomy-skills-data.js?v=20261116-pwa6'))
+      .then(()=>window.AnatomyTicketSkills?undefined:resource('script','js/anatomy-ticket-skills.js?v=20261116-pwa6'))
+      .then(()=>window.AnatomyOral?undefined:resource('script','js/anatomy-oral.js?v=20261116-pwa6'))
+      .then(()=>AT.views.anatomyOral?undefined:resource('script','js/views-anatomy-oral.js?v=20261116-pwa6'));
     anatomyOralLoad=Promise.all([anatomyOralCss,script]).then(()=>{anatomyOralReady=true;}).catch(err=>{anatomyOralLoad=null;throw err;});
     return anatomyOralLoad;
   }
@@ -130,12 +138,31 @@
   let myologyLoad = null, myologyCss = null, myologyReady = false;
   function loadMyology() {
     if (myologyLoad) return myologyLoad;
-    if (!myologyCss) myologyCss = resource('link', 'css/myology.css?v=1').catch(err => {myologyCss = null; throw err;});
+    if (!myologyCss) myologyCss = resource('link', 'css/myology.css?v=20261116-pwa6').then(() => resource('link', 'css/anatomy-skills.css?v=20261116-pwa6')).catch(err => { myologyCss = null; throw err; });
     const css = myologyCss;
-    const script = (window.MedzoMyologyData ? Promise.resolve() : resource('script', 'js/myology-data.js?v=1'))
-      .then(() => AT.views.myology ? undefined : resource('script', 'js/views-myology.js?v=1'));
-    myologyLoad = Promise.all([css, script]).then(() => {myologyReady = true;}).catch(err => {myologyLoad = null; throw err;});
+    const script = (window.MedzoMyologyData ? Promise.resolve() : resource('script', 'js/myology-data.js?v=20261116-pwa6'))
+      .then(() => window.MedzoMyologySource ? undefined : resource('script', 'js/myology-source.js?v=20261116-pwa6'))
+      .then(() => window.MedzoMyologySkills ? undefined : resource('script', 'js/myology-skills.js?v=20261116-pwa6'))
+      .then(() => AT.views.myology ? undefined : resource('script', 'js/views-myology.js?v=20261116-pwa6'));
+    myologyLoad = Promise.all([css, script]).then(() => { myologyReady = true; }).catch(err => { myologyLoad = null; throw err; });
     return myologyLoad;
+  }
+  AT.loadMyology = loadMyology;
+
+  // Лёгкие страницы разделов грузятся по требованию.
+  let theoryLoad = null;
+  function loadTheory() {
+    if (theoryLoad) return theoryLoad;
+    theoryLoad = (AT.views.theory ? Promise.resolve() : resource('script', 'js/views-theory.js?v=20261116-pwa6'))
+      .catch(err => { theoryLoad = null; throw err; });
+    return theoryLoad;
+  }
+  let skillsHubLoad = null;
+  function loadSkillsHub() {
+    if (skillsHubLoad) return skillsHubLoad;
+    skillsHubLoad = (AT.views.anatomySkillsAll ? Promise.resolve() : resource('script', 'js/views-skills-hub.js?v=20261116-pwa6'))
+      .catch(err => { skillsHubLoad = null; throw err; });
+    return skillsHubLoad;
   }
 
   function syncSubject(histology, section) {
@@ -160,8 +187,11 @@
   function updateMobileNav(route, histology) {
     const items = histology
       ? [['Препараты','slide','#/histology?section=setup','setup'],['Атлас','atlas','#/histology?section=atlas','atlas'],['Ошибки','mistakes','#/histology?section=errors','errors'],['Статистика','stats','#/histology?section=stats','stats']]
-      : [['Главная','home','#/','dashboard'],['Тренировка','train','#/tests','tests'],['Теория','book','#/anatomy-oral?section=notes','anatomy-oral'],['Статистика','stats','#/stats','stats']];
-    const active=histology?(route.params.section||'setup'):(trainingRoute(route)?'tests':route.name==='myology'?'anatomy-oral':route.name);
+      : [['Главная','home','#/','dashboard'],['Тренировка','train','#/tests','tests'],['Теория','book','#/theory','theory'],['Ошибки','mistakes','#/mistakes','mistakes']];
+    // «Теория» — самостоятельный раздел: в нём живут оба конспекта, карточки
+    // и билеты, поэтому он не подсвечивает «Тренировку».
+    const theoryRoute=route.name==='anatomy-oral'||route.name==='myology';
+    const active=histology?(route.params.section||'setup'):(theoryRoute?'theory':trainingRoute(route)?'tests':route.name);
     document.querySelectorAll('[data-mobile-nav]').forEach((link,i)=>{
       const [label,iconName,href,key]=items[i];link.href=href;link.innerHTML=ui.icon(iconName)+'<span>'+label+'</span>';link.setAttribute('aria-label',label);
       link.classList.toggle('is-active',active===key);if(active===key)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
@@ -170,33 +200,49 @@
 
   function updateContext(route, histology) {
     const subject = document.getElementById('contextSubject');
-    const base = document.getElementById('contextBase');
-    const separator = document.getElementById('contextBaseSeparator');
     const page = document.getElementById('contextPage');
     const option = document.getElementById('colloquiumSelect').selectedOptions[0];
-    const labels = {dashboard:'Главная', tests:'Тренировка · Базы', train:'Тренировка · Тесты', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Теория · 1 коллоквиум', myology:'Миология · 2 коллоквиум'};
+    const labels = {dashboard:'Главная', tests:'Тренировка · Базы', train:'Тренировка · Тесты', exam:'Экзамен', run:'Задания', summary:'Результат', mistakes:'Ошибки', portfolio:'Портфель', stats:'Статистика', rewards:'Награды', dungeon:'Подземелье', key:'Ключ', settings:'Настройки', profile:'Профиль', 'anatomy-skills':'Практические навыки', 'anatomy-oral':'Теория · 1 коллоквиум', myology:'Теория · 2 коллоквиум', theory:'Теория', teachers:'Отзывы о преподавателях'};
     const histologyLabels = {setup:'Препараты', atlas:'Атлас', structures:'Структуры', theory:'Тесты по теории', errors:'Ошибки', stats:'Статистика'};
     subject.textContent = histology ? 'Гистология' : 'Анатомия';
     subject.href = histology ? '#/histology' : '#/';
-    base.hidden = separator.hidden = histology || ['profile','anatomy-oral','anatomy-skills','myology'].includes(route.name);
-    if (!histology && option) base.value = option.value;
+    // Выбор коллоквиума живёт в шапке: здесь только путь, без второго списка.
+    if (option && subject) subject.title = option.textContent.trim();
     const oralLabels = {cards:'Карточки · 1 коллоквиум', tickets:'Билеты · 1 коллоквиум'};
     page.textContent = histology ? (histologyLabels[route.params.section] || 'Препараты') : (route.name === 'anatomy-oral' && oralLabels[route.params.section] || labels[route.name] || 'Страница');
   }
 
-  // Старые ссылки сохранены; все тренировочные экраны образуют один раздел.
+  // Лента тренировки — короткая и постоянная: тесты, экзамен, навыки, билеты
+  // (если они есть у базы), ошибки. Теория сюда не дублируется — для неё есть
+  // отдельный раздел «Теория», а «Навыки» — один пункт на оба коллоквиума.
+  function trainingSections() {
+    const sections = [
+      { key: 'tests', label: 'Базы', href: '#/tests' },
+      { key: 'train', label: 'Тесты', href: '#/train' },
+      { key: 'exam', label: AT.colloquium.kind === 'credit' ? 'Пробный зачёт' : 'Экзамен', href: '#/exam' }
+    ];
+    // Материалы (навыки, билеты, карточки) есть только у первого семестра —
+    // у остальных баз пункты не показываем, чтобы лента не пухла пустыми ссылками.
+    if (Number(AT.colloquium.semester) === 1) {
+      sections.push({ key: 'skills', label: 'Навыки', href: '#/anatomy-skills', match: r => r.name === 'anatomy-skills' });
+      sections.push({ key: 'tickets', label: 'Билеты', href: '#/anatomy-oral?section=tickets', match: r => r.name === 'anatomy-oral' && r.params.section === 'tickets' });
+    }
+    sections.push({ key: 'mistakes', label: 'Ошибки', href: '#/mistakes' });
+    return sections;
+  }
+  // Экраны, которые относятся к тренировке: у них общая лента разделов.
   function trainingRoute(route) {
-    return ['tests','train','exam','mistakes','anatomy-skills','run','summary'].includes(route.name) ||
-      (route.name === 'anatomy-oral' && ['cards','tickets'].includes(route.params.section)) ||
-      (route.name === 'myology' && (!route.params.section || route.params.section === 'skills'));
+    return ['tests', 'train', 'exam', 'mistakes', 'anatomy-skills', 'anatomy-skills-all', 'run', 'summary'].includes(route.name) ||
+      trainingSections().some(section => section.match && section.match(route));
   }
   function trainingNav(route) {
-    const tabs=[['tests','Базы','#/tests'],['train','Тесты','#/train'],['exam',AT.colloquium.kind === 'credit'?'Пробный зачёт':'Экзамен','#/exam'],
-      ['anatomy-skills','Навыки · 1','#/anatomy-skills'],['myology','Навыки · 2','#/myology?section=skills'],['tickets','Билеты · 1','#/anatomy-oral?section=tickets'],
-      ['cards','Карточки · 1','#/anatomy-oral?section=cards'],['mistakes','Ошибки','#/mistakes']];
-    const active=route.name==='anatomy-oral'?route.params.section:route.name;
-    const nav=document.createElement('nav'); nav.className='anatomy-training-nav'; nav.setAttribute('aria-label','Разделы тренировки по анатомии');
-    nav.innerHTML=tabs.map(([key,label,href])=>'<a href="'+href+'"'+(key===active?' class="is-active" aria-current="page"':'')+'>'+label+'</a>').join('');
+    const nav = document.createElement('nav');
+    nav.className = 'anatomy-training-nav';
+    nav.setAttribute('aria-label', 'Разделы тренировки по анатомии');
+    nav.innerHTML = trainingSections().map(section => {
+      const active = section.match ? section.match(route) : route.name === section.key;
+      return '<a href="' + section.href + '"' + (active ? ' class="is-active" aria-current="page"' : '') + '>' + section.label + '</a>';
+    }).join('');
     return nav;
   }
 
@@ -249,6 +295,31 @@
         root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить материалы</h1><button class="btn btn--primary" id="oralRetry">Повторить</button></div></div>';
         root.querySelector('#oralRetry').addEventListener('click', render);
       }); return;
+    }
+
+    if (viewName === 'anatomySkillsAll' && !AT.views.anatomySkillsAll) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Практические навыки</h1><p>Загружаем тренировку…</p></div></div>';
+      updateNav(route.name);
+      // Хаб сам подтягивает ресурсы нужного коллоквиума; здесь достаточно самого модуля.
+      loadSkillsHub().then(() => { if (parseHash().name === 'anatomy-skills') render(); }).catch(err => {
+        console.error(err);
+        if (parseHash().name !== 'anatomy-skills') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить навыки</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="skillsHubRetry">Повторить</button></div></div>';
+        root.querySelector('#skillsHubRetry').addEventListener('click', render);
+      });
+      return;
+    }
+
+    if (viewName === 'theory' && !AT.views.theory) {
+      root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Теория</h1><p>Загружаем материалы…</p></div></div>';
+      updateNav(route.name);
+      loadTheory().then(() => { if (parseHash().name === 'theory') render(); }).catch(err => {
+        console.error(err);
+        if (parseHash().name !== 'theory') return;
+        root.innerHTML = '<div class="view"><div class="card card--pad"><h1>Не удалось загрузить теорию</h1><p>Проверьте подключение и попробуйте ещё раз.</p><button class="btn btn--primary" id="theoryRetry">Повторить</button></div></div>';
+        root.querySelector('#theoryRetry').addEventListener('click', render);
+      });
+      return;
     }
 
     if (viewName === 'myology' && !myologyReady) {
@@ -308,7 +379,9 @@
 
   function updateNav(name) {
     if (!nav) return;
-    const active = trainingRoute(parseHash()) ? 'tests' : name === 'myology' ? 'anatomy-oral' : name;
+    const hash = parseHash();
+    const theoryRoute = name === 'anatomy-oral' || name === 'myology';
+    const active = theoryRoute ? 'theory' : trainingRoute(hash) ? 'tests' : name;
     nav.querySelectorAll('[data-route]').forEach((link) => {
       const r = link.getAttribute('data-route');
       const isActive = r === active || (active === 'dashboard' && r === 'dashboard');
@@ -388,11 +461,7 @@
         ui.toast('Не удалось переключить раздел: проверьте доступ к хранилищу браузера', 'warn');
       }
     });
-    const quickSelect = document.getElementById('contextBase');
-    quickSelect.innerHTML = moduleSelect.innerHTML;
-    quickSelect.value = moduleSelect.value;
-    quickSelect.addEventListener('change', () => { moduleSelect.value = quickSelect.value; moduleSelect.dispatchEvent(new Event('change', {bubbles:true})); });
-    moduleSelect.addEventListener('change', () => { quickSelect.value = moduleSelect.value; });
+    window.initColloquiumSwitch(moduleSelect, document.getElementById('courseSwitchTrigger'), document.getElementById('courseSwitchPanel'));
     const sidebar = document.getElementById('courseSidebar');
     sidebar.querySelectorAll('[data-nav-icon]').forEach(link => {
       const label = link.textContent.trim();
@@ -413,6 +482,18 @@
   ui.applyTheme();
   AT.game.applyAppearance();
   render();
+
+  // Остальные базы подгружаются в фоне; когда все на месте — досинхронизируем
+  // достижения и перерисуем текущий экран, если он зависит от всех баз сразу.
+  if (window.MedzoBanks && typeof window.MedzoBanks.ensure === 'function') {
+    window.MedzoBanks.ensure().then(() => {
+      try {
+        if (window.AT && window.AT.game && typeof window.AT.game.syncAchievements === 'function') window.AT.game.syncAchievements();
+        const route = typeof window.AT.route === 'function' ? window.AT.route() : null;
+        if (route && ['portfolio', 'rewards', 'tests'].includes(route) && typeof window.AT.rerender === 'function') window.AT.rerender();
+      } catch (_) { /* фоновая подгрузка баз не должна ломать страницу */ }
+    }).catch(() => { /* без остальных баз страница работает */ });
+  }
 
   // подсказка при первом визите
   try {
