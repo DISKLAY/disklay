@@ -3,17 +3,17 @@
 (function () {
   'use strict';
   var BANK_FILES = {
-    '1': ['js/data/questions.js?v=20261116-pwa7', 'js/data/answers.js?v=20261116-pwa7', 'js/data/exam.js?v=20261116-pwa7'],
-    '2': ['js/data/colloquium-2.js?v=20261116-pwa7'],
-    '3': ['js/data/colloquium-3.js?v=20261116-pwa7'],
-    '4': ['js/data/colloquium-4.js?v=20261116-pwa7'],
-    '5': ['js/data/colloquium-5.js?v=20261116-pwa7'],
-    '6': ['js/data/colloquium-6.js?v=20261116-pwa7'],
-    '7': ['js/data/colloquium-7.js?v=20261116-pwa7'],
-    'credit-1': ['js/data/credit-1.js?v=20261116-pwa7'],
-    'credit-2': ['js/data/credit-2.js?v=20261116-pwa7'],
-    'stom-2': ['js/data/dental-2.js?v=20261116-pwa7'],
-    'stom-3': ['js/data/dental-3.js?v=20261116-pwa7']
+    '1': ['js/data/questions.js?v=20261116-pwa9', 'js/data/answers.js?v=20261116-pwa9', 'js/data/exam.js?v=20261116-pwa9'],
+    '2': ['js/data/colloquium-2.js?v=20261116-pwa9'],
+    '3': ['js/data/colloquium-3.js?v=20261116-pwa9'],
+    '4': ['js/data/colloquium-4.js?v=20261116-pwa9'],
+    '5': ['js/data/colloquium-5.js?v=20261116-pwa9'],
+    '6': ['js/data/colloquium-6.js?v=20261116-pwa9'],
+    '7': ['js/data/colloquium-7.js?v=20261116-pwa9'],
+    'credit-1': ['js/data/credit-1.js?v=20261116-pwa9'],
+    'credit-2': ['js/data/credit-2.js?v=20261116-pwa9'],
+    'stom-2': ['js/data/dental-2.js?v=20261116-pwa9'],
+    'stom-3': ['js/data/dental-3.js?v=20261116-pwa9']
   };
   window.MEDZO_BANK_FILES = BANK_FILES;
   var selected = '1';

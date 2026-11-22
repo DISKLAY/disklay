@@ -67,8 +67,34 @@
   }
   const PAGE = 30;
 
-  // Дисциплина → преподаватель → отзывы. Дисциплины отсортированы по числу
-  // отзывов (сначала самые наполненные), внутри — по алфавиту.
+  // В анкете встречаются обе записи: «Фамилия Имя Отчество» и «Имя Отчество
+  // Фамилия», а бывает и без отчества вовсе. Сортируем по фамилии, иначе такие
+  // преподаватели встают не на своё место в алфавите.
+  const PATRONYMIC = /(вич|вна|чна|инична|овна|евна|кызы|оглы)$/i;
+  const INITIALS = /^(?:[А-ЯЁ]\.?)+$/;            // «О.», «А.М.»
+  const SURNAME_END = /(ов|ев|ёв|ин|ын|ова|ева|ёва|ина|ына|ский|ская|цкий|цкая|ко|ук|юк|ич|ян|дзе|швили|их|ых)$/i;
+  const looksSurname = word => !!word && SURNAME_END.test(word);
+  function surnameOf(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    if (parts.length === 1) return parts[0];
+    const first = parts[0], last = parts[parts.length - 1];
+    // Отчество в конце — обычная запись «Фамилия Имя Отчество».
+    if (PATRONYMIC.test(last)) return first;
+    // Инициалы в конце — «Фамилия И.О.» или «Фамилия О.».
+    if (INITIALS.test(last)) return first;
+    // Отчество в середине — обратная запись «Имя Отчество Фамилия».
+    if (parts.length >= 3 && PATRONYMIC.test(parts[parts.length - 2])) return last;
+    // Отчества нет вовсе: фамилию узнаём по типичному окончанию.
+    if (looksSurname(first) && !looksSurname(last)) return first;
+    if (looksSurname(last) && !looksSurname(first)) return last;
+    return first;
+  }
+  function bySurname(a, b) {
+    return surnameOf(a).localeCompare(surnameOf(b), 'ru') || String(a).localeCompare(String(b), 'ru');
+  }
+  // Дисциплина → преподаватель → отзывы. Дисциплины и преподаватели внутри
+  // них идут в алфавитном порядке.
   function disciplinesOf(teachers) {
     const map = new Map();
     for (const teacher of teachers) for (const review of teacher.reviews || []) {
@@ -83,9 +109,9 @@
       name: group.name,
       teachers: [...group.teachers.values()]
         .map(x => Object.assign({}, x, { semesters: [...x.semesters] }))
-        .sort((a, b) => a.teacher.name.localeCompare(b.teacher.name, 'ru')),
+        .sort((a, b) => bySurname(a.teacher.name, b.teacher.name)),
       reviews: [...group.teachers.values()].reduce((n, x) => n + ((x.teacher.reviews || []).filter(r => (r.discipline || 'Без дисциплины') === group.name).length), 0)
-    })).sort((a, b) => b.reviews - a.reviews || a.name.localeCompare(b.name, 'ru'));
+    })).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   }
   // Отзывы именно по выбранной дисциплине: у преподавателя их может быть
   // несколько в разных дисциплинах, чужие в карточке не показываем.
@@ -118,6 +144,8 @@
 
   // Тело карточки отдельным методом: его же дёргает ленивая отрисовка при раскрытии,
   // поэтому тесты могут проверить разметку отзыва без имитации DOM.
+  views.teacherReviews_surnameOf = surnameOf;
+  views.teacherReviews_bySurname = bySurname;
   views.teacherReviews_bodyHtml = bodyHtml;
   views.teacherReviews_bodyFor = bodyFor;
 
@@ -144,12 +172,7 @@
       '<div><strong>' + teachers.length + '</strong><span>' + plural(teachers.length, 'преподаватель', 'преподавателя', 'преподавателей') + '</span></div>' +
       '<div><strong>' + totalReviews + '</strong><span>' + plural(totalReviews, 'отзыв', 'отзыва', 'отзывов') + '</span></div></div>';
 
-    // Быстрый доступ: чипы дисциплин, чтобы не разворачивать список целиком.
-    html += '<nav class="tr-chips" aria-label="Дисциплины">' +
-      groups.map(g => '<button type="button" class="tr-chip" data-disc-jump="' + esc(g.name) + '">' + esc(g.name) +
-        '<span>' + g.reviews + '</span></button>').join('') + '</nav>';
-
-    html += '<label class="tr-search"><span>Или найдите сразу преподавателя или слово в отзыве</span>' +
+    html += '<label class="tr-search"><span>Найдите преподавателя или слово в отзыве</span>' +
       '<input type="search" data-tr-search value="' + esc(state.search) + '" placeholder="Фамилия или текст отзыва"></label>';
 
     html += '<p class="tr-count" data-tr-count aria-live="polite"></p>';
@@ -215,15 +238,6 @@
         if (!event.target.matches('[data-tr-search]')) return;
         state.search = event.target.value;
         apply();
-      });
-      view.addEventListener('click', event => {
-        const chip = event.target.closest('[data-disc-jump]');
-        if (!chip) return;
-        const card = view.querySelector('[data-disc="' + CSS.escape(chip.dataset.discJump) + '"]');
-        if (!card) return;
-        event.preventDefault();
-        card.open = true;
-        card.scrollIntoView({ block: 'start', behavior: 'smooth' });
       });
     }};
   };

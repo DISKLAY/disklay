@@ -19,6 +19,8 @@ function load(reviews) {
   const view = context.AT.views.teacherReviews;
   view.bodyHtml = context.AT.views.teacherReviews_bodyHtml;
   view.bodyFor = context.AT.views.teacherReviews_bodyFor;
+  view.surnameOf = context.AT.views.teacherReviews_surnameOf;
+  view.bySurname = context.AT.views.teacherReviews_bySurname;
   return view;
 }
 
@@ -55,7 +57,7 @@ test('сначала дисциплины, внутри — преподават
   assert.equal((html.match(/data-disc=/g) || []).length, 2);
 });
 
-test('дисциплины отсортированы по числу отзывов, затем по алфавиту', () => {
+test('дисциплины отсортированы по алфавиту, а не по числу отзывов', () => {
   const view = load({ teachers: [
     { id: 'a', name: 'А. А.', reviews: [{ discipline: 'Малая', parts: { seminars: 'x' } }] },
     { id: 'b', name: 'Б. Б.', reviews: [{ discipline: 'Большая', parts: { seminars: 'x' } }, { discipline: 'Большая', parts: { seminars: 'y' } }, { discipline: 'Большая', parts: { seminars: 'z' } }] },
@@ -63,7 +65,7 @@ test('дисциплины отсортированы по числу отзыв
   ] });
   const { html } = view({});
   const order = [...html.matchAll(/data-disc="([^"]+)"/g)].map(m => m[1]);
-  assert.deepEqual(order, ['Большая', 'Средняя', 'Малая']);
+  assert.deepEqual(order, ['Большая', 'Малая', 'Средняя']);
 });
 
 test('преподаватель с отзывами в двух дисциплинах показывается в обеих', () => {
@@ -104,16 +106,17 @@ test('отзывы переносятся дословно, с источник�
   assert.match(body, /Совет/);
 });
 
-test('чипы дисциплин показаны до списка и содержат число отзывов', () => {
+test('перед списком нет раскидки-чипов: сразу дисциплины', () => {
   const view = load({ teachers: [
-    { id: 'a', name: 'А. А.', reviews: [{ discipline: 'Биология', parts: { seminars: 'x' } }, { discipline: 'Биология', parts: { seminars: 'y' } }] }
+    { id: 'a', name: 'А. А.', reviews: [{ discipline: 'Биология', parts: { seminars: 'x' } }] }
   ] });
   const { html } = view({});
-  assert.match(html, /class="tr-chips"/);
-  assert.match(html, /data-disc-jump="Биология"/);
-  assert.match(html, /Биология<span>2<\/span>/);
-  assert.ok(html.indexOf('tr-chips') < html.indexOf('data-disc="Биология"'), 'чипы выше списка');
+  assert.doesNotMatch(html, /tr-chips/);
+  assert.doesNotMatch(html, /data-disc-jump/);
+  // первым в разметке идёт блок дисциплины, а не список преподавателей
+  assert.ok(html.indexOf('data-disc="Биология"') < html.indexOf('data-teacher'), 'дисциплина выше преподавателя');
 });
+
 
 test('поиск находит слово из любого раздела отзыва', () => {
   const view = load({ teachers: [
@@ -174,4 +177,26 @@ test('данные отзывов подключены к странице, пр
     assert.ok(teacher.name && teacher.reviews.length, teacher.name);
     for (const review of teacher.reviews) assert.ok(review.parts && review.source, review.id);
   }
+});
+
+test('внутри дисциплины преподаватели идут по фамилии, даже если записаны «Имя Отчество Фамилия»', () => {
+  const view = load({ teachers: [
+    { id: 'a', name: 'Яна Борисовна Владимирова', reviews: [{ discipline: 'Анатомия', parts: { seminars: 'x' } }] },
+    { id: 'b', name: 'Алексеева Мария Феликсовна', reviews: [{ discipline: 'Анатомия', parts: { seminars: 'x' } }] },
+    { id: 'c', name: 'Арутюнян Анаит Артуровна', reviews: [{ discipline: 'Анатомия', parts: { seminars: 'x' } }] }
+  ] });
+  const { html } = view({});
+  const order = [...html.matchAll(/<strong>([^<]+)<\/strong>/g)]
+    .map(m => m[1])
+    .filter(name => name.includes(' ') && !/^\d+$/.test(name));
+  assert.deepEqual(order, ['Алексеева Мария Феликсовна', 'Арутюнян Анаит Артуровна', 'Яна Борисовна Владимирова']);
+});
+
+test('фамилия определяется и для «Фамилия Имя Отчество», и для обратной записи', () => {
+  const view = load({ teachers: [] });
+  assert.equal(view.surnameOf('Владимирова Яна Борисовна'), 'Владимирова');
+  assert.equal(view.surnameOf('Яна Борисовна Владимирова'), 'Владимирова');
+  assert.equal(view.surnameOf('Башмаков О.'), 'Башмаков');
+  assert.equal(view.surnameOf('Сымон А.М.'), 'Сымон');
+  assert.equal(view.surnameOf('Иванова'), 'Иванова');
 });

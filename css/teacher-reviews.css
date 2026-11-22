@@ -62,10 +62,6 @@
 }
 
 /* Дисциплина → преподаватель → отзывы: три уровня вложенности. */
-.tr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
-.tr-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); font: inherit; font-size: .82rem; font-weight: 650; cursor: pointer; }
-.tr-chip:hover { border-color: var(--primary); color: var(--primary); }
-.tr-chip > span { padding: 1px 6px; border-radius: 999px; background: var(--surface-3); color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; }
 .tr-count { margin: 0 0 12px; color: var(--muted); font-size: .82rem; }
 .tr-list { display: grid; gap: 10px; }
 .tr-disc { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; }
@@ -85,5 +81,4 @@
 @media (max-width: 640px) {
   .tr-disc__head { flex-wrap: wrap; gap: 4px; }
   .tr-disc__meta { width: 100%; }
-  .tr-chip { min-height: 34px; font-size: .78rem; }
 }
