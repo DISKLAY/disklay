@@ -17,7 +17,7 @@
   let myoEngine=null,myoPlan=null,myoBusy=false,myoAlert='',myoTimer=null,myoRetry=5000,myoPreviousOwner=null;
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false, leaderMutating=false;
   // Режим разработчика: виден только указанным Telegram ID
-  let devOverview=null, devLeaders=[], devStatus='', devVersion=0, devLoading=false;
+  let devOverview=null, devLeaders=[], devAllRatings=[], devStatus='', devVersion=0, devLoading=false;
   function isDev(){ const ids=(window.MEDZO_DEV_IDS||['7381851473']); return !!auth && ids.map(String).includes(String(auth.userId)); }
   function getDevIds(){ return (window.MEDZO_DEV_IDS||['7381851473']).map(String); }
   // Офлайн-режим: синхронизируемый прогресс не читается и не пишется (см. js/offline-mode.js),
@@ -458,6 +458,7 @@
       if(auth===active && version===devVersion){
         devOverview=data.overview||null;
         devLeaders=Array.isArray(data.leaders)?data.leaders:[];
+        devAllRatings=Array.isArray(data.allRatings)?data.allRatings:[];
         devStatus='';
         // Кэш лидеров как общий — чтобы статистика совпадала с рейтингом
         if(devLeaders.length){ leaders=devLeaders.slice(); }
@@ -592,7 +593,7 @@
     });
   }
   window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,mountDev,changed:()=>schedule(),oralChanged:()=>scheduleOral(),myologyChanged:()=>scheduleMyo(),
-    isDev, getDevIds, getDevOverview:()=>devOverview, getDevLeaders:()=>devLeaders, getDevStatus:()=>devStatus, loadDevStats, get isDevLoading(){return devLoading;}};
+    isDev, getDevIds, getDevOverview:()=>devOverview, getDevLeaders:()=>devLeaders, getDevAllRatings:()=>devAllRatings, getDevStatus:()=>devStatus, loadDevStats, get isDevLoading(){return devLoading;}};
   notify();
   if(auth){loadPhoto();schedule(0);}
 })();

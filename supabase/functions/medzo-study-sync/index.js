@@ -159,7 +159,9 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       const lbNow=Date.now();let leaders;
       if(leadersCache.rows&&lbNow-leadersCache.at<30000) leaders=leadersCache.rows;
       else { leaders=await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'}); leadersCache={at:lbNow,rows:leaders}; }
-      return response(200,{overview, leaders, now:new Date().toISOString(), devId:id});
+      let allRatings=null;
+      try{ allRatings=await db('rpc/medzo_dev_all_ratings',{method:'POST',body:'{}'}); }catch(_){ allRatings=null; }
+      return response(200,{overview, leaders, allRatings, now:new Date().toISOString(), devId:id});
     }
     if(body.action==='get'){
       const rows=await db('medzo_study_sync?user_id=eq.'+encodeURIComponent(id)+'&select=revision,snapshot,updated_at');

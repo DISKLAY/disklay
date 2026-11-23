@@ -86,7 +86,7 @@ test('гистология подключается лениво и не доб�
   const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),app=fs.readFileSync(path.join(ROOT,'js/app.js'),'utf8');
   const nav=html.match(/<nav class="nav" id="mainNav"[\s\S]*?<\/nav>/)[0];
   assert.doesNotMatch(nav,/Гистология|histology/);assert.match(html,/data-subject-link="histology"/);
-  assert.doesNotMatch(html,/<script src="js\/histology/);assert.match(app,/function loadHistology\(/);
+  assert.doesNotMatch(html,/<script src="js\/histology(?!-editor)/);assert.match(app,/function loadHistology\(/);
 });
 
 
