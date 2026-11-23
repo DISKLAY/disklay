@@ -1854,6 +1854,22 @@
   }
   const restoredExtents={p130:{mucosa:[[23.5,4.9],[23.5,46]]},p141:{mucosa:[[12,6],[12,17]],submucosa:[[12,17],[12,44]],cartilage:[[53,48],[53,83]]},p137:{lobule:[[54.2,30.6],[82,46.2]]}};
   for(const group of structureSlides)for(const point of group.points){const extent=restoredExtents[group.slideId]?.[point.id];if(extent){point.extent=extent;point.x=(extent[0][0]+extent[1][0])/2;point.y=(extent[0][1]+extent[1][1])/2;}}
+  // Режим разработчика: локальные правки меток из localStorage (экспорт → коммит)
+  try{
+    const raw=localStorage.getItem('histology-dev-edits-v1');
+    if(raw){
+      const edits=JSON.parse(raw);
+      if(edits && typeof edits==='object' && !Array.isArray(edits)){
+        for(const [slideId, pts] of Object.entries(edits)){
+          if(!Array.isArray(pts)) continue;
+          const clean=pts.filter(p=>p && typeof p.id==='string' && typeof p.name==='string' && typeof p.x==='number' && typeof p.y==='number').map(p=>({id:String(p.id), name:String(p.name), aliases:Array.isArray(p.aliases)?p.aliases.map(String):[String(p.name)], x:Number(p.x), y:Number(p.y), extent: p.extent||undefined}));
+          let g=structureSlides.find(x=>x.slideId===slideId);
+          if(g) g.points=clean;
+          else if(clean.length) structureSlides.push({slideId, points:clean});
+        }
+      }
+    }
+  }catch(_){}
   const STRUCTURE_KEY='histology-structures-v1';
   const structureTasks={};
   for (const group of structureSlides) for (const point of group.points) for (const mode of (group.modes || ['point','name'])) {

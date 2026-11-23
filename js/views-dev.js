@@ -1,4 +1,4 @@
-/* Режим разработчика: платформенная аналитика + заготовка редактора гистологии. */
+/* Режим разработчика: платформенная аналитика (все пользователи) + редактор гистологии. */
 (function () {
   'use strict';
   const AT = window.AT;
@@ -10,7 +10,6 @@
   function isDev() {
     const ids = window.MEDZO_DEV_IDS || ['7381851473'];
     const sync = window.MedzoStudySync;
-    // Клиентская проверка — окончательная проверка на сервере.
     if (sync && typeof sync.isDev === 'function') return sync.isDev();
     try {
       const raw = localStorage.getItem('medzo-study-sync-session-v1');
@@ -20,15 +19,13 @@
     } catch (_) { return false; }
   }
 
-  function fmt(n) {
-    return Number.isFinite(n) ? n.toLocaleString('ru-RU') : '—';
-  }
+  function fmt(n) { return Number.isFinite(n) ? n.toLocaleString('ru-RU') : '—'; }
 
   function overviewCards(o) {
     if (!o) return '<p class="muted">Нет данных. Нажмите «Обновить».</p>';
     const rows = [
       ['Всего аккаунтов с облаком', o.total_users],
-      ['В рейтинге', o.leaderboard_total],
+      ['В рейтинге (opt-in)', o.leaderboard_total],
       ['С фото', o.photos_total],
       ['Актив 24 ч', o.active_24h],
       ['Актив 7 дней', o.active_7d],
@@ -39,14 +36,20 @@
     ).join('') + '</div>';
   }
 
-  function leaderTable(leaders) {
-    if (!leaders || !leaders.length) return '<p class="muted">Рейтинг пуст.</p>';
-    return '<ol class="leaderboard__list">' + leaders.slice(0, 100).map((row, i) =>
-      '<li><span class="leaderboard__place">' + (i + 1) + '</span>' +
+  function leaderRow(row, i, withMeta){
+    const name = row.display_name ? esc(row.display_name) : (row.user_id ? esc('id:'+String(row.user_id).slice(0,6)+'…') : 'Участник');
+    const score = fmt(row.score);
+    const badge = row.in_leaderboard===false ? ' <span class="badge badge--muted">не в рейтинге</span>' : (row.in_leaderboard? ' <span class="badge badge--ok">в рейтинге</span>' : '');
+    const updated = withMeta && row.updated_at ? '<small class="muted"> · '+new Date(row.updated_at).toLocaleString('ru-RU')+'</small>' : '';
+    return '<li><span class="leaderboard__place">' + (i + 1) + '</span>' +
       (row.photo ? '<img class="leaderboard__avatar" alt="" src="data:image/jpeg;base64,' + row.photo + '">' : '') +
-      '<strong>' + esc(row.display_name || 'Участник') + '</strong>' +
-      '<span class="leaderboard__score">' + fmt(row.score) + '</span></li>'
-    ).join('') + '</ol>';
+      '<strong>' + name + badge + '</strong>' +
+      '<span class="leaderboard__score">' + score + '</span>'+updated+'</li>';
+  }
+
+  function leaderTable(leaders, withMeta){
+    if (!leaders || !leaders.length) return '<p class="muted">Рейтинг пуст.</p>';
+    return '<ol class="leaderboard__list">' + leaders.slice(0, 500).map((row,i)=> leaderRow(row,i,withMeta)).join('') + '</ol>';
   }
 
   AT.views.dev = function () {
@@ -68,16 +71,20 @@
       '<div class="card__actions"><button class="btn btn--primary" data-action="dev-refresh">' + icon('refresh') + ' Обновить</button><a class="btn btn--ghost" href="#/stats">К рейтингу</a></div>' +
       '</section>';
 
-    html += '<section class="card card--pad" data-dev-leaders><h2 class="card__title">Рейтинг — топ-100</h2>' +
-      '<p class="muted small">Тот же расчёт, что в общем рейтинге (сумма очков анатомии из снимков).</p>' +
+    html += '<section class="card card--pad" data-dev-leaders><h2 class="card__title">Все пользователи по очкам</h2>' +
+      '<p class="muted small">Полный рейтинг из снимков — очки всех аккаунтов, не только тех кто в opt-in рейтинге. Фото — только с согласия.</p>' +
+      '<div style="display:flex;gap:8px;margin:8px 0;"><label style="flex:1;"><input type="search" class="input" placeholder="Поиск по имени или id" data-dev-search></label><label><input type="checkbox" data-dev-only-leaderboard> Только в рейтинге</label></div>' +
       '<div data-dev-leaders-list>Загрузка…</div>' +
       '<p class="muted small" data-dev-status role="status"></p></section>';
 
-    html += '<section class="card card--pad"><h2 class="card__title">Редактор меток гистологии</h2>' +
-      '<p class="muted small">Заготовка: здесь будет редактирование подписей, координат точек и правильных ответов для режима «по точкам».</p>' +
-      '<div class="card__actions"><button class="btn btn--ghost" data-action="dev-histo-open">Открыть редактор (скоро)</button>' +
-      '<a class="btn btn--ghost" href="#/histology?section=setup">К гистологии</a></div>' +
-      '<p class="muted small">Сейчас данные гистологии лежат в <code>js/histology-*.js</code> и <code>js/histology-practice-data.js</code>. Редактор получит чтение/запись через защищённый эндпоинт.</p></section>';
+    html += '<section class="card card--pad" data-dev-leaders-optin><h2 class="card__title">Рейтинг opt-in (топ-100)</h2>' +
+      '<p class="muted small">Тот же что видят обычные пользователи.</p>' +
+      '<div data-dev-optin-list>Загрузка…</div></section>';
+
+    html += '<section class="card card--pad" id="histoEditorSection"><h2 class="card__title">Редактор меток гистологии</h2>' +
+      '<p class="muted small">Выберите препарат, перетащите метку, правьте название/алиасы. Сохранение — в браузере (localStorage), экспорт — JSON для коммита.</p>' +
+      '<div data-histo-editor>Загрузка редактора…</div>' +
+      '<p class="muted small">Данные лежат в <code>js/histology.js</code> + <code>js/histology-*.js</code>. Правки из браузера применяются после перезагрузки; для публикации закоммитьте экспорт.</p></section>';
 
     html += '</div>';
     return {
@@ -88,45 +95,60 @@
         const statsBox = root.querySelector('[data-dev-stats]');
         const meta = root.querySelector('[data-dev-meta]');
         const leadersBox = root.querySelector('[data-dev-leaders-list]');
+        const optinBox = root.querySelector('[data-dev-optin-list]');
         const status = root.querySelector('[data-dev-status]');
+        const search = root.querySelector('[data-dev-search]');
+        const onlyCb = root.querySelector('[data-dev-only-leaderboard]');
 
-        function render() {
-          if (!sync) return;
+        function render(){
+          if(!sync) return;
           const overview = sync.getDevOverview ? sync.getDevOverview() : null;
-          const leaders = sync.getDevLeaders ? sync.getDevLeaders() : [];
+          const leaders = sync.getDevAllRatings ? sync.getDevAllRatings() : (sync.getDevLeaders? sync.getDevLeaders(): []);
+          const optin = sync.getDevLeaders ? sync.getDevLeaders() : [];
           const st = sync.getDevStatus ? sync.getDevStatus() : '';
-          if (statsBox) statsBox.innerHTML = sync.isDevLoading ? '<p class="muted">Загружаем…</p>' : overviewCards(overview);
-          if (meta && overview) meta.textContent = 'Обновлено: ' + new Date().toLocaleString('ru-RU');
-          if (leadersBox) leadersBox.innerHTML = sync.isDevLoading ? '<p class="muted">Загружаем…</p>' : leaderTable(leaders.length ? leaders : overview && overview.leaders ? overview.leaders : leaders);
-          if (status) status.textContent = st || '';
+          if(statsBox) statsBox.innerHTML = sync.isDevLoading ? '<p class="muted">Загружаем…</p>' : overviewCards(overview);
+          if(meta && overview) meta.textContent = 'Обновлено: ' + new Date().toLocaleString('ru-RU') + ' · Всего с очками: ' + (leaders.length || 0);
+          // фильтр
+          let filtered = leaders;
+          const q = (search?.value||'').trim().toLowerCase();
+          if(q) filtered = filtered.filter(r=> (r.display_name && r.display_name.toLowerCase().includes(q)) || (r.user_id && String(r.user_id).toLowerCase().includes(q)) );
+          if(onlyCb?.checked) filtered = filtered.filter(r=> r.in_leaderboard);
+          if(leadersBox) leadersBox.innerHTML = sync.isDevLoading ? '<p class="muted">Загружаем…</p>' : leaderTable(filtered, true);
+          if(optinBox) optinBox.innerHTML = sync.isDevLoading ? '<p class="muted">Загружаем…</p>' : leaderTable(optin, false);
+          if(status) status.textContent = st || '';
         }
 
-        // Подписываемся на обновления sync
-        const onSync = () => render();
-        // MedzoStudySync использует единый listener; добавляем свой через onCleanup обёртку
-        let stop = null;
-        if (AT.onCleanup) {
-          const prevCleanup = AT.onCleanup;
-          // Не ломаем существующий механизм — просто слушаем изменения через интервал опроса
-        }
-        // Простой polling + слушатель события
         const interval = setInterval(render, 1000);
         render();
-        if (sync && sync.loadDevStats) sync.loadDevStats();
+        if(sync && sync.loadDevStats) sync.loadDevStats();
 
-        root.addEventListener('click', (e) => {
-          const btn = e.target.closest('[data-action]');
-          if (!btn) return;
-          if (btn.dataset.action === 'dev-refresh' && sync && sync.loadDevStats) {
-            sync.loadDevStats(true);
-          }
-          if (btn.dataset.action === 'dev-histo-open') {
-            if (AT.ui && AT.ui.toast) AT.ui.toast('Редактор откроется в следующем обновлении — подготовлю форму для меток');
-            else alert('Редактор откроется в следующем обновлении');
-          }
+        root.addEventListener('click', (e)=>{
+          const btn=e.target.closest('[data-action]');
+          if(btn && btn.dataset.action==='dev-refresh' && sync && sync.loadDevStats) sync.loadDevStats(true);
         });
+        if(search) search.addEventListener('input', render);
+        if(onlyCb) onlyCb.addEventListener('change', render);
 
-        if (AT.onCleanup) AT.onCleanup(() => { clearInterval(interval); });
+        // монтируем редактор
+        const editorHost=root.querySelector('[data-histo-editor]');
+        if(editorHost){
+          // гистология может быть не загружена — попробуем подтянуть
+          function tryMount(){
+            if(window.HistologyEditor){
+              window.HistologyEditor.mount(editorHost);
+            } else {
+              editorHost.textContent='Редактор не загружен. Откройте гистологию один раз, затем вернитесь.';
+            }
+          }
+          // если прототип ещё не готов, попробуем после загрузки
+          if(!window.HistologyPrototype){
+            // попробуем динамически загрузить гистологию
+            if(window.AT && AT.loadHistology) AT.loadHistology && AT.loadHistology().then(tryMount).catch(tryMount);
+            else tryMount();
+          } else tryMount();
+        }
+
+        if(AT.onCleanup) AT.onCleanup(()=> clearInterval(interval));
       }
     };
   };
