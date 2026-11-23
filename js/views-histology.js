@@ -50,6 +50,12 @@
     const group=H.atlasGroups.find(g=>g.ids.includes(slideId));
     return group?'<span class="histo-topic-badge" data-histo-group="'+esc(group.id)+'">'+esc(group.name)+'</span>':'';
   }
+  function quickEditHtml(slideId){
+    try{
+      if(!window.MedzoStudySync || !window.MedzoStudySync.isDev()) return '';
+    }catch{ return ''; }
+    return '<details class="histo-quick-edit" data-histo-quick-edit="'+esc(slideId)+'"><summary>Исправить метки этого препарата (dev)</summary><div class="histo-quick-edit__stage" data-histo-qe-stage></div><div class="histo-quick-edit__form" data-histo-qe-form></div><div class="histo-quick-edit__actions"><button type="button" class="btn btn--primary btn--sm" data-histo="qe-save">Сохранить публично</button><button type="button" class="btn btn--ghost btn--sm" data-histo="qe-add">+ Точка</button><span class="muted small" data-histo-qe-hint></span></div></details>';
+  }
   function structureStats() {
     const records=Object.values(structureGame.state.stats);
     return {attempts:records.reduce((n,p)=>n+p.attempts,0),correct:records.reduce((n,p)=>n+p.correct,0),mistakes:records.filter(p=>p.last===false).length,seen:records.filter(p=>p.attempts>0).length};
@@ -166,7 +172,7 @@
     if(!shown&&t.mode==='point') controls='<p class="histo-answer-label">Нажмите метку на изображении или выберите её номер:</p><div class="histo-marker-choices" role="group" aria-label="Выбор метки">'+visible.map(({point:p,index:i},number)=>'<button type="button" class="histo-marker-choice'+(e.selected===p.id?' is-selected':'')+'" data-histo="structure-point" data-value="'+i+'" aria-pressed="'+(e.selected===p.id)+'">Метка '+(number+1)+'</button>').join('')+'</div><div class="histo-check"><button type="button" class="btn btn--primary" data-histo="structure-check"'+(!e.selected?' disabled':'')+'>Проверить</button><button type="button" class="btn btn--ghost" data-histo="structure-dont-know">Не знаю</button></div>';
     if(t.mode==='name'&&e.status!=='review') controls='<p class="histo-answer-label">Выберите название отмеченной структуры</p><div class="histo-options">'+e.options.map((option,i)=>'<button type="button" class="histo-option'+(e.selected===option?' is-selected':'')+'" data-histo="structure-option" data-value="'+i+'" aria-pressed="'+(e.selected===option)+'"'+(shown?' disabled':'')+'><span>'+(i+1)+'</span>'+esc(option)+'</button>').join('')+'</div>'+(!shown?'<div class="histo-check"><button type="button" class="btn btn--primary" data-histo="structure-check"'+(!e.selected?' disabled':'')+'>Проверить</button><button type="button" class="btn btn--ghost" data-histo="structure-dont-know">Не знаю</button></div>':'');
     let feedback='';
-    if(shown) feedback='<div class="histo-feedback '+(e.status==='correct'?'is-correct':'is-wrong')+'" role="status"><span class="histo-kicker">'+(e.status==='review'?'Сверьте самостоятельно':e.status==='correct'?'Верно!':'Разберём структуру')+'</span><h3>'+esc(target.name)+'</h3>'+groupBadge(slide.id)+(t.mode==='name'&&e.selected?'<p>Ваш ответ: '+esc(e.selected)+'</p>':e.status==='review'&&e.text?'<p>Ваш прежний ответ: '+esc(e.text)+'</p>':'')+'<p>Метки приблизительны. Сверьте их с исходными обозначениями в атласе.</p>'+(e.status==='review'?'<div class="histo-self"><span>Ваш ответ можно считать верным?</span><button class="btn btn--sm btn--ghost" type="button" data-histo="structure-self" data-value="yes">Да, верно</button><button class="btn btn--sm btn--ghost" type="button" data-histo="structure-self" data-value="no">Нет, ошибся</button></div>':'')+'<ul class="histo-marker-legend">'+visible.map(({point:p},number)=>'<li><strong>'+(number+1)+'.</strong> '+esc(p.name)+'</li>').join('')+'</ul>'+(slide.review?'<details class="histo-review"><summary>Исходное изображение с обозначениями</summary><button type="button" class="histo-review__open" data-histo="structure-zoom" data-value="'+esc(slide.review)+'" aria-label="Увеличить исходное изображение"><img src="'+esc(slide.review)+'" loading="lazy" alt=""></button><button type="button" class="histo-zoom-link" data-histo="structure-zoom" data-value="'+esc(slide.review)+'">Увеличить</button><p class="histo-image__error" hidden>Изображение не загрузилось.</p></details>':'')+'<p class="histo-source">Источник: '+esc(slide.source)+'.</p><button type="button" class="histo-zoom-link" data-histo="structure-atlas" data-value="'+esc(slide.id)+'">Посмотреть препарат в атласе →</button></div>';
+    if(shown) feedback='<div class="histo-feedback '+(e.status==='correct'?'is-correct':'is-wrong')+'" role="status"><span class="histo-kicker">'+(e.status==='review'?'Сверьте самостоятельно':e.status==='correct'?'Верно!':'Разберём структуру')+'</span><h3>'+esc(target.name)+'</h3>'+groupBadge(slide.id)+(t.mode==='name'&&e.selected?'<p>Ваш ответ: '+esc(e.selected)+'</p>':e.status==='review'&&e.text?'<p>Ваш прежний ответ: '+esc(e.text)+'</p>':'')+'<p>Метки приблизительны. Сверьте их с исходными обозначениями в атласе.</p>'+(e.status==='review'?'<div class="histo-self"><span>Ваш ответ можно считать верным?</span><button class="btn btn--sm btn--ghost" type="button" data-histo="structure-self" data-value="yes">Да, верно</button><button class="btn btn--sm btn--ghost" type="button" data-histo="structure-self" data-value="no">Нет, ошибся</button></div>':'')+'<ul class="histo-marker-legend">'+visible.map(({point:p},number)=>'<li><strong>'+(number+1)+'.</strong> '+esc(p.name)+'</li>').join('')+'</ul>'+(slide.review?'<details class="histo-review"><summary>Исходное изображение с обозначениями</summary><button type="button" class="histo-review__open" data-histo="structure-zoom" data-value="'+esc(slide.review)+'" aria-label="Увеличить исходное изображение"><img src="'+esc(slide.review)+'" loading="lazy" alt=""></button><button type="button" class="histo-zoom-link" data-histo="structure-zoom" data-value="'+esc(slide.review)+'">Увеличить</button><p class="histo-image__error" hidden>Изображение не загрузилось.</p></details>':'')+'<p class="histo-source">Источник: '+esc(slide.source)+'.</p>'+quickEditHtml(slide.id)+'<button type="button" class="histo-zoom-link" data-histo="structure-atlas" data-value="'+esc(slide.id)+'">Посмотреть препарат в атласе →</button></div>';
     return '<div class="histo-view view">'+navigation('structures')+'<div class="histo-run-top"><button type="button" class="histo-back" data-histo="structure-setup">← К структурам</button><span class="histo-kicker">ГИСТОЛОГИЯ · СТРУКТУРЫ</span></div><div class="histo-progress"><div><strong>Задание</strong><span>'+(s.index+1)+' / '+s.order.length+'</span></div><div class="histo-progress__track"><span style="width:'+((s.index+1)/s.order.length*100)+'%"></span></div></div><div class="histo-card"><div class="histo-card__head"><div><span class="histo-kicker">'+esc(slide.name)+'</span><h1>'+(t.mode==='point'?'Покажите: '+esc(target.name):'Что отмечено?')+'</h1></div></div>'+keyboardHint+'<figure class="histo-image"><div class="histo-structure-image"><img src="'+esc(slide.image)+'" alt="Микрофотография с метками"><div class="histo-markers">'+markers+'</div></div><figcaption>Метки указывают примерное положение структур.</figcaption><button type="button" class="histo-zoom-link histo-structure-zoom" data-histo="structure-zoom" data-value="'+esc(slide.image)+'">Увеличить снимок с метками</button><p class="histo-image__error" hidden>Изображение не загрузилось. Попробуйте обновить страницу.</p></figure>'+controls+feedback+'<div class="histo-bottom"><button type="button" class="btn btn--ghost" data-histo="structure-prev"'+(s.index===0?' disabled':'')+'>← Назад</button><button type="button" class="btn btn--primary" data-histo="structure-next"'+(e.status==='unanswered'||e.status==='review'?' disabled':'')+'>'+(s.index===s.order.length-1?'Завершить':'Далее →')+'</button></div></div></div>';
   }
   function setupView() {
@@ -200,7 +206,7 @@
       feedback='<div class="histo-feedback '+(e.status==='wrong'?'is-wrong':e.status==='correct'?'is-correct':'')+'" role="status"><span class="histo-kicker">'+label+'</span><h3>'+esc(q.name)+'</h3>'+groupBadge(q.id)+'<p>Препарат № '+esc(q.number)+' · '+esc(q.stain)+'</p>'+(e.text?'<p class="histo-your-answer">Ваш ответ: '+esc(e.text)+'</p>':'')+'<p>'+esc(q.note)+'</p>'+
         (e.status==='review'?'<div class="histo-self"><span>Ваш ответ можно считать верным?</span><button class="btn btn--sm btn--ghost" type="button" data-histo="self" data-value="yes">Да, верно</button><button class="btn btn--sm btn--ghost" type="button" data-histo="self" data-value="no">Нет, ошибся</button></div>':'')+
         (q.review?'<details class="histo-review"><summary>Показать изображение с обозначениями</summary><button type="button" class="histo-review__open" data-histo="zoom" data-value="'+esc(q.review)+'" aria-label="Увеличить изображение с обозначениями"><img src="'+esc(q.review)+'" loading="lazy" alt=""></button><button type="button" class="histo-zoom-link" data-histo="zoom" data-value="'+esc(q.review)+'">Увеличить изображение</button><p class="histo-image__error" hidden>Изображение не загрузилось. Проверьте подключение и <button type="button" data-histo="retry-image" data-value="review">попробуйте ещё раз</button>.</p></details>':'')+
-        '<p class="histo-source">По материалам присланной базы: '+esc(q.source)+'.</p><button type="button" class="histo-zoom-link" data-histo="review-atlas" data-value="'+esc(q.id)+'">Все изображения и теория в атласе →</button></div>';
+        '<p class="histo-source">По материалам присланной базы: '+esc(q.source)+'.</p>'+quickEditHtml(q.id)+'<button type="button" class="histo-zoom-link" data-histo="review-atlas" data-value="'+esc(q.id)+'">Все изображения и теория в атласе →</button></div>';
     }
     return '<div class="histo-view view">'+navigation('setup')+'<div class="histo-run-top"><button type="button" class="histo-back" data-histo="setup">← К настройкам</button><span class="histo-kicker">ГИСТОЛОГИЯ · '+(s.mode==='choice'?'ВЫБОР ОТВЕТА':'ВВОД НАЗВАНИЯ')+'</span></div>'+
       '<div class="histo-progress"><div><strong>Определите препарат</strong><span>'+ (s.index+1)+' / '+s.order.length+'</span></div><div class="histo-progress__track"><span style="width:'+((s.index+1)/s.order.length*100)+'%"></span></div></div>'+
@@ -476,6 +482,123 @@
         input.addEventListener('input',()=>game.setText(input.value));
         form.addEventListener('submit',ev=>{ev.preventDefault();if(!game.check(input.value)){input.focus();return;}if(game.storageFailed())AT.ui.toast('Не удалось сохранить прогресс на устройстве','warn');AT.rerender();});
       }
+      // Быстрый inline-редактор меток (только для dev, после проверки)
+      (function mountQuickEdit(){
+        const details=view.querySelector('[data-histo-quick-edit]');
+        if(!details) return;
+        const slideId=details.dataset.histoQuickEdit;
+        const stage=details.querySelector('[data-histo-qe-stage]');
+        const formBox=details.querySelector('[data-histo-qe-form]');
+        const hint=details.querySelector('[data-histo-qe-hint]');
+        if(!stage||!formBox) return;
+        let group=H.structureSlides.find(g=>g.slideId===slideId);
+        // если группы нет — покажем заглушку (создадим пустую)
+        if(!group) group={slideId, points:[]};
+        const slide=H.byId[slideId]||{image:group.image||'', name:slideId};
+        let selectedId=group.points[0]?.id||null;
+        let working=group.points.map(p=>({...p, aliases:[...(p.aliases||[])] }));
+        function renderStage(){
+          stage.innerHTML='';
+          stage.style.cssText='position:relative;max-width:720px;margin:10px auto;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/10;';
+          const im=document.createElement('img');
+          im.src=slide.image||group.image||''; im.style.cssText='width:100%;height:100%;object-fit:contain;display:block;';
+          im.alt='';
+          stage.append(im);
+          working.forEach(p=>{
+            const dot=document.createElement('div');
+            dot.dataset.qeId=p.id;
+            dot.style.cssText=`position:absolute;left:${p.x}%;top:${p.y}%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:${p.id===selectedId?'#ff3b30':'#38bdf8'};border:2px solid #fff;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.4);`;
+            const lab=document.createElement('span');
+            lab.textContent=p.name;
+            lab.style.cssText='position:absolute;left:16px;top:-8px;background:rgba(0,0,0,.75);color:#fff;padding:2px 6px;border-radius:6px;font-size:11px;white-space:nowrap;pointer-events:none;';
+            dot.append(lab);
+            stage.append(dot);
+          });
+        }
+        function renderForm(){
+          formBox.innerHTML='';
+          if(!selectedId){ formBox.innerHTML='<p class="muted small">Выберите точку на снимке или нажмите «+ Точка».</p>'; return; }
+          const pt=working.find(p=>p.id===selectedId);
+          if(!pt) return;
+          formBox.innerHTML=`<div style="display:grid;gap:8px;margin:8px 0;"><label>ID <input class="input" data-qe="id" value="${esc(pt.id)}"></label><label>Название <input class="input" data-qe="name" value="${esc(pt.name)}"></label><label>Алиасы (через запятую) <input class="input" data-qe="aliases" value="${esc((pt.aliases||[]).join(', '))}"></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><label>X % <input class="input" type="number" step="0.1" data-qe="x" value="${pt.x}"></label><label>Y % <input class="input" type="number" step="0.1" data-qe="y" value="${pt.y}"></label></div><div style="display:flex;gap:8px;"><button type="button" class="btn btn--primary btn--sm" data-histo="qe-apply">Применить</button><button type="button" class="btn btn--ghost btn--sm" data-histo="qe-delete">Удалить</button></div></div>`;
+        }
+        renderStage(); renderForm();
+        let drag=null;
+        stage.addEventListener('pointerdown',e=>{
+          const dot=e.target.closest('[data-qe-id]');
+          if(!dot) return;
+          e.preventDefault();
+          drag=dot.dataset.qeId;
+          selectedId=drag; renderForm();
+          try{ dot.setPointerCapture(e.pointerId);}catch{}
+          dot.style.cursor='grabbing';
+        });
+        stage.addEventListener('pointermove',e=>{
+          if(!drag) return;
+          const rect=stage.getBoundingClientRect();
+          const x=((e.clientX-rect.left)/rect.width)*100;
+          const y=((e.clientY-rect.top)/rect.height)*100;
+          const pt=working.find(p=>p.id===drag); if(!pt) return;
+          pt.x=Math.max(0,Math.min(100,x)); pt.y=Math.max(0,Math.min(100,y));
+          const dot=stage.querySelector('[data-qe-id="'+CSS.escape(drag)+'"]');
+          if(dot){ dot.style.left=pt.x+'%'; dot.style.top=pt.y+'%'; }
+          if(selectedId===drag){
+            const xe=formBox.querySelector('[data-qe="x"]'), ye=formBox.querySelector('[data-qe="y"]');
+            if(xe) xe.value=pt.x.toFixed(1); if(ye) ye.value=pt.y.toFixed(1);
+          }
+        });
+        stage.addEventListener('pointerup',e=>{
+          if(!drag) return;
+          const id=drag; drag=null;
+          const dot=stage.querySelector('[data-qe-id="'+CSS.escape(id)+'"]');
+          if(dot) dot.style.cursor='grab';
+        });
+        stage.addEventListener('click',e=>{
+          const dot=e.target.closest('[data-qe-id]');
+          if(!dot) return;
+          selectedId=dot.dataset.qeId; renderStage(); renderForm();
+        });
+        view.addEventListener('click',e=>{
+          const el=e.target.closest('[data-histo]');
+          if(!el) return;
+          if(el.dataset.histo==='qe-add'){
+            const nid='p'+Date.now().toString(36).slice(-4);
+            working.push({id:nid, name:'Новая метка', aliases:['новая метка'], x:50, y:50});
+            selectedId=nid; renderStage(); renderForm();
+          } else if(el.dataset.histo==='qe-apply'){
+            const pt=working.find(p=>p.id===selectedId); if(!pt) return;
+            const idEl=formBox.querySelector('[data-qe="id"]'), nEl=formBox.querySelector('[data-qe="name"]'), aEl=formBox.querySelector('[data-qe="aliases"]'), xEl=formBox.querySelector('[data-qe="x"]'), yEl=formBox.querySelector('[data-qe="y"]');
+            const nid=(idEl.value.trim()||pt.id);
+            pt.id=nid; pt.name=nEl.value.trim()||pt.name; pt.aliases=aEl.value.split(',').map(s=>s.trim()).filter(Boolean); pt.x=parseFloat(xEl.value)||pt.x; pt.y=parseFloat(yEl.value)||pt.y;
+            selectedId=nid; renderStage(); renderForm();
+            if(hint) hint.textContent='Применено локально — нажмите «Сохранить публично».';
+          } else if(el.dataset.histo==='qe-delete'){
+            working=working.filter(p=>p.id!==selectedId);
+            selectedId=working[0]?.id||null;
+            renderStage(); renderForm();
+            if(hint) hint.textContent='Удалено локально.';
+          } else if(el.dataset.histo==='qe-save'){
+            el.disabled=true; const old=el.textContent; el.textContent='Сохранение...';
+            const payload=working.map(p=>({id:p.id,name:p.name,x:Number(p.x),y:Number(p.y),aliases:p.aliases||[p.name], extent:p.extent||undefined}));
+            Promise.resolve().then(()=>{
+              if(window.HistologyOverrides && window.HistologyOverrides.put) return window.HistologyOverrides.put(slideId, payload);
+              throw new Error('no_api');
+            }).then(()=>{
+              if(window.AT && AT.ui && AT.ui.toast) AT.ui.toast('Опубликовано для всех');
+              if(hint) hint.textContent='Сохранено публично.';
+              // обновим прототип в памяти чтобы следующий вопрос показал новые метки без перезагрузки
+              let g=H.structureSlides.find(x=>x.slideId===slideId);
+              if(g) g.points=payload.map(p=>({id:p.id,name:p.name,x:p.x,y:p.y,aliases:p.aliases, extent:p.extent}));
+            }).catch(err=>{
+              if(window.AT && AT.ui && AT.ui.toast) AT.ui.toast('Ошибка: '+(err.message||'save_failed'),'warn');
+              if(hint) hint.textContent='Ошибка: '+(err.message||'save_failed');
+            }).finally(()=>{ el.disabled=false; el.textContent=old; });
+          }
+        });
+        details.addEventListener('toggle',()=>{
+          if(details.open){ renderStage(); renderForm(); }
+        });
+      })();
     }};
   };
   AT.views.histology.openSection=function(section) {if(!['setup','errors','stats','atlas','structures','theory'].includes(section))return;screen=section;notice='';AT.rerender();};

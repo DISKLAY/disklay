@@ -137,6 +137,7 @@
         actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;';
         actions.innerHTML=`
           <button type="button" class="btn btn--primary btn--sm" data-save-all>Сохранить в браузере</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-save-public style="background:#0ea5e9;color:#fff;border-color:#0ea5e9;">Сохранить публично</button>
           <button type="button" class="btn btn--ghost btn--sm" data-export>Копировать JSON</button>
           <button type="button" class="btn btn--ghost btn--sm" data-download>Скачать edits.json</button>
           <button type="button" class="btn btn--ghost btn--sm" data-reset-slide>Сбросить препарат</button>
@@ -145,7 +146,7 @@
         list.append(actions);
         const hint=document.createElement('p');
         hint.className='muted small';
-        hint.textContent='Сохранение пишет в localStorage «histology-dev-edits-v1». После сохранения перезагрузите страницу — правки применятся. Экспортированный JSON можно закоммитить в репозиторий (заменив исходные точки в js/histology.js).';
+        hint.textContent='«Сохранить публично» отправляет правки на сервер — все увидят их сразу. «В браузере» — только у вас (localStorage).';
         list.append(hint);
         const preview=document.createElement('pre');
         preview.style.cssText='background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;max-height:260px;font-size:12px;';
@@ -186,6 +187,19 @@
         const g=currentGroup(); if(g) edits[selectedSlide]=g.points.slice();
         saveEdits(edits);
         toast('Сохранено в браузере. Перезагрузите для применения.');
+      });
+      const savePub=container.querySelector('[data-save-public]'); if(savePub) savePub.addEventListener('click', async()=>{
+        const g=currentGroup(); if(!g) return;
+        savePub.disabled=true; savePub.textContent='Сохранение...';
+        const payload=g.points.map(p=>({id:p.id,name:p.name,x:Number(p.x),y:Number(p.y),aliases:p.aliases||[p.name], extent:p.extent||undefined}));
+        try{
+          if(window.HistologyOverrides && window.HistologyOverrides.put){
+            await window.HistologyOverrides.put(selectedSlide, payload);
+            toast('Опубликовано для всех');
+          } else throw new Error('no_api');
+        }catch(e){
+          toast('Ошибка: '+(e.message||'save_failed')+' — попробуйте «Сохранить в браузере»');
+        } finally { savePub.disabled=false; savePub.textContent='Сохранить публично'; }
       });
       const exp=container.querySelector('[data-export]'); if(exp) exp.addEventListener('click',async()=>{
         const text=JSON.stringify(edits,null,2);
