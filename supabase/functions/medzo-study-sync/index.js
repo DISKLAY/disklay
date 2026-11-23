@@ -54,6 +54,23 @@ function validPhoto(value){
   if(typeof value!=='string'||value.length<16||value.length>90000||value.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(value))return false;
   try {const data=atob(value);return data.length<=65536 && data.charCodeAt(0)===255 && data.charCodeAt(1)===216 && data.charCodeAt(2)===255 && data.charCodeAt(data.length-2)===255 && data.charCodeAt(data.length-1)===217;}catch(_){return false;}
 }
+function validHistologyPoints(points){
+  if(!Array.isArray(points) || points.length>50) return false;
+  for(const p of points){
+    if(!p || typeof p.id!=='string' || !p.id || p.id.length>64) return false;
+    if(typeof p.name!=='string' || !p.name.trim() || p.name.length>120) return false;
+    if(!Array.isArray(p.aliases) || p.aliases.some(a=>typeof a!=='string' || !a.trim())) return false;
+    if(typeof p.x!=='number' || typeof p.y!=='number' || p.x<0 || p.x>100 || p.y<0 || p.y>100) return false;
+    if(p.extent!==undefined && p.extent!==null){
+      if(!Array.isArray(p.extent) || p.extent.length!==2) return false;
+      for(const seg of p.extent) if(!Array.isArray(seg) || seg.length!==2 || seg.some(n=>typeof n!=='number')) return false;
+    }
+  }
+  // id уникальны
+  const ids=new Set(points.map(p=>p.id));
+  if(ids.size!==points.length) return false;
+  return true;
+}
 const moduleIds=['1','2','3','4','5','6','7','credit-1','credit-2','stom-2','stom-3'];
 const anatomyFields=['key','keyMeta','progress','favorites','comments','sessions','seen'];
 const allowed=Object.fromEntries(moduleIds.map(id=>[id==='1'?'anatomy-colloquium-v1':'anatomy-colloquium-v1-'+id,anatomyFields]).concat(Object.entries({'histology-prototype-v1':['stats','favorites','imageStats'],'histology-structures-v1':['stats'],'histology-theory-v1':['stats'],'anatomy-practical-skills-1-v1':['favorites','stats','notes']})));
@@ -102,6 +119,13 @@ function createHandler(env,fetchFn=fetch){return async function(req){
     const raw=await req.text();if(raw.length>1100000)return response(413,{error:'too_large'});const body=JSON.parse(raw||'{}');
     if(body.action==='config')return response(200,{botId:match[1]});
     if(body.action==='challenge'){const random=crypto.getRandomValues(new Uint8Array(24));const nonce=await signObject({kind:'challenge',exp:now+120,random:b64u(random)},signing);return response(200,{nonce});}
+    if(body.action==='histology-get'){
+      // Публично: все видят актуальные правки меток, даже без логина
+      try{
+        const overrides=await db('rpc/medzo_histology_get_overrides',{method:'POST',body:'{}'});
+        return response(200,{overrides});
+      }catch(_){ return response(200,{overrides:{}}); }
+    }
     if(body.action==='login'){
       let id;
       if(body.initData)id=await verifyInitData(body.initData,bot,now);
@@ -162,6 +186,22 @@ function createHandler(env,fetchFn=fetch){return async function(req){
       let allRatings=null;
       try{ allRatings=await db('rpc/medzo_dev_all_ratings',{method:'POST',body:'{}'}); }catch(_){ allRatings=null; }
       return response(200,{overview, leaders, allRatings, now:new Date().toISOString(), devId:id});
+    }
+    if(body.action==='histology-put'){
+      if(!isDev(id, env)) return response(403,{error:'forbidden'});
+      const slideId=typeof body.slideId==='string'? body.slideId.trim(): '';
+      const points=body.points;
+      if(!slideId || slideId.length>64 || !/^[a-z0-9_-]+$/i.test(slideId)) return response(400,{error:'invalid_slide'});
+      if(!validHistologyPoints(points)) return response(400,{error:'invalid_points'});
+      await db('medzo_histology_overrides?on_conflict=slide_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({slide_id:slideId, points, updated_at:new Date().toISOString(), updated_by:id})});
+      return response(200,{ok:true});
+    }
+    if(body.action==='histology-delete'){
+      if(!isDev(id, env)) return response(403,{error:'forbidden'});
+      const slideId=typeof body.slideId==='string'? body.slideId.trim(): '';
+      if(!slideId) return response(400,{error:'invalid_slide'});
+      await db('medzo_histology_overrides?slide_id=eq.'+encodeURIComponent(slideId),{method:'DELETE',headers:{Prefer:'return=representation'}});
+      return response(200,{ok:true});
     }
     if(body.action==='get'){
       const rows=await db('medzo_study_sync?user_id=eq.'+encodeURIComponent(id)+'&select=revision,snapshot,updated_at');
