@@ -1,6 +1,10 @@
 /* Standalone entry point for password accounts. Build with build-credentials.cjs. */
 (function(root){
 'use strict';
+function isDev(id, env){
+  const raw = (env.get('MEDZO_DEV_IDS') || '7381851473');
+  return raw.split(',').map(s=>s.trim()).filter(Boolean).includes(String(id));
+}
 function create({Core,Database,GoTrue,PasswordSession,CredentialHandler,Sync},env,fetchFn=fetch){
  return async function(req){
   const bot=env.get('TELEGRAM_BOT_TOKEN')||'',secret=env.get('SUPABASE_SERVICE_ROLE_KEY')||'',base=env.get('SUPABASE_URL')||'';
@@ -44,6 +48,12 @@ function create({Core,Database,GoTrue,PasswordSession,CredentialHandler,Sync},en
    if(body.action==='leaderboard-get'){const leaders=await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'}),own=await db('medzo_leaderboard_members?user_id=eq.'+pathId+'&select=display_name,show_photo');return reply(200,{leaders,member:own.length?{name:own[0].display_name,showPhoto:own[0].show_photo}:null});}
    if(body.action==='leaderboard-join'){if(typeof body.name!=='string'||typeof body.showPhoto!=='boolean')return reply(400,{error:'invalid_profile'});const name=body.name.trim().normalize('NFC');if(!name||name.length>48||/[\u0000-\u001f\u007f]/.test(name))return reply(400,{error:'invalid_profile'});await db('medzo_leaderboard_members?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,display_name:name,show_photo:body.showPhoto})});return reply(200,{ok:true});}
    if(body.action==='leaderboard-leave'){await db('medzo_leaderboard_members?user_id=eq.'+pathId,{method:'DELETE',headers:{Prefer:'return=representation'}});return reply(200,{ok:true});}
+   if(body.action==='dev-stats'){
+     if(!isDev(id, env)) return reply(403,{error:'forbidden'});
+     const overview = await db('rpc/medzo_dev_overview',{method:'POST',body:'{}'});
+     const leaders = await db('rpc/medzo_leaderboard_top',{method:'POST',body:'{}'});
+     return reply(200,{overview, leaders, now:new Date().toISOString(), devId:id});
+   }
    return reply(400,{error:'invalid_action'});
   }catch(e){return e&&e.message==='database'?reply(503,{error:'unavailable'}):reply(401,{error:'request_failed'});}
  };

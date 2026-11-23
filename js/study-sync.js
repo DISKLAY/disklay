@@ -16,6 +16,10 @@
   const M=window.MedzoMyologySnapshot, MYO_META='medzo-myology-sync-meta-v1', MYO_OWNER='medzo-myology-sync-owner-v1';
   let myoEngine=null,myoPlan=null,myoBusy=false,myoAlert='',myoTimer=null,myoRetry=5000,myoPreviousOwner=null;
   let leaders=[], member=null, leaderStatus='', leaderVersion=0, leaderNeedsForm=true, leaderDirty=false, leaderMutating=false;
+  // Режим разработчика: виден только указанным Telegram ID
+  let devOverview=null, devLeaders=[], devStatus='', devVersion=0, devLoading=false;
+  function isDev(){ const ids=(window.MEDZO_DEV_IDS||['7381851473']); return !!auth && ids.map(String).includes(String(auth.userId)); }
+  function getDevIds(){ return (window.MEDZO_DEV_IDS||['7381851473']).map(String); }
   // Офлайн-режим: синхронизируемый прогресс не читается и не пишется (см. js/offline-mode.js),
   // автоматические и ручные операции с облаком блокируем целиком.
   const offlineScratch=()=>!!(window.MedzoOffline&&window.MedzoOffline.active);
@@ -445,6 +449,28 @@
     catch(_){if(auth===active&&version===leaderVersion)leaderStatus='Не удалось выйти из рейтинга. Проверьте подключение.';}
     finally{leaderMutating=false;busy=false;notify();}
   }
+  async function loadDevStats(force=false){
+    if(!isDev() || (devLoading && !force)) return;
+    const active=auth, version=++devVersion;
+    devLoading=true; devStatus='Загружаем статистику…'; notify();
+    try{
+      const data=await call({action:'dev-stats'});
+      if(auth===active && version===devVersion){
+        devOverview=data.overview||null;
+        devLeaders=Array.isArray(data.leaders)?data.leaders:[];
+        devStatus='';
+        // Кэш лидеров как общий — чтобы статистика совпадала с рейтингом
+        if(devLeaders.length){ leaders=devLeaders.slice(); }
+      }
+    } catch(e){
+      if(auth===active && version===devVersion){
+        devStatus = (e && e.message==='network') ? 'Не удалось загрузить. Проверьте интернет.' : 'Доступ только для разработчика.';
+      }
+    } finally{
+      if(auth===active && version===devVersion) devLoading=false;
+      notify();
+    }
+  }
   function renderLeaderboard(node){
     const form=node.querySelector('[data-leaderboard-form]'),list=node.querySelector('[data-leaderboard-list]'),status=node.querySelector('[data-leaderboard-status]');
     if(!form||!form.elements||!list||!list.replaceChildren)return;
@@ -532,7 +558,41 @@
   window.addEventListener('online',()=>{schedule(0);scheduleOral(0);scheduleMyo(0);});
   window.addEventListener('focus',()=>{schedule(0);scheduleOral(0);scheduleMyo(0);refreshPhoto();});
   if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(!document.hidden){schedule(0);scheduleOral(0);scheduleMyo(0);}});
-  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,changed:()=>schedule(),oralChanged:()=>scheduleOral(),myologyChanged:()=>scheduleMyo()};
+  function mountDev(node){
+    if(!node) return;
+    const render=()=>{
+      if(!node.isConnected){ listener=null; return; }
+      const isDevNow=isDev();
+      node.hidden=!isDevNow;
+      if(!isDevNow) return;
+      const overview=node.querySelector('[data-dev-stats]');
+      const meta=node.querySelector('[data-dev-meta]');
+      const list=node.querySelector('[data-dev-leaders]');
+      const status=node.querySelector('[data-dev-status]');
+      if(overview) overview.textContent = devOverview ? `Всего: ${devOverview.total_users} · В рейтинге: ${devOverview.leaderboard_total} · Фото: ${devOverview.photos_total} · 24ч: ${devOverview.active_24h} · 7д: ${devOverview.active_7d} · 30д: ${devOverview.active_30d}` : (devLoading ? 'Загружаем…' : devStatus || 'Нажмите Обновить');
+      if(meta && devOverview) meta.textContent = 'Актив платформы — по updated_at в облаке. Обновлено: ' + new Date().toLocaleString('ru-RU');
+      if(status) status.textContent = devStatus;
+      if(list){
+        list.replaceChildren();
+        const src = devLeaders.length ? devLeaders : leaders;
+        src.slice(0,20).forEach((row,i)=>{
+          const li=document.createElement('li'); li.textContent=(i+1)+'. '+(row.display_name||'Участник')+' — '+(row.score||0);
+          list.append(li);
+        });
+        if(!src.length) list.textContent='Пока пусто';
+      }
+    };
+    listener=render;
+    window.AT.onCleanup(()=>{ listener=null; });
+    notify();
+    if(isDev()) loadDevStats();
+    node.addEventListener('click',e=>{
+      const b=e.target.closest('[data-dev-refresh]');
+      if(b){ e.preventDefault(); loadDevStats(true); }
+    });
+  }
+  window.MedzoStudySync={mount,mountLeaderboard,mountVisibility,mountDev,changed:()=>schedule(),oralChanged:()=>scheduleOral(),myologyChanged:()=>scheduleMyo(),
+    isDev, getDevIds, getDevOverview:()=>devOverview, getDevLeaders:()=>devLeaders, getDevStatus:()=>devStatus, loadDevStats, get isDevLoading(){return devLoading;}};
   notify();
   if(auth){loadPhoto();schedule(0);}
 })();
