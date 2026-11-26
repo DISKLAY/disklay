@@ -180,14 +180,63 @@
     if(!e.newValue){if(authStorage==='local'){clearAuth();message='Вход завершён в другой вкладке.';notify();}return;}
     try{const next=JSON.parse(e.newValue);if(validAuth(next)&&(!auth||next.session!==auth.session)){connect(next,'local',false);plan=null;message='';notify();loadPhoto();loadLeaderboard();loadAccount();schedule(0);}}catch(_){}
   });
+  let preparePromise=null;
+  function decodeTgAuthResult(raw){
+    if(typeof raw!=='string' || !raw) return null;
+    try{
+      // base64url -> base64
+      let b64=raw.replace(/-/g,'+').replace(/_/g,'/');
+      b64 += '='.repeat((4 - b64.length%4)%4);
+      const bin=atob(b64);
+      // bin is UTF-8 JSON, decode correctly
+      try{
+        const bytes=Uint8Array.from(bin, c=>c.charCodeAt(0));
+        const text=new TextDecoder().decode(bytes);
+        return JSON.parse(text);
+      }catch{
+        return JSON.parse(bin);
+      }
+    }catch{
+      return null;
+    }
+  }
+  async function consumeTelegramAuthResult(){
+    const raw=window.MedzoTelegramAuthResult;
+    if(!raw || auth) return false;
+    const data=decodeTgAuthResult(raw);
+    if(!data || typeof data!=='object' || !data.hash) return false;
+    // prevent double-submit: clear early, but keep in sessionStorage until success to allow retry on network error
+    busy=true; message='Завершаем вход через Telegram…'; notify();
+    try{
+      const res=await call({action:'login', widgetData:data}, false);
+      connect(res, remember?'local':'session');
+      try{ sessionStorage.removeItem('__telegram__authResult'); }catch(_){}
+      window.MedzoTelegramAuthResult=null;
+      window.MedzoTelegramAuthResultRaw=null;
+      message='';
+      busy=false; notify();
+      if(engine) await Promise.all([inspect(true), loadPhoto(), loadLeaderboard(), loadAccount()]);
+      return true;
+    }catch(e){
+      busy=false;
+      message='Не удалось войти по данным Telegram. Попробуйте ещё раз.';
+      notify();
+      return false;
+    }
+  }
   async function prepareLogin() {
     if(auth || window.MedzoTelegramLaunch)return;
-    try {
-      if(!loginLoaded) { await loadScript('https://telegram.org/js/telegram-login.js');loginLoaded=true; }
-      const values=await Promise.all([call({action:'config'},false),call({action:'challenge'},false)]);
-      if(!/^\d+$/.test(String(values[0].botId)) || typeof values[1].nonce!=='string')throw Error('config');
-      config=values[0];challenge={nonce:values[1].nonce,at:Date.now()};notify();
-    } catch (_) { message='Не удалось подготовить вход. Проверьте интернет и нажмите «Войти» ещё раз.';notify(); }
+    if(preparePromise) return preparePromise;
+    preparePromise=(async()=>{
+      try {
+        if(!loginLoaded) { await loadScript('https://telegram.org/js/telegram-login.js');loginLoaded=true; }
+        const values=await Promise.all([call({action:'config'},false),call({action:'challenge'},false)]);
+        if(!/^\d+$/.test(String(values[0].botId)) || typeof values[1].nonce!=='string')throw Error('config');
+        config=values[0];challenge={nonce:values[1].nonce,at:Date.now()};notify();
+      } catch (_) { message='Не удалось подготовить вход. Проверьте интернет и нажмите «Войти» ещё раз.';notify(); }
+      finally{ preparePromise=null; }
+    })();
+    return preparePromise;
   }
   function clearBootstrap(active){
     try{if(active)localStorage.removeItem('medzo-sync-bootstrap-v1-'+String(active.userId));}catch(_){}
@@ -341,24 +390,85 @@
     finally { busy=false;notify(); }
     if(engine){await Promise.all([inspect(true),loadPhoto(),loadLeaderboard(),loadAccount()]);}
   }
-  function login() {
-    if(busy)return;
+  async function login() {
+    if(busy) return;
     const rememberLogin=remember;
     const mini=window.Telegram && window.Telegram.WebApp;
     if(mini && mini.initData){loginMini(mini.initData,rememberLogin);return;}
     if(window.MedzoTelegramLaunch && !miniLoaded){message=miniFailed?'Не удалось загрузить Telegram. Проверьте интернет и откройте приложение заново.':'Ожидаем загрузки Telegram. Попробуйте ещё раз через несколько секунд.';notify();return;}
     if(window.MedzoTelegramLaunch){message='Данные Telegram недоступны. Откройте Medzo заново из бота.';notify();return;}
-    if(!loginLoaded||!config||!challenge||Date.now()-challenge.at>100000||!window.Telegram || !window.Telegram.Login) {
-      message='Подготавливаем вход. Через несколько секунд нажмите «Войти» ещё раз.';notify();prepareLogin();return;
+    // If we already have a redirected tgAuthResult, consume it instead of opening popup
+    if(window.MedzoTelegramAuthResult){
+      consumeTelegramAuthResult();
+      return;
     }
-    const nonce=challenge.nonce;challenge=null;
+    if(!loginLoaded||!config||!challenge||Date.now()-challenge.at>100000||!window.Telegram || !window.Telegram.Login) {
+      message='Подготавливаем вход…'; notify();
+      await prepareLogin();
+      if(!loginLoaded||!config||!challenge||Date.now()-challenge.at>100000||!window.Telegram || !window.Telegram.Login){
+        message='Не удалось подготовить вход. Проверьте интернет и нажмите «Войти» ещё раз.'; notify();
+        return;
+      }
+    }
+    const nonce=challenge.nonce;
+    // Do not clear challenge yet — keep it until login succeeds or is proven invalid
     try {
       // Keep this call in the click handler so the browser permits the popup.
       window.Telegram.Login.auth({client_id:Number(config.botId),scope:['profile'],lang:'ru',nonce},async result=>{
-        if(!result||!result.id_token){message='Вход отменён или не завершён. Попробуйте ещё раз.';notify();prepareLogin();return;}
+        if(!result){
+          message='Вход отменён или не завершён. Попробуйте ещё раз.';
+          notify();
+          return;
+        }
+        if(result.error){
+          if(result.error==='popup_closed'){
+            message='Окно входа закрыто. Попробуйте ещё раз.';
+            notify();
+            return;
+          }
+          message='Вход не завершён: '+String(result.error);
+          notify();
+          prepareLogin();
+          return;
+        }
+        // Widget-style fallback: Telegram may return a full user object with hash instead of id_token
+        if(result.hash && result.id && !result.id_token){
+          busy=true; notify();
+          try{
+            const res=await call({action:'login', widgetData:result}, false);
+            connect(res, rememberLogin?'local':'session'); message=''; challenge=null;
+            try{ sessionStorage.removeItem('__telegram__authResult'); }catch(_){}
+          }catch(e){
+            message='Вход не удалось проверить. Попробуйте ещё раз.';
+            // do not clear challenge on network error — allow retry with same nonce
+            if(String(e.message)==='network') {} else challenge=null;
+            prepareLogin();
+          }finally{ busy=false; notify(); }
+          if(engine){ await Promise.all([inspect(true),loadPhoto(),loadLeaderboard(),loadAccount()]); }
+          return;
+        }
+        if(!result.id_token){
+          message='Вход отменён или не завершён. Попробуйте ещё раз.';notify();
+          return;
+        }
         busy=true;notify();
-        try { connect(await call({action:'login',idToken:result.id_token,nonce},false),rememberLogin?'local':'session');message=''; }
-        catch (_) { message='Вход не удалось проверить. Попробуйте ещё раз.';prepareLogin(); }
+        try {
+          const res=await call({action:'login',idToken:result.id_token,nonce},false);
+          connect(res,rememberLogin?'local':'session');message=''; challenge=null;
+          try{ sessionStorage.removeItem('__telegram__authResult'); }catch(_){}
+        }
+        catch (e) {
+          // 401 -> likely nonce expired/invalid; clear challenge so next attempt fetches fresh one
+          // network -> keep challenge for retry
+          const msg=String(e.message);
+          if(msg==='network'){
+            message='Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
+          } else {
+            message='Вход не удалось проверить. Попробуйте ещё раз.';
+            challenge=null;
+            prepareLogin();
+          }
+        }
         finally { busy=false;notify(); }
         if(engine){await Promise.all([inspect(true),loadPhoto(),loadLeaderboard(),loadAccount()]);}
       });
@@ -529,7 +639,14 @@
     node.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('[data-leaderboard-form]'))leaderDirty=true;if(e.target.matches('[data-profile-file]')){const file=e.target.files[0];e.target.value='';changePhoto(file);}if(e.target.matches('[data-sync-remember]'))remember=e.target.checked;if(e.target.matches('[data-sync-file]')){const file=e.target.files[0];e.target.value='';restore(file);}});
     const checkbox=node.querySelector('[data-sync-remember]');if(checkbox)checkbox.checked=remember;
     window.AT.onCleanup(()=>{listener=null;});notify();
-    if(auth){schedule(0);loadPhoto();loadLeaderboard();loadAccount();}else prepareLogin();
+    if(auth){schedule(0);loadPhoto();loadLeaderboard();loadAccount();}else {
+      prepareLogin();
+      // If we landed here via Telegram redirect, try to finish the login automatically
+      if(window.MedzoTelegramAuthResult){
+        // delay a tick so UI mounts before busy state
+        setTimeout(()=>{ consumeTelegramAuthResult(); }, 300);
+      }
+    }
   }
   function mountLeaderboard(node) {
     if(!node)return;

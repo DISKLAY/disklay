@@ -25,6 +25,20 @@ async function verifyInitData(init,botToken,now){
   const date=Number(params.get('auth_date'));if(!Number.isSafeInteger(date)||date>now+30||now-date>3600)throw new Error('expired');
   return userId(JSON.parse(params.get('user')||'{}').id);
 }
+async function verifyWidgetData(data,botToken,now){
+  if(!data || typeof data!=='object' || Array.isArray(data)) throw new Error('data');
+  const hash=data.hash;
+  if(typeof hash!=='string' || !/^[a-f0-9]{64}$/i.test(hash)) throw new Error('hash');
+  const authDate=Number(data.auth_date);
+  if(!Number.isSafeInteger(authDate) || authDate>now+30 || now - authDate > 86400) throw new Error('expired');
+  // Build data_check_string: sorted keys except hash, as "key=value"
+  const entries=Object.entries(data).filter(([k])=>k!=='hash').sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,v])=>k+'='+String(v));
+  const check=entries.join('\n');
+  const secret=new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(botToken)));
+  const received=Uint8Array.from(hash.match(/../g), x=>parseInt(x,16));
+  if(!equal(await hmac(secret, check), received)) throw new Error('signature');
+  return userId(data.id);
+}
 // Модульный кэш JWKS Telegram: при тёплом старте не ходим за ключами
 // на каждый логин. TTL 5 минут; при ненайденном kid принудительно обновляем
 // один раз (ключи Telegram ротируются).
@@ -128,7 +142,8 @@ function createHandler(env,fetchFn=fetch){return async function(req){
     }
     if(body.action==='login'){
       let id;
-      if(body.initData)id=await verifyInitData(body.initData,bot,now);
+      if(body.widgetData) id=await verifyWidgetData(body.widgetData, bot, now);
+      else if(body.initData)id=await verifyInitData(body.initData,bot,now);
       else{const challenge=await verifyObject(body.nonce,signing,'challenge',now);id=await verifyOidc(body.idToken,body.nonce,match[1],fetchFn,now);const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(body.nonce))),x=>x.toString(16).padStart(2,'0')).join('');const claimed=await db('rpc/medzo_study_claim_nonce',{method:'POST',body:JSON.stringify({p_hash:digest,p_expires:challenge.exp})});if(claimed!==true)throw new Error('nonce_used');}
       const sid=b64u(crypto.getRandomValues(new Uint8Array(32))),expiresAt=now+90*86400;
       const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(sid))),x=>x.toString(16).padStart(2,'0')).join('');
