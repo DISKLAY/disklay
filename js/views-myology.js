@@ -91,10 +91,9 @@
     const empty = view.querySelector('[data-no-results]'); if (empty) empty.hidden = visible > 0;
   }
 
-  /* ---------- Вопросы и теория: весь текст и все рисунки на странице ---------- */
+  /* ---------- Вопросы и теория: конспект прямо под вопросом ---------- */
   const anchored = new Set();
   source.forEach(page => page.blocks.forEach(block => { if (block.type === 'heading' && block.anchor) anchored.add(block.anchor); }));
-  const countAnchored = id => anchored.has(id);
   function markButtons(id) {
     const v = game.state.questions[id];
     return '<div class="myo-rate" aria-label="Самооценка"><button type="button" data-myo-rate="' + id + '" data-value="known" aria-pressed="' + (v === 'known') + '">Знаю</button><button type="button" data-myo-rate="' + id + '" data-value="again" aria-pressed="' + (v === 'again') + '">Повторить</button></div>';
@@ -102,21 +101,72 @@
   function statusHint(q) {
     return ({ 'heading-only': 'В источнике только заголовок', diagram: 'В источнике — схема', external: 'В источнике — отсылка к meduniver', partial: 'В источнике материал частичный' })[q.sourceStatus] || '';
   }
+  // Собираем секции по вопросам: от заголовка-вопроса до следующего заголовка-вопроса.
+  // Баннеры перед заголовком относим к следующему вопросу, чтобы «ТОПОГРАФИЯ И ФАСЦИИ» не терялась.
+  function buildSourceSections() {
+    const map = new Map();
+    let cur = null;
+    let pending = [];
+    const flushPending = target => {
+      if (pending.length && target != null) {
+        if (!map.has(target)) map.set(target, []);
+        map.get(target).push(...pending);
+      }
+      pending = [];
+    };
+    for (const page of source) {
+      for (const block of page.blocks) {
+        if (block.type === 'heading' && block.anchor) {
+          // баннеры, накопившиеся перед этим заголовком — к нему
+          flushPending(block.anchor);
+          cur = block.anchor;
+          if (!map.has(cur)) map.set(cur, []);
+          map.get(cur).push(block);
+        } else if (block.type === 'banner') {
+          // откладываем баннер до следующего вопроса
+          pending.push(block);
+        } else {
+          if (cur == null) {
+            // контент до первого вопроса — пропускаем (обложка уже исключена)
+            continue;
+          }
+          // если был отложенный баннер без последующего заголовка на той же странице,
+          // а сейчас идёт обычный текст — баннер относится к текущему вопросу
+          if (pending.length) {
+            map.get(cur).push(...pending);
+            pending = [];
+          }
+          map.get(cur).push(block);
+        }
+      }
+    }
+    // оставшиеся баннеры в конце — к последнему вопросу
+    if (pending.length && cur != null) {
+      map.get(cur).push(...pending);
+    }
+    return map;
+  }
+  const sourceSections = buildSourceSections();
+  // heading вопроса внутри самого вопроса дублирует summary — не рендерим повторно
+  function isOwnHeading(block, questionId) {
+    return block.type === 'heading' && block.anchor === questionId;
+  }
   function questionsView() {
-    return '<section class="myo-panel"><div class="myo-title-row"><div><h2>Вопросы по миологии</h2></div></div><label class="myo-search"><span>Найти вопрос</span><input type="search" data-myo-question-search placeholder="Название или номер"></label><div class="myo-list">' + data.questions.map(q => '<details class="myo-question" data-question="' + q.id + '"><summary><span>№ ' + q.id + '</span> ' + esc(q.text) + '</summary><div class="myo-question-body">' + (countAnchored(q.id) ? '<button type="button" class="btn btn--ghost btn--sm" data-scroll-to="myology-q-' + q.id + '">К материалу ↓</button>' : '') + markButtons(q.id) + '</div>' + (statusHint(q) ? '<p class="myo-question-note">' + statusHint(q) + '</p>' : '') + '</details>').join('') + '</div><p data-myo-question-empty hidden>Ничего не найдено.</p></section>' +
-      '<section class="myo-panel myo-theory"><div class="myo-source">' + sourceHtml() + '</div></section>';
+    return '<section class="myo-panel"><div class="myo-title-row"><div><h2>Вопросы по миологии</h2></div></div><label class="myo-search"><span>Найти вопрос</span><input type="search" data-myo-question-search placeholder="Название или номер"></label><div class="myo-list">' + data.questions.map(q => {
+      const blocks = sourceSections.get(q.id) || [];
+      const inner = blocks.filter(b => !isOwnHeading(b, q.id));
+      const sourceHtmlInline = inner.length
+        ? inner.map(blockHtml).join('')
+        : '<p class="muted">В конспекте для этого вопроса только заголовок.</p>';
+      return '<details class="myo-question" data-question="' + q.id + '"><summary><span>№ ' + q.id + '</span> ' + esc(q.text) + '</summary><div class="myo-question-body">' + markButtons(q.id) + '</div>' + (statusHint(q) ? '<p class="myo-question-note">' + statusHint(q) + '</p>' : '') + '<div class="myo-question-source">' + sourceHtmlInline + '</div></details>';
+    }).join('') + '</div><p data-myo-question-empty hidden>Ничего не найдено.</p></section>';
   }
   function blockHtml(block) {
-    if (block.type === 'heading') return '<h3 class="myo-q-heading" id="myology-q-' + block.anchor + '" tabindex="-1">' + esc(block.text) + '</h3>';
+    if (block.type === 'heading') return '<h3 class="myo-q-heading">' + esc(block.text) + '</h3>';
     if (block.type === 'banner') return '<h4 class="myo-banner">' + esc(block.text) + '</h4>';
     if (block.type === 'table') return '<div class="myo-table"><h4>' + esc(block.caption) + '</h4>' + block.rows.map(row => '<dl class="myo-table__row">' + row.map((cell, i) => cell ? '<div><dt>' + esc(block.headers[i] || '') + '</dt><dd>' + esc(cell) + '</dd></div>' : '').join('') + '</dl>').join('') + '</div>';
-    if (block.type === 'figure') return '<figure class="myo-figure"><img src="' + esc(block.file) + '" alt="' + esc(block.alt) + '" loading="lazy" width="' + block.width + '" height="' + block.height + '"></figure>';
+    if (block.type === 'figure') return '<figure class="myo-figure"><button type="button" class="myo-figure__btn" data-myo-zoom="' + esc(block.file) + '" data-myo-zoom-alt="' + esc(block.alt) + '" aria-label="Увеличить: ' + esc(block.alt) + '"><img src="' + esc(block.file) + '" alt="' + esc(block.alt) + '" loading="lazy" width="' + block.width + '" height="' + block.height + '"></button></figure>';
     return '<p>' + esc(block.text) + '</p>';
-  }
-  // Без служебных подписей «Стр. N»: страница исходника остаётся в разметке
-  // только как технический ориентир, а не как лишняя надпись на экране.
-  function sourceHtml() {
-    return source.map(section => '<div data-source-page="' + section.page + '">' + section.blocks.map(blockHtml).join('') + '</div>').join('');
   }
   AT.views.myology = function (params) {
     const section = ['skills', 'questions'].includes(params.section) ? params.section : 'skills';
@@ -157,15 +207,42 @@
         if (available) { available.replaceChildren('Доступно: '); const strong = document.createElement('strong'); strong.textContent = count; available.append(strong); if (state.sequence === 'ordered' && state.limit && count > state.limit) available.append(' · первые ' + state.limit); }
         const startButton = view.querySelector('[data-ps="start"]'); if (startButton) startButton.disabled = !count;
       }
+      // Совместимость со старыми ссылками #myology-q-14 — открыть вопрос
+      if (section === 'questions') {
+        const m = (location.hash || '').match(/myology-q-(\d+)/);
+        if (m) {
+          const details = view.querySelector('[data-question="' + Number(m[1]) + '"]');
+          if (details) { details.open = true; setTimeout(() => details.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); }
+        }
+      }
       if (section === 'skills' && screen === 'setup') syncSearch(view);
       async function start(sectionId) {
         const s = game.state.session;
         if (s && !s.finished) { const ok = await AT.ui.confirmDialog({ title: 'Начать новую подборку?', text: 'Текущая подборка будет заменена. Уже выставленные оценки и избранное сохранятся.', confirm: 'Начать' }); if (!ok) return; }
         if (sectionId ? game.startSection(sectionId) : game.start()) { screen = 'run'; AT.rerender(); jumpTop(); warn(); }
       }
+      function openMyoViewer(src, alt) {
+        let dlg = document.getElementById('myoImageViewer');
+        if (dlg) dlg.remove();
+        dlg = document.createElement('dialog');
+        dlg.id = 'myoImageViewer';
+        dlg.className = 'myo-viewer';
+        dlg.innerHTML = '<div class="myo-viewer__head"><span>' + esc(alt || 'Изображение') + '</span><button type="button" class="btn btn--ghost btn--sm" data-myo-viewer-close>Закрыть</button></div><img src="' + esc(src) + '" alt="' + esc(alt || '') + '"><p class="muted small" style="margin:10px 0 0">Нажмите вне картинки или Esc, чтобы закрыть</p>';
+        dlg.addEventListener('click', e => {
+          if (e.target === dlg || e.target.closest('[data-myo-viewer-close]')) dlg.close();
+        });
+        dlg.addEventListener('close', () => dlg.remove());
+        document.body.appendChild(dlg);
+        if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+        dlg.querySelector('[data-myo-viewer-close]')?.focus();
+      }
       view.addEventListener('click', async event => {
-        const scroll = event.target.closest('[data-scroll-to]');
-        if (scroll) { event.preventDefault(); const target = view.querySelector('#' + scroll.dataset.scrollTo); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); target.focus({ preventScroll: true }); } return; }
+        const zoom = event.target.closest('[data-myo-zoom]');
+        if (zoom) {
+          event.preventDefault();
+          openMyoViewer(zoom.dataset.myoZoom, zoom.dataset.myoZoomAlt || zoom.getAttribute('aria-label') || '');
+          return;
+        }
         const trigger = event.target.closest('[data-picker-trigger]');
         if (trigger) { const pickerEl = trigger.closest('[data-picker]'), wasOpen = trigger.getAttribute('aria-expanded') === 'true'; closeMenus(); if (!wasOpen) { if (pickerEl.dataset.picker === 'group') groupMenuOpen = true; trigger.setAttribute('aria-expanded', 'true'); pickerEl.querySelector('.ps-picker__menu').hidden = false; } return; }
         const opt = event.target.closest('[data-ps-option]');
