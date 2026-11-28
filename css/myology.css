@@ -18,15 +18,26 @@
 .myo-question summary span { color: var(--muted); }
 .myo-question-body { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .myo-question-note { margin: 10px 0 0; color: var(--muted); font-size: .82rem; }
+.myo-question-source { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); line-height: 1.65; color: var(--text-2); }
+.myo-question-source p { margin: 10px 0; }
+.myo-question-source .myo-figure { margin: 14px auto; }
+.myo-question-source .myo-table { margin: 14px 0; }
+.myo-figure__btn { display: block; width: 100%; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: zoom-in; }
+.myo-figure__btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.myo-figure__btn img { transition: opacity .15s; }
+.myo-figure__btn:hover img { opacity: .92; }
+.myo-viewer { max-width: min(96vw, 1100px); width: fit-content; margin: auto; padding: 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,.35)); }
+.myo-viewer::backdrop { background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+.myo-viewer__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-weight: 700; }
+.myo-viewer img { display: block; max-width: min(92vw, 1024px); max-height: 78vh; width: auto; height: auto; border-radius: 10px; background: #fff; }
 .myo-rate { display: flex; flex-wrap: wrap; gap: 8px; }
 .myo-rate button { min-height: 40px; padding: 9px 14px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text-2); font: inherit; font-weight: 700; cursor: pointer; }
 .myo-rate button[aria-pressed="true"] { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-border); }
-/* Теория: перенесённый текст конспекта */
+/* Теория: конспект внутри вопроса (myo-question-source) + legacy myo-source для совместимости */
 .myo-theory > p { max-width: 80ch; }
 .myo-source { line-height: 1.65; color: var(--text-2); margin-top: 18px; }
 .myo-source p { margin: 10px 0; }
-.myo-q-heading { scroll-margin-top: 84px; margin: 26px 0 12px; padding-top: 6px; font-size: 1.08rem; line-height: 1.45; color: var(--text); border-top: 1px solid var(--border); padding-top: 18px; }
-.myo-q-heading:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+.myo-q-heading { scroll-margin-top: 84px; margin: 18px 0 10px; font-size: 1rem; line-height: 1.45; color: var(--text); }
 .myo-q-heading:focus { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
 .myo-banner { margin: 24px 0 10px; font-size: .82rem; letter-spacing: .12em; color: var(--primary); }
 .myo-figure { margin: 16px auto; max-width: min(100%, 720px); }
